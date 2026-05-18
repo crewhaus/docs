@@ -173,7 +173,7 @@ You're here to learn the shape of the system, not to ship a PR.
 
 - **Read:** the three pillars (CLAUDE.md), then [AI-Harness-Systems.md](AI-Harness-Systems.md), then [COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md).
 - **Then:** [GETTING-STARTED.md](https://github.com/crewhaus/demos/blob/main/GETTING-STARTED.md) — run the hello-cli example, read the generated `agent.ts`. About fifty lines, no surprises.
-- **Then:** browse [recipes/](recipes/INDEX.md) — task-oriented walkthroughs that show the catalog in action.
+- **Then:** browse [recipes/](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md) — task-oriented walkthroughs that show the catalog in action.
 - **Last:** come back here, scan the [layer index](#layer-index), and follow the cross-links into module-briefs for the modules that interest you.
 
 ---
@@ -758,7 +758,7 @@ End-to-end tests for the catalog itself (independent of any single module):
 - **One-page brief per module** — [module-briefs/](module-briefs/README.md). The briefs continue the catalog by turning rows into per-module purpose / boundary / inputs-outputs / first-slice / validation plan.
 - **Implementation status & v1.3 backlog** — [MODULE-CATALOG-STATUS.md](MODULE-CATALOG-STATUS.md).
 - **Section-by-section history with PR refs** — [build-roadmap.md](build-roadmap.md).
-- **Task-oriented walkthroughs** — [recipes/](recipes/INDEX.md). Start with [01-cli-coding-agent](https://github.com/crewhaus/demos/blob/main/recipes/01-cli-coding-agent.md), then jump to the recipe most relevant to your reading path.
+- **Task-oriented walkthroughs** — [recipes/](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md). Start with [01-cli-coding-agent](https://github.com/crewhaus/demos/blob/main/recipes/01-cli-coding-agent.md), then jump to the recipe most relevant to your reading path.
 - **First-time setup** — [GETTING-STARTED.md](https://github.com/crewhaus/demos/blob/main/GETTING-STARTED.md).
 
 ---
