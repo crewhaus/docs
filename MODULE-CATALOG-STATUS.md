@@ -2,7 +2,7 @@
 
 This document tracks **what's built, what's in flight, and what's deferred** across the catalog. It complements [MODULE-CATALOG.md](MODULE-CATALOG.md), which describes the catalog's shape and is intended for navigation, not for ticket-tracking.
 
-If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE-CATALOG.md) or [module-briefs/](module-briefs/README.md). If you want roadmap commitments and section-by-section history, go to [build-roadmap.md](../operations/build-roadmap.md). This document sits between them: a single-glance status board.
+If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE-CATALOG.md) or [module-briefs/](module-briefs/README.md). If you want roadmap commitments and section-by-section history, go to [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). This document sits between them: a single-glance status board.
 
 ---
 
@@ -77,7 +77,7 @@ Sections 1–40 are closed. The build-roadmap is the section-by-section authorit
 | §39 | v1.2 — compliance hardening | pii-redactor, audit-encryption, data-retention-engine, compliance-controls + `crewhaus compliance evidence` CLI |
 | §40 | v1.2 — template marketplace | template-registry, template-marketplace-client, example-corpus CI matrix gate |
 
-For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](../operations/build-roadmap.md).
+For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md).
 
 ---
 
@@ -185,5 +185,5 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 
 - **Architectural shape of the catalog** — [MODULE-CATALOG.md](MODULE-CATALOG.md)
 - **One-page brief per module** — [module-briefs/](module-briefs/README.md)
-- **Section-by-section history with PR refs** — [build-roadmap.md](../operations/build-roadmap.md)
+- **Section-by-section history with PR refs** — [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md)
 - **Task-oriented walkthroughs** — [recipes/](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md)
