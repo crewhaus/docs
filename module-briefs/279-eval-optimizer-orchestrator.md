@@ -2,7 +2,7 @@
 
 **Catalog layer:** F-eval.
 **Pillar:** Pillar 2 — closes the active optimisation loop.
-**Source:** [`packages/eval-optimizer-orchestrator/src/index.ts`](../../packages/eval-optimizer-orchestrator/src/index.ts).
+**Source:** [`packages/eval-optimizer-orchestrator/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/eval-optimizer-orchestrator/src/index.ts).
 
 ## Responsibility
 

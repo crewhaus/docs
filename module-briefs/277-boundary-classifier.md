@@ -2,7 +2,7 @@
 
 **Catalog layer:** R8 (safety). Extends §18 (the `prompt-injection-detector` primitive).
 **Pillar:** Pillar 3 — security is a fabric, not a perimeter.
-**Source:** [`packages/boundary-classifier/src/index.ts`](../../packages/boundary-classifier/src/index.ts).
+**Source:** [`packages/boundary-classifier/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/boundary-classifier/src/index.ts).
 
 ## Responsibility
 
@@ -58,13 +58,13 @@ export { buildRedactionNotice };                // re-exported for consistent co
 
 | Site | Origin | Caller |
 |---|---|---|
-| MCP tool responses | `"mcp"` | [`packages/tool-mcp/src/index.ts`](../../packages/tool-mcp/src/index.ts) |
-| Sub-agent `finalMessage` | `"subagent"` | [`packages/sub-agent-spawner/src/index.ts`](../../packages/sub-agent-spawner/src/index.ts) |
-| Skill bodies (lazy load) | `"skill"` | [`packages/skills-registry/src/index.ts`](../../packages/skills-registry/src/index.ts) |
-| Compaction summaries | `"compaction"` | [`packages/compaction-autocompact/src/index.ts`](../../packages/compaction-autocompact/src/index.ts) |
-| Tool results (post-tool path) | `"tool"` | [`packages/runtime-core/src/index.ts:867`](../../packages/runtime-core/src/index.ts) — `applyInjectionClassification` (still in place; can be refactored to delegate to `classifyBoundary` for full single-chokepoint compliance — follow-up) |
+| MCP tool responses | `"mcp"` | [`packages/tool-mcp/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/tool-mcp/src/index.ts) |
+| Sub-agent `finalMessage` | `"subagent"` | [`packages/sub-agent-spawner/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/sub-agent-spawner/src/index.ts) |
+| Skill bodies (lazy load) | `"skill"` | [`packages/skills-registry/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/skills-registry/src/index.ts) |
+| Compaction summaries | `"compaction"` | [`packages/compaction-autocompact/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/compaction-autocompact/src/index.ts) |
+| Tool results (post-tool path) | `"tool"` | [`packages/runtime-core/src/index.ts:867`](https://github.com/crewhaus/factory/blob/main/packages/runtime-core/src/index.ts) — `applyInjectionClassification` (still in place; can be refactored to delegate to `classifyBoundary` for full single-chokepoint compliance — follow-up) |
 | Inbound channel text | `"channel"` | `packages/channel-adapter-*` (deferred to follow-up) |
-| Federation peer payloads | `"federation"` | [`packages/federation-router`](../../packages/federation-router) (deferred to follow-up) |
+| Federation peer payloads | `"federation"` | [`packages/federation-router`](https://github.com/crewhaus/factory/tree/main/packages/federation-router) (deferred to follow-up) |
 
 ## Boundary semantics
 
