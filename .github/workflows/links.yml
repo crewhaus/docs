@@ -1,0 +1,47 @@
+name: Link Checker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**.md"
+      - ".lycheeignore"
+      - ".github/workflows/links.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.md"
+      - ".lycheeignore"
+      - ".github/workflows/links.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    name: Link Checker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore lychee cache
+        uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: cache-lychee-${{ github.sha }}
+          restore-keys: cache-lychee-
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >-
+            --cache
+            --max-cache-age 1d
+            --no-progress
+            --max-concurrency 4
+            --accept 200,206,429
+            --exclude '^https?://github\.com/crewhaus/'
+            './**/*.md'
+          fail: true

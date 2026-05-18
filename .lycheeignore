@@ -1,0 +1,5 @@
+# Third-party reference checkouts (dspy, langgraph, haystack, claude-code,
+# openclaw, ragas, openai-agents-python, lm-evaluation-harness, agent-framework)
+# are a local-dev convention that lives outside this repo. PR #1 documented
+# these as intentionally left as relative paths.
+^.*reference-repos/.*$
