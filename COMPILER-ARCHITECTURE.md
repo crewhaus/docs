@@ -114,7 +114,7 @@ Then register the emitter in `emit()` at [packages/compiler/src/index.ts:502](ht
 - Add a recipe to [docs/recipes/](https://github.com/crewhaus/demos/tree/main/recipes) and reserve its slot in [docs/recipes/INDEX.md](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md).
 - Add an example under [examples/hello-<target>/](https://github.com/crewhaus/demos/tree/main/examples) with a `crewhaus.yaml` and a smoke script in [scripts/](../scripts).
 - Add a row to the IR-variant table above so future contributors can find your target the same way they find the existing ones.
-- Add a section to [docs/build-roadmap.md](build-roadmap.md) annotated with `IR variant: Ir<Target>V0 · Catalog layer: F2 · Compiler stage: emit`.
+- Add a section to [operations/build-roadmap.md](../operations/build-roadmap.md) annotated with `IR variant: Ir<Target>V0 · Catalog layer: F2 · Compiler stage: emit`.
 
 ## Adding an IR-level optimisation pass
 
@@ -211,7 +211,7 @@ The lossy lower has predictable consequences when you inspect the IR with `crewh
 - **A sub-agent map became an array.** Spec-level `subAgents: { researcher: …, fact_checker: … }` becomes `subAgents: [{name: "fact_checker", …}, {name: "researcher", …}]` in the IR — alphabetised by name. The index position is not a stable id.
 - **Optimisable fields keep their source order.** `agent.instructions`, `compaction.threshold`, the `OPTIMIZABLE_PATHS` set above — these are 1:1 between spec and IR by design, because they're the surface the optimizer is allowed to patch. If a field is in `OPTIMIZABLE_PATHS`, its IR position is its spec position.
 
-The corollary: when a runtime trace event names a tool (`toolName: "Write"`) or a rule pattern, the bridge back to your YAML is the **field name**, not the line number. [docs/GETTING-STARTED.md § Tracing a request across YAML, IR, and trace](https://github.com/crewhaus/demos/blob/main/GETTING-STARTED.md#tracing-a-request-across-yaml-ir-and-trace) walks two concrete scenarios end-to-end.
+The corollary: when a runtime trace event names a tool (`toolName: "Write"`) or a rule pattern, the bridge back to your YAML is the **field name**, not the line number. [GETTING-STARTED.md § Tracing a request across YAML, IR, and trace](GETTING-STARTED.md#tracing-a-request-across-yaml-ir-and-trace) walks two concrete scenarios end-to-end.
 
 ## What lives where, summarised
 
