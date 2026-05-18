@@ -1,6 +1,6 @@
 # prompt-optimizer
 
-Status: shipped (rule-based search v0). The model-driven mutation provider lives in [`prompt-optimizer-claude`](280-prompt-optimizer-claude.md) (brief 280); the orchestration that closes the active-optimisation loop lives in [`eval-optimizer-orchestrator`](279-eval-optimizer-orchestrator.md) (brief 279). User-facing entry: [`crewhaus optimize`](../../apps/cli/src/index.ts) ([recipe 42](../recipes/42-active-optimization.md)).
+Status: shipped (rule-based search v0). The model-driven mutation provider lives in [`prompt-optimizer-claude`](280-prompt-optimizer-claude.md) (brief 280); the orchestration that closes the active-optimisation loop lives in [`eval-optimizer-orchestrator`](279-eval-optimizer-orchestrator.md) (brief 279). User-facing entry: [`crewhaus optimize`](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts) ([recipe 42](https://github.com/crewhaus/demos/blob/main/recipes/42-active-optimization.md)).
 Dependency phase: 9 - Telemetry & eval
 Catalog layer: R15 - Telemetry, Tracing, Eval
 Origin in ordering: named in Part G

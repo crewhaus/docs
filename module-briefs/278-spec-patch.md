@@ -2,7 +2,7 @@
 
 **Catalog layer:** F2 (compiler periphery).
 **Pillar:** Pillar 2 — eval is active. The structured-mutation primitive the optimiser uses.
-**Source:** [`packages/spec-patch/src/index.ts`](../../packages/spec-patch/src/index.ts).
+**Source:** [`packages/spec-patch/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/spec-patch/src/index.ts).
 
 ## Responsibility
 

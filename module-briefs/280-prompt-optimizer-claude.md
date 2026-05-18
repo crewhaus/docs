@@ -2,7 +2,7 @@
 
 **Catalog layer:** F-eval.
 **Pillar:** Pillar 2 — the model-driven `MutationProvider`.
-**Source:** [`packages/prompt-optimizer-claude/src/index.ts`](../../packages/prompt-optimizer-claude/src/index.ts).
+**Source:** [`packages/prompt-optimizer-claude/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/prompt-optimizer-claude/src/index.ts).
 
 ## Responsibility
 

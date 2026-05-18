@@ -166,8 +166,8 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 ## Cross-cutting hardening notes
 
 - **`tool-code-execution`** runs in `sandbox` with network=none / read-only-root defaults (since §18). `tool-bash` (R4) still operates at host trust level by design — it's the operator-controlled escape hatch. Any production EVAL or MGD deployment running untrusted samples should prefer `Python` / `JavaScript` / `Shell` (sandboxed) over `Bash` (host).
-- **Boundary classifier** (`@crewhaus/boundary-classifier`) is the single chokepoint for untrusted content ingestion — see [Pillar 3 in CLAUDE.md](../CLAUDE.md). Every site that pulls externally-controlled content into the model's context must classify before injecting.
-- **Eval-driven mutations** must patch the *spec*, not the IR — see [Pillar 2 in CLAUDE.md](../CLAUDE.md). `lower()` does destructive normalization that can't round-trip.
+- **Boundary classifier** (`@crewhaus/boundary-classifier`) is the single chokepoint for untrusted content ingestion — see [Pillar 3 in CLAUDE.md](https://github.com/crewhaus/factory/blob/main/CLAUDE.md). Every site that pulls externally-controlled content into the model's context must classify before injecting.
+- **Eval-driven mutations** must patch the *spec*, not the IR — see [Pillar 2 in CLAUDE.md](https://github.com/crewhaus/factory/blob/main/CLAUDE.md). `lower()` does destructive normalization that can't round-trip.
 
 ---
 
@@ -186,4 +186,4 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 - **Architectural shape of the catalog** — [MODULE-CATALOG.md](MODULE-CATALOG.md)
 - **One-page brief per module** — [module-briefs/](module-briefs/README.md)
 - **Section-by-section history with PR refs** — [build-roadmap.md](build-roadmap.md)
-- **Task-oriented walkthroughs** — [recipes/](recipes/INDEX.md)
+- **Task-oriented walkthroughs** — [recipes/](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md)
