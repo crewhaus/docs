@@ -5,10 +5,10 @@
 >
 > If you only have five minutes, jump to **[Your first agent in 60 seconds](#your-first-agent-in-60-seconds)**.
 >
-> The examples below live in this repo (`demos/`). The compiler and runtime
-> packages live in the sibling [crewhaus/factory](https://github.com/crewhaus/factory) repo, which `bun install`
-> doesn't fetch — clone it next to this directory so the `compile:*` scripts
-> can find the CLI at `../factory/apps/cli/src/index.ts`.
+> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo
+> (clone it next to this one). The compiler and runtime packages live in
+> [crewhaus/factory](https://github.com/crewhaus/factory) — clone that as a sibling too so the `compile:*`
+> scripts in demos can find the CLI at `../factory/apps/cli/src/index.ts`.
 
 ---
 
@@ -116,7 +116,7 @@ bun run compile:hello   # writes hello-cli/dist/agent.ts
 bun run run:hello       # opens an interactive REPL — type, get streaming reply, type "exit" to quit
 ```
 
-That's the whole loop. The 5-line spec [`hello-cli/crewhaus.yaml`](hello-cli/crewhaus.yaml)
+That's the whole loop. The 5-line spec [`hello-cli/crewhaus.yaml`](https://github.com/crewhaus/demos/blob/main/hello-cli/crewhaus.yaml)
 became a real, runnable agent. Open the generated `hello-cli/dist/agent.ts`
 and read it — it's about fifty lines, no surprises.
 
@@ -131,7 +131,7 @@ and read it — it's about fifty lines, no surprises.
 
 `target:` in your spec picks the shape. Each shape has its own minimal
 example under `hello-*/` and a recipe under
-[`recipes/`](recipes/) that walks you through using it for real.
+[`recipes/`](https://github.com/crewhaus/demos/tree/main/recipes/) that walks you through using it for real.
 
 ### Pick your target — a short funnel
 
@@ -141,10 +141,10 @@ is the right next read. Pick one and skip the rest until you need it:
 
 | You want to build…                                              | Start here                                                                                | Then come back for                                                |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **A local chat agent / coding companion** (laptop, dev, CI)     | [Recipe 01 — CLI Coding Agent](recipes/01-cli-coding-agent.md)                            | tools, permissions, MCP — section 10 below                        |
-| **A bot that lives in a chat product** (Slack / Telegram / …)   | [Recipe 03 — Slack Bot](recipes/03-slack-bot.md) (Telegram/Discord/WhatsApp/iMessage at 37–40) | inbound classification — section 5 above + Recipe 41              |
-| **A deterministic multi-step pipeline** (extract → transform → write) | [Recipe 02 — Sequential Workflow](recipes/02-sequential-workflow.md)                      | hooks + observability — Recipes 14 + 17                           |
-| **A RAG / document-Q&A agent**                                  | [Recipe 06 — RAG Pipeline](recipes/06-rag-pipeline.md)                                    | eval-driven prompt tuning — Recipe 42                             |
+| **A local chat agent / coding companion** (laptop, dev, CI)     | [Recipe 01 — CLI Coding Agent](https://github.com/crewhaus/demos/blob/main/recipes/01-cli-coding-agent.md)                            | tools, permissions, MCP — section 10 below                        |
+| **A bot that lives in a chat product** (Slack / Telegram / …)   | [Recipe 03 — Slack Bot](https://github.com/crewhaus/demos/blob/main/recipes/03-slack-bot.md) (Telegram/Discord/WhatsApp/iMessage at 37–40) | inbound classification — section 5 above + Recipe 41              |
+| **A deterministic multi-step pipeline** (extract → transform → write) | [Recipe 02 — Sequential Workflow](https://github.com/crewhaus/demos/blob/main/recipes/02-sequential-workflow.md)                      | hooks + observability — Recipes 14 + 17                           |
+| **A RAG / document-Q&A agent**                                  | [Recipe 06 — RAG Pipeline](https://github.com/crewhaus/demos/blob/main/recipes/06-rag-pipeline.md)                                    | eval-driven prompt tuning — Recipe 42                             |
 
 **Pick `cli` first if you're unsure.** Every other shape adds something
 on top of the chat loop, so `cli` is the right shape for learning the
@@ -161,18 +161,18 @@ it.
 
 | `target:`     | What it is                                               | Smallest example                                                          | Recipe                                                                                       |
 | ------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **`cli`**     | Streaming chat REPL. Tools, MCP, hooks, slash commands.  | [`hello-cli`](hello-cli/crewhaus.yaml)               | [recipes/01-cli-coding-agent.md](recipes/01-cli-coding-agent.md)                             |
-| **`workflow`**| Sequential steps; each step's output feeds the next.     | [`hello-workflow`](hello-workflow/crewhaus.yaml)     | [recipes/02-sequential-workflow.md](recipes/02-sequential-workflow.md)                       |
-| **`channel`** | Long-running daemon for Slack / Discord / Telegram / WhatsApp / iMessage. | [`hello-channel`](hello-channel/crewhaus.yaml) | [recipes/03-slack-bot.md](recipes/03-slack-bot.md)                                           |
-| **`crew`**    | Multiple roles, structured handoffs, peer messaging.     | [`hello-crew`](hello-crew/crewhaus.yaml)             | [recipes/04-multi-agent-crew.md](recipes/04-multi-agent-crew.md)                             |
-| **`graph`**   | Stateful nodes + edges, checkpointing, HITL pauses.      | [`hello-graph`](hello-graph/crewhaus.yaml)           | [recipes/05-stateful-graph.md](recipes/05-stateful-graph.md)                                 |
-| **`pipeline`**| RAG-style component DAG with retrieval.                  | [`hello-rag`](hello-rag/crewhaus.yaml)               | [recipes/06-rag-pipeline.md](recipes/06-rag-pipeline.md)                                     |
-| **`research`**| Long-horizon goal decomposition with citations.          | [`hello-research`](hello-research/crewhaus.yaml)     | [recipes/07-autonomous-research.md](recipes/07-autonomous-research.md)                       |
-| **`batch`**   | Queue consumer; one turn per pulled job.                 | [`hello-batch`](hello-batch/crewhaus.yaml)           | [recipes/08-batch-worker.md](recipes/08-batch-worker.md)                                     |
-| **`voice`**   | Realtime audio with VAD + barge-in.                      | [`hello-voice`](hello-voice/crewhaus.yaml)           | [recipes/09-voice-agent.md](recipes/09-voice-agent.md)                                       |
-| **`browser`** | Computer-use agent (chromium + click/type/screenshot).   | [`hello-browser`](hello-browser/crewhaus.yaml)       | [recipes/10-browser-agent.md](recipes/10-browser-agent.md)                                   |
-| **`managed`** | Multi-tenant gateway daemon with per-tenant budgets and audit. | [`hello-managed`](hello-managed/crewhaus.yaml) | [recipes/11-managed-multitenant.md](recipes/11-managed-multitenant.md)                       |
-| **`eval`**    | Benchmark harness — dataset + graders + report.          | [`hello-eval`](hello-eval/crewhaus.yaml)             | [recipes/12-eval-harness.md](recipes/12-eval-harness.md)                                     |
+| **`cli`**     | Streaming chat REPL. Tools, MCP, hooks, slash commands.  | [`hello-cli`](https://github.com/crewhaus/demos/blob/main/hello-cli/crewhaus.yaml)               | [recipes/01-cli-coding-agent.md](https://github.com/crewhaus/demos/blob/main/recipes/01-cli-coding-agent.md)                             |
+| **`workflow`**| Sequential steps; each step's output feeds the next.     | [`hello-workflow`](https://github.com/crewhaus/demos/blob/main/hello-workflow/crewhaus.yaml)     | [recipes/02-sequential-workflow.md](https://github.com/crewhaus/demos/blob/main/recipes/02-sequential-workflow.md)                       |
+| **`channel`** | Long-running daemon for Slack / Discord / Telegram / WhatsApp / iMessage. | [`hello-channel`](https://github.com/crewhaus/demos/blob/main/hello-channel/crewhaus.yaml) | [recipes/03-slack-bot.md](https://github.com/crewhaus/demos/blob/main/recipes/03-slack-bot.md)                                           |
+| **`crew`**    | Multiple roles, structured handoffs, peer messaging.     | [`hello-crew`](https://github.com/crewhaus/demos/blob/main/hello-crew/crewhaus.yaml)             | [recipes/04-multi-agent-crew.md](https://github.com/crewhaus/demos/blob/main/recipes/04-multi-agent-crew.md)                             |
+| **`graph`**   | Stateful nodes + edges, checkpointing, HITL pauses.      | [`hello-graph`](https://github.com/crewhaus/demos/blob/main/hello-graph/crewhaus.yaml)           | [recipes/05-stateful-graph.md](https://github.com/crewhaus/demos/blob/main/recipes/05-stateful-graph.md)                                 |
+| **`pipeline`**| RAG-style component DAG with retrieval.                  | [`hello-rag`](https://github.com/crewhaus/demos/blob/main/hello-rag/crewhaus.yaml)               | [recipes/06-rag-pipeline.md](https://github.com/crewhaus/demos/blob/main/recipes/06-rag-pipeline.md)                                     |
+| **`research`**| Long-horizon goal decomposition with citations.          | [`hello-research`](https://github.com/crewhaus/demos/blob/main/hello-research/crewhaus.yaml)     | [recipes/07-autonomous-research.md](https://github.com/crewhaus/demos/blob/main/recipes/07-autonomous-research.md)                       |
+| **`batch`**   | Queue consumer; one turn per pulled job.                 | [`hello-batch`](https://github.com/crewhaus/demos/blob/main/hello-batch/crewhaus.yaml)           | [recipes/08-batch-worker.md](https://github.com/crewhaus/demos/blob/main/recipes/08-batch-worker.md)                                     |
+| **`voice`**   | Realtime audio with VAD + barge-in.                      | [`hello-voice`](https://github.com/crewhaus/demos/blob/main/hello-voice/crewhaus.yaml)           | [recipes/09-voice-agent.md](https://github.com/crewhaus/demos/blob/main/recipes/09-voice-agent.md)                                       |
+| **`browser`** | Computer-use agent (chromium + click/type/screenshot).   | [`hello-browser`](https://github.com/crewhaus/demos/blob/main/hello-browser/crewhaus.yaml)       | [recipes/10-browser-agent.md](https://github.com/crewhaus/demos/blob/main/recipes/10-browser-agent.md)                                   |
+| **`managed`** | Multi-tenant gateway daemon with per-tenant budgets and audit. | [`hello-managed`](https://github.com/crewhaus/demos/blob/main/hello-managed/crewhaus.yaml) | [recipes/11-managed-multitenant.md](https://github.com/crewhaus/demos/blob/main/recipes/11-managed-multitenant.md)                       |
+| **`eval`**    | Benchmark harness — dataset + graders + report.          | [`hello-eval`](https://github.com/crewhaus/demos/blob/main/hello-eval/crewhaus.yaml)             | [recipes/12-eval-harness.md](https://github.com/crewhaus/demos/blob/main/recipes/12-eval-harness.md)                                     |
 
 ---
 
@@ -235,8 +235,8 @@ WhatsApp / iMessage / federation peers is *untrusted content* even
 after the adapter has cryptographically verified the sender, and the
 recipes for those targets show where to wire the `classifyBoundary`
 fabric call. See
-[Recipe 03 — Slack Bot, Step 6](recipes/03-slack-bot.md#step-6--classify-untrusted-inbound-text-security-primer)
-and [Recipe 41 — Security Fabric](recipes/41-security-fabric.md) once
+[Recipe 03 — Slack Bot, Step 6](https://github.com/crewhaus/demos/blob/main/recipes/03-slack-bot.md#step-6--classify-untrusted-inbound-text-security-primer)
+and [Recipe 41 — Security Fabric](https://github.com/crewhaus/demos/blob/main/recipes/41-security-fabric.md) once
 you reach that target shape.
 
 ### Trust boundaries at a glance
@@ -270,7 +270,7 @@ You don't have to engage with every row of the table on day one;
 the table is here so when a runtime trace says `boundary: mcp,
 action: redact` you know immediately which package made the call.
 
-[Recipe 41 — Security Fabric](recipes/41-security-fabric.md) walks
+[Recipe 41 — Security Fabric](https://github.com/crewhaus/demos/blob/main/recipes/41-security-fabric.md) walks
 two threat scenarios (malicious MCP, poisoned sub-agent) end-to-end
 and is the contributor checklist for adding a new boundary site.
 
@@ -619,7 +619,7 @@ an `alwaysAllow` rule that covers the tool (or set
 `permissions.mode: auto` for allow-by-default behaviour).
 
 The same trace stream is what
-[Recipe 17 — Observability](recipes/17-observability.md) walks
+[Recipe 17 — Observability](https://github.com/crewhaus/demos/blob/main/recipes/17-observability.md) walks
 through in detail; the same events feed `OTEL_EXPORTER_OTLP_ENDPOINT`
 and the vendor exporters.
 
@@ -741,7 +741,7 @@ the system rewrites `agent.instructions` in place. Did it eat your
 comments? Where did the patch land? What did it touch?
 
 **Panel 1 — the spec before the run** (excerpt from
-[`recipes/42-active-optimization.md`](recipes/42-active-optimization.md)):
+[`recipes/42-active-optimization.md`](https://github.com/crewhaus/demos/blob/main/recipes/42-active-optimization.md)):
 
 ```yaml
 # crewhaus.yaml — coding agent for our team
@@ -824,7 +824,7 @@ permissions:
   `OPTIMIZABLE_PATHS` (say `permissions.rules.0.pattern`), the
   orchestrator would have raised `SpecPatchError: path … is not
   listed in OPTIMIZABLE_PATHS for target "cli"` — see
-  [Recipe 42 § What happens if the optimizer targets a structurally volatile field](recipes/42-active-optimization.md)
+  [Recipe 42 § What happens if the optimizer targets a structurally volatile field](https://github.com/crewhaus/demos/blob/main/recipes/42-active-optimization.md)
   for the worked refusal.
 
 The next eval run on the patched YAML shows the new score in its own
@@ -977,15 +977,15 @@ is glob-like: `Bash(git *)`, `Write(**/src/**)`, `Read`.
   `pre-compact`, `pre-slash`, `session-start`, `stop`). They're shell
   commands declared in `.crewhaus/settings.json`; they can `allow`,
   `deny`, or mutate. Useful for sandbox enforcement, audit, custom
-  checks. See [`recipes/14-hooks.md`](recipes/14-hooks.md).
+  checks. See [`recipes/14-hooks.md`](https://github.com/crewhaus/demos/blob/main/recipes/14-hooks.md).
 - **Skills** are markdown files (`SKILL.md`) discovered under
   `~/.crewhaus/skills/` and `<cwd>/.crewhaus/skills/`. The runtime
   exposes a synthetic `Skill(name)` tool; the body loads only when the
-  model invokes it. See [`recipes/15-skills.md`](recipes/15-skills.md).
+  model invokes it. See [`recipes/15-skills.md`](https://github.com/crewhaus/demos/blob/main/recipes/15-skills.md).
 - **Slash commands** are markdown files under `.crewhaus/commands/`
   with `$ARGUMENTS` substitution. `/<name> args` expands at the user
   layer before the model ever sees it. See
-  [`recipes/16-slash-commands.md`](recipes/16-slash-commands.md).
+  [`recipes/16-slash-commands.md`](https://github.com/crewhaus/demos/blob/main/recipes/16-slash-commands.md).
 
 ---
 
@@ -1008,7 +1008,7 @@ streaming reply. Every observability surface is opt-in by env var.
 Sessions and the JSONL event log are written regardless of these flags
 — that's the audit trail, not the live observability layer.
 
-See [`recipes/17-observability.md`](recipes/17-observability.md) for
+See [`recipes/17-observability.md`](https://github.com/crewhaus/demos/blob/main/recipes/17-observability.md) for
 worked examples.
 
 ---
@@ -1061,46 +1061,46 @@ loads the AWS SDK.
 
 The recipes that deal with production are:
 
-- [`recipes/18-multi-provider-fallback.md`](recipes/18-multi-provider-fallback.md) — circuit breakers + fallback model lists.
-- [`recipes/19-rate-limiting-and-budgets.md`](recipes/19-rate-limiting-and-budgets.md) — multi-dimensional token buckets, per-tenant budgets.
-- [`recipes/20-secrets-management.md`](recipes/20-secrets-management.md) — env / file / Vault backends, rotation handlers.
-- [`recipes/21-deployment-and-canary.md`](recipes/21-deployment-and-canary.md) — versioned specs, env pins, canary rollouts.
-- [`recipes/22-compliance-and-audit.md`](recipes/22-compliance-and-audit.md) — SOC 2 / ISO 27001 / HIPAA evidence collection.
-- [`recipes/23-pii-redaction-and-encryption.md`](recipes/23-pii-redaction-and-encryption.md) — audit-log encryption, retention windows.
+- [`recipes/18-multi-provider-fallback.md`](https://github.com/crewhaus/demos/blob/main/recipes/18-multi-provider-fallback.md) — circuit breakers + fallback model lists.
+- [`recipes/19-rate-limiting-and-budgets.md`](https://github.com/crewhaus/demos/blob/main/recipes/19-rate-limiting-and-budgets.md) — multi-dimensional token buckets, per-tenant budgets.
+- [`recipes/20-secrets-management.md`](https://github.com/crewhaus/demos/blob/main/recipes/20-secrets-management.md) — env / file / Vault backends, rotation handlers.
+- [`recipes/21-deployment-and-canary.md`](https://github.com/crewhaus/demos/blob/main/recipes/21-deployment-and-canary.md) — versioned specs, env pins, canary rollouts.
+- [`recipes/22-compliance-and-audit.md`](https://github.com/crewhaus/demos/blob/main/recipes/22-compliance-and-audit.md) — SOC 2 / ISO 27001 / HIPAA evidence collection.
+- [`recipes/23-pii-redaction-and-encryption.md`](https://github.com/crewhaus/demos/blob/main/recipes/23-pii-redaction-and-encryption.md) — audit-log encryption, retention windows.
 
 ### Distribution and ecosystem
 
-- [`recipes/24-docker-and-helm.md`](recipes/24-docker-and-helm.md) — single-binary builds, Docker per shape, Helm chart, Kustomize.
-- [`recipes/25-vscode-and-jetbrains.md`](recipes/25-vscode-and-jetbrains.md) — IDE plugins for spec authoring + run-from-editor.
-- [`recipes/26-template-marketplace.md`](recipes/26-template-marketplace.md) — publishing + installing community templates with sigstore-style signature verification.
-- [`recipes/27-federation.md`](recipes/27-federation.md) — cross-deployment A2A with mTLS.
-- [`recipes/36-cloud-deploy.md`](recipes/36-cloud-deploy.md) — one-click managed deploy to AWS / GCP / Azure / LocalStack.
+- [`recipes/24-docker-and-helm.md`](https://github.com/crewhaus/demos/blob/main/recipes/24-docker-and-helm.md) — single-binary builds, Docker per shape, Helm chart, Kustomize.
+- [`recipes/25-vscode-and-jetbrains.md`](https://github.com/crewhaus/demos/blob/main/recipes/25-vscode-and-jetbrains.md) — IDE plugins for spec authoring + run-from-editor.
+- [`recipes/26-template-marketplace.md`](https://github.com/crewhaus/demos/blob/main/recipes/26-template-marketplace.md) — publishing + installing community templates with sigstore-style signature verification.
+- [`recipes/27-federation.md`](https://github.com/crewhaus/demos/blob/main/recipes/27-federation.md) — cross-deployment A2A with mTLS.
+- [`recipes/36-cloud-deploy.md`](https://github.com/crewhaus/demos/blob/main/recipes/36-cloud-deploy.md) — one-click managed deploy to AWS / GCP / Azure / LocalStack.
 
 ### Going deeper
 
 When you outgrow the basics:
 
-- [`recipes/28-sub-agents-and-task.md`](recipes/28-sub-agents-and-task.md) — spawn isolated sub-agents via the `Task` tool.
-- [`recipes/29-permissions-deep-dive.md`](recipes/29-permissions-deep-dive.md) — the full five-layer rule system.
-- [`recipes/30-sandboxed-code-execution.md`](recipes/30-sandboxed-code-execution.md) — `Python` / `JavaScript` / `Shell` REPL tools in Docker; polyglot images.
-- [`recipes/31-session-resume-and-replay.md`](recipes/31-session-resume-and-replay.md) — resume by id, branch from a checkpoint, replay traces.
-- [`recipes/32-local-models.md`](recipes/32-local-models.md) — Ollama / vLLM / llama.cpp via the `local/<model>@<url>` grammar.
-- [`recipes/33-prompt-caching.md`](recipes/33-prompt-caching.md) — tuning Anthropic `cache_control` rotation.
-- [`recipes/34-building-custom-graders.md`](recipes/34-building-custom-graders.md) — extend the eval system with your own graders.
-- [`recipes/35-studio-walkthrough.md`](recipes/35-studio-walkthrough.md) — using the Studio web UI end to end.
+- [`recipes/28-sub-agents-and-task.md`](https://github.com/crewhaus/demos/blob/main/recipes/28-sub-agents-and-task.md) — spawn isolated sub-agents via the `Task` tool.
+- [`recipes/29-permissions-deep-dive.md`](https://github.com/crewhaus/demos/blob/main/recipes/29-permissions-deep-dive.md) — the full five-layer rule system.
+- [`recipes/30-sandboxed-code-execution.md`](https://github.com/crewhaus/demos/blob/main/recipes/30-sandboxed-code-execution.md) — `Python` / `JavaScript` / `Shell` REPL tools in Docker; polyglot images.
+- [`recipes/31-session-resume-and-replay.md`](https://github.com/crewhaus/demos/blob/main/recipes/31-session-resume-and-replay.md) — resume by id, branch from a checkpoint, replay traces.
+- [`recipes/32-local-models.md`](https://github.com/crewhaus/demos/blob/main/recipes/32-local-models.md) — Ollama / vLLM / llama.cpp via the `local/<model>@<url>` grammar.
+- [`recipes/33-prompt-caching.md`](https://github.com/crewhaus/demos/blob/main/recipes/33-prompt-caching.md) — tuning Anthropic `cache_control` rotation.
+- [`recipes/34-building-custom-graders.md`](https://github.com/crewhaus/demos/blob/main/recipes/34-building-custom-graders.md) — extend the eval system with your own graders.
+- [`recipes/35-studio-walkthrough.md`](https://github.com/crewhaus/demos/blob/main/recipes/35-studio-walkthrough.md) — using the Studio web UI end to end.
 
 ### Channel adapters
 
-The Slack walkthrough at [`recipes/03-slack-bot.md`](recipes/03-slack-bot.md)
+The Slack walkthrough at [`recipes/03-slack-bot.md`](https://github.com/crewhaus/demos/blob/main/recipes/03-slack-bot.md)
 covers the channel-target mental model. Each adapter has its own
 recipe for the channel-specific bits:
 
-- [`recipes/37-channel-telegram.md`](recipes/37-channel-telegram.md)
-- [`recipes/38-channel-discord.md`](recipes/38-channel-discord.md)
-- [`recipes/39-channel-whatsapp.md`](recipes/39-channel-whatsapp.md)
-- [`recipes/40-channel-imessage.md`](recipes/40-channel-imessage.md)
+- [`recipes/37-channel-telegram.md`](https://github.com/crewhaus/demos/blob/main/recipes/37-channel-telegram.md)
+- [`recipes/38-channel-discord.md`](https://github.com/crewhaus/demos/blob/main/recipes/38-channel-discord.md)
+- [`recipes/39-channel-whatsapp.md`](https://github.com/crewhaus/demos/blob/main/recipes/39-channel-whatsapp.md)
+- [`recipes/40-channel-imessage.md`](https://github.com/crewhaus/demos/blob/main/recipes/40-channel-imessage.md)
 
-The full recipe index lives at [`recipes/INDEX.md`](recipes/INDEX.md).
+The full recipe index lives at [`recipes/INDEX.md`](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md).
 
 ### The full module catalog
 
@@ -1133,4 +1133,4 @@ If you hit something not listed here, the JSONL event log under
 ---
 
 **Next:** pick the target shape that matches your problem and walk
-through its recipe under [`recipes/`](recipes/).
+through its recipe under [`recipes/`](https://github.com/crewhaus/demos/tree/main/recipes/).
