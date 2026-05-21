@@ -1,6 +1,6 @@
 # CrewHaus Skill Format
 
-The canonical SKILL.md schema CrewHaus's [`packages/skills-registry`](../factory/packages/skills-registry) parses. The format is forward-compatible with Anthropic's vertical-pack conventions (used in [academic-research-skills](https://github.com/anthropics/academic-research-skills), [claude-for-legal](https://github.com/anthropics/claude-for-legal), [financial-services](https://github.com/anthropics/financial-services), and the broader skills ecosystem) so packs from those repos drop into a CrewHaus skills directory without translation.
+The canonical SKILL.md schema CrewHaus's [`packages/skills-registry`](https://github.com/crewhaus/factory/tree/main/packages/skills-registry) parses. The format is forward-compatible with Anthropic's vertical-pack conventions (used in `academic-research-skills`, [claude-for-legal](https://github.com/anthropics/claude-for-legal), [financial-services](https://github.com/anthropics/financial-services), and the broader skills ecosystem) so packs from those repos drop into a CrewHaus skills directory without translation.
 
 This document is the source of truth for skill authors. The runtime parser, validator, and Studio's skill explorer all consume this schema.
 
@@ -200,10 +200,10 @@ Outputs the parsed frontmatter as JSON or an explanatory error. Useful in CI bef
 
 ## Source pointers
 
-- Schema: [packages/skills-registry/src/index.ts](../factory/packages/skills-registry/src/index.ts)
-- Tests: [packages/skills-registry/src/index.test.ts](../factory/packages/skills-registry/src/index.test.ts)
+- Schema: [packages/skills-registry/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/skills-registry/src/index.ts)
+- Tests: [packages/skills-registry/src/index.test.ts](https://github.com/crewhaus/factory/blob/main/packages/skills-registry/src/index.test.ts)
 - Recipe: [demos/recipes/15-skills.md](https://github.com/crewhaus/demos/blob/main/recipes/15-skills.md)
 - Anthropic vertical pack references:
-  - [academic-research-skills](https://github.com/anthropics/academic-research-skills) — metadata + agents subdirectory convention
+  - `academic-research-skills` — metadata + agents subdirectory convention
   - [claude-for-legal](https://github.com/anthropics/claude-for-legal) — argument-hint + practice-profile CLAUDE.md
   - [financial-services](https://github.com/anthropics/financial-services) — version-bump CI + dual-path skill bundling
