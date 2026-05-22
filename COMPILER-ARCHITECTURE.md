@@ -93,7 +93,7 @@ The variant should contain *only* what your target needs. If two targets need th
 
 Open [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) and add a case to the `lower(spec: Spec)` switch (around line 245). The case takes `spec.target === "<target>"` and returns a value of your new IR variant. Use the existing `lowerPermissions`, `lowerMcpServers`, `lowerSubAgents`, `lowerSecret`, `lowerToolConfigs` helpers when your variant needs those nested shapes — duplicating the helper logic is a bug.
 
-The output of `lower` is intentionally **lossy** and **canonical**: sub-agent maps become arrays, role names become alphabetically sorted, secrets are rewritten to env-var refs, permission rules are de-duped and re-ordered. This is fine for the IR (its job is to feed codegen) but is the reason eval-driven mutations patch the *spec*, not the IR — see [Pillar 2 in CLAUDE.md](https://github.com/crewhaus/factory/blob/main/CLAUDE.md).
+The output of `lower` is intentionally **lossy** and **canonical**: sub-agent maps become arrays, role names become alphabetically sorted, secrets are rewritten to env-var refs, permission rules are de-duped and re-ordered. This is fine for the IR (its job is to feed codegen) but is the reason eval-driven mutations patch the *spec*, not the IR — see [Pillar 2 in AGENTS.md](https://github.com/crewhaus/factory/blob/main/AGENTS.md).
 
 ### 3. Add the spec branch
 
