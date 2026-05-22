@@ -101,13 +101,16 @@ written by hand*, not to hide a framework.
 
 ## Your first agent in 60 seconds
 
-Prerequisites: [Bun](https://bun.sh) ≥ 1.2 and an Anthropic credential.
+Prerequisites: [Bun](https://bun.sh) ≥ 1.2 and a model-provider credential
+(Anthropic, OpenAI, Gemini, Bedrock, or any OpenAI-compatible local endpoint
+— see [`.env.example`](https://github.com/crewhaus/factory/blob/main/.env.example)).
 
 ```bash
 # 1. Install the workspace
 bun install
 
-# 2. Tell it which credential to use (pick ONE)
+# 2. Set a credential in .env. This example uses Anthropic to match the
+#    hello-cli spec below; see .env.example for OpenAI / Gemini / Bedrock / local.
 echo 'ANTHROPIC_AUTH_TOKEN=sk-ant-oat01-...' > .env   # Pro/Max OAuth
 # echo 'ANTHROPIC_API_KEY=sk-ant-...'        > .env   # pay-per-token
 
@@ -120,10 +123,15 @@ That's the whole loop. The 5-line spec [`hello-cli/crewhaus.yaml`](https://githu
 became a real, runnable agent. Open the generated `hello-cli/dist/agent.ts`
 and read it — it's about fifty lines, no surprises.
 
-> **Don't have a token?** Run `claude setup-token` if you're a Claude
-> Pro/Max subscriber, or grab an API key from
-> <https://console.anthropic.com/settings/keys>. The repo defaults to
-> Claude; see [Going further → Other model providers](#other-model-providers) to use OpenAI / Gemini / Bedrock instead.
+> **Don't have a credential yet?** Any supported provider works — Anthropic
+> (`claude-…`), OpenAI (`openai/…`), Gemini (`gemini/…`), Bedrock
+> (`bedrock/…`), or any OpenAI-compatible local endpoint
+> (`local/<model>@<url>`). The spec model string is one field; pick whichever
+> provider you already have access to. For Anthropic, `claude setup-token`
+> sets up a Pro/Max OAuth token or grab an API key from
+> <https://console.anthropic.com/settings/keys>. See
+> [Going further → Other model providers](#other-model-providers) for the
+> full list.
 
 ---
 
@@ -197,6 +205,13 @@ agent:
     You are a helpful, concise assistant. Reply in two sentences or fewer
     unless the user asks for more detail.
 ```
+
+> **Want a different provider?** The `model:` line is the only field
+> tied to a provider. Swap `claude-sonnet-4-6` for `openai/gpt-4o`,
+> `gemini/gemini-2.0-pro`, `bedrock/anthropic.claude-…`, or
+> `local/llama3@http://localhost:8080/v1`. See
+> [Other model providers](#other-model-providers) for the full prefix
+> grammar.
 
 Once the agent has any tools, the next thing the spec should declare
 is its permission posture. The minimal addition is a `permissions:`
@@ -1048,7 +1063,7 @@ grammar:
 
 | Prefix                          | Provider                                                              | Env vars                                              |
 | ------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------- |
-| `claude-…`                      | Anthropic (default)                                                   | `ANTHROPIC_AUTH_TOKEN` (recommended) or `ANTHROPIC_API_KEY` |
+| `claude-…`                      | Anthropic                                                             | `ANTHROPIC_AUTH_TOKEN` (recommended) or `ANTHROPIC_API_KEY` |
 | `openai/…`                      | OpenAI Chat Completions                                               | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL`           |
 | `gemini/…`                      | Google Gemini                                                         | `GEMINI_API_KEY` or `GOOGLE_API_KEY`                   |
 | `bedrock/…` (e.g. `bedrock/anthropic.claude-…`, `bedrock/meta.llama3-…`, `bedrock/mistral.mistral-…`) | AWS Bedrock | Standard AWS credential chain                         |
@@ -1119,7 +1134,7 @@ implementation status and the v1.3 backlog live in
 
 | Symptom                                                      | Fix                                                                                   |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `ANTHROPIC_AUTH_TOKEN missing` on first run                  | Copy `.env.example` to `.env` and set one credential. `bun run` auto-loads `.env`.    |
+| Model adapter reports missing credential (e.g. `ANTHROPIC_AUTH_TOKEN missing`) | Copy `.env.example` to `.env` and set a credential for the provider your spec uses. `bun run` auto-loads `.env`. |
 | Compile fails on unknown field                               | The Zod schema rejects unknown keys to catch typos. Check `packages/spec/src/index.ts`. |
 | Tool refuses to run with "permission denied"                 | Default mode asks for destructive tools. Add an `alwaysAllow` rule or use `--permission-mode auto`. |
 | `Bash` works but `Python`/`JavaScript`/`Shell` doesn't       | Sandboxed REPLs require Docker. Run `crewhaus sandbox doctor` to verify image health. |
