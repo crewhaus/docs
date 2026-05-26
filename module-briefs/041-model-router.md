@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`openclaw/.../agents/anthropic-vertex-stream.ts`; `crewAI/.../llm.py`; `AI-Harness-Systems.md` sectionmodel_policy
+`openclaw/.../agents/anthropic-vertex-stream.ts`; `crewAI/.../llm.py`
 
 Research focus: Policy DSL; failover topology
 

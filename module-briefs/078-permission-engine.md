@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`claude-code/.../utils/permissions/` (14 files); `AI-Harness-Systems.md` sectionPolicy engine
+`claude-code/.../utils/permissions/` (14 files)
 
 Research focus: Layered evaluation; precedence
 

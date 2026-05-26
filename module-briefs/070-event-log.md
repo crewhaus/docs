@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`claude-code/.../utils/sessionStorage.ts`; `AI-Harness-Systems.md` sectionappend-only event history; OpenClaw transcripts
+`claude-code/.../utils/sessionStorage.ts`; OpenClaw transcripts
 
 Research focus: Schema versioning; GC
 

@@ -36,8 +36,6 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`AI-Harness-Systems.md` sectioncanary
-
 Research focus: Routing strategies
 
 ## Validation Plan

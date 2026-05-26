@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`AI-Harness-Systems.md` sectioncanary; production patterns
+production patterns
 
 Research focus: Routing strategy (header / cookie / hash); rollback triggers
 

@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`claude-code/.../cost-tracker.ts`; `ragas/.../cost.py`; `AI-Harness-Systems.md` sectioncost
+`claude-code/.../cost-tracker.ts`; `ragas/.../cost.py`
 
 Research focus: Provider price tables; granular attribution
 

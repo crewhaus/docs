@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`claude-code/context.ts`; `AI-Harness-Systems.md` sectionsafety
+`claude-code/context.ts`
 
 Research focus: Section ordering
 

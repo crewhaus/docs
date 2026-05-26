@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`openai-agents/.../guardrail.py`,`tool_guardrails.py`; `AI-Harness-Systems.md` sectionguardrails
+`openai-agents/.../guardrail.py`,`tool_guardrails.py`
 
 Research focus: Cost/latency; false positive
 

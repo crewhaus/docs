@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`agent-framework/.../observability.py`; `AI-Harness-Systems.md` sectionOTel
+`agent-framework/.../observability.py`
 
 Research focus: Backend matrix
 

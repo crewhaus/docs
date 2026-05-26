@@ -36,8 +36,6 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`AI-Harness-Systems.md` sectionimplementation blueprint
-
 Research focus: Config schema per profile; secret resolution per profile
 
 ## Validation Plan

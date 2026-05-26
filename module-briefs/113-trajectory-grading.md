@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`AI-Harness-Systems.md` sectiontrace grading; `openclaw/trajectory/`; OpenAI trace grading
+`openclaw/trajectory/`; OpenAI trace grading
 
 Research focus: Step-level vs run-level
 
