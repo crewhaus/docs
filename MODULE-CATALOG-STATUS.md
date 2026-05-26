@@ -6,15 +6,17 @@ If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE
 
 ---
 
-## Snapshot — 2026-05-26
+## Snapshot — 2026-05-26 (post-§41/§42/§44 close-out)
 
 - **v0.1.0 launched 2026-05-15** — public release covering build-roadmap §1–§40 (compiler core, twelve target shapes, eval stack, security fabric).
 - **v0.2.x in flight (Days 30–60)** — reference-corpus integrations: §51 egress fabric, §52 context curation, §53 justification gates + 12-metric rubric, §54 codegraph tool. Most v0.2.x packages have landed in `factory/packages/`; the slate is closing out polish + recipes.
-- **~145 of ~205 catalog rows implemented**, plus the v0.2.x packages now indexed in MODULE-CATALOG.md.
+- **§41–§42 plugin extension surface shipped 2026-05-26** — plugin-sdk v2, plugin-loader, plugin-registry, module-marketplace-client. Closes out the highest-leverage v1.3 investment per the prior status doc.
+- **§44 cloud-deploy adapters shipped 2026-05-26** — cloud-adapter-{render, flyio, railway, heroku}.
+- **~152 of ~205 catalog rows implemented**, plus the v0.2.x packages now indexed in MODULE-CATALOG.md.
 - **12 target shapes ship today** — cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval (+ §47 onchain + onchain-game).
 - `bun run tsc -b` clean. `biome check .` clean. `bun run test:smoke` (compile-time matrix across target shapes) green.
 
-The remaining ~60 catalog rows are split between v0.2.x cleanup, the §41–§42 plugin SDK / extension surface, the §44 cloud-deploy adapters, the §43 mobile target shapes (deferred), and a long tail of low-leverage modules. See [Unbuilt module inventory](#unbuilt-module-inventory) below.
+The remaining ~53 catalog rows are split between v0.2.x cleanup, the §43 mobile target shapes (deferred), and a long tail of low-leverage runtime modules. See [Unbuilt module inventory](#unbuilt-module-inventory) below.
 
 ---
 
@@ -96,6 +98,9 @@ Sections 1–40 (v0.1.0) are closed. Sections 46, 47, 51–54 (v0.2.x) have land
 | §52 | v0.2.x — active context curation (Pillar 2) | compaction-curator, `OPTIMIZABLE_PATHS` extensions for `compaction.curate*` |
 | §53 | v0.2.x — canonical eval rubric (Pillar 2) | grader-12-metric-rubric, `summarize12MetricRubric` cross-sample roll-up, `costPerUsefulOutput` aggregator |
 | §54 | v0.2.x — AST-aware code intelligence | tool-codegraph (`CodeGraphSearch/Callers/Callees/Impact`) wrapping `@colbymchenry/codegraph` |
+| §41 | 2026-05-26 — plugin SDK v2 + loader | plugin-sdk (typed surface for tools / channels / models / graders / target emitters + Ed25519 manifest signatures), plugin-loader (path allow-list + signature verification + capability gating) |
+| §42 | 2026-05-26 — plugin discovery + marketplace | plugin-registry (file-backed JSON with secrets-resolvable trust anchors), module-marketplace-client (search / install / update / draftPublish over an abstract `ModuleRegistrySource`) |
+| §44 | 2026-05-26 — cloud-deploy adapters | cloud-adapter-{render, flyio, railway, heroku} — config emission + Dockerfile + Deploy-API client per platform, all with the T8 credential-leak guard from §37 |
 
 For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). For user-facing release notes see [factory CHANGELOG.md](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md).
 
@@ -113,13 +118,13 @@ This section replaces the prior `v1.3 backlog` with a complete inventory of ever
 **F3 — Deployment & Operations**
 - 🟡 `deployment-profiles` — local-dev / k8s / lambda / agent-engine / foundry / agentcore / hybrid-vpc.
 - 🟡 `upgrade-controller` — in-place runtime upgrades.
-- 🟡 `cloud-adapter-{render,flyio,railway,heroku}` — §44 one-click deploy. (Previously marked "partially landed" — corrected: none of the four exist in `factory/packages/`.)
+- ~~`cloud-adapter-{render,flyio,railway,heroku}` — §44~~ **shipped 2026-05-26** via factory PRs [#118](https://github.com/crewhaus/factory/pull/118), [#119](https://github.com/crewhaus/factory/pull/119), [#120](https://github.com/crewhaus/factory/pull/120).
 
-**F5 — Plugin SDK & Extension**
-- 🔴 `plugin-loader` — §41 runtime activation with sandboxed import.
-- 🟡 `plugin-registry` — §42 discovery + version pinning + signature verification.
-- 🟡 `module-marketplace-client` — §42 Studio marketplace for community plugins.
-- (Note: `plugin-sdk` v1 ships in `crewhaus/utilities`; v2 surface is in scope for §41.)
+**F5 — Plugin SDK & Extension** *(all shipped 2026-05-26 — see [Implementation summary](#implementation-summary) §41 and §42 rows)*
+- ~~`plugin-sdk` v2 — §41~~ shipped via factory PR [#121](https://github.com/crewhaus/factory/pull/121).
+- ~~`plugin-loader` — §41~~ shipped via factory PR [#122](https://github.com/crewhaus/factory/pull/122).
+- ~~`plugin-registry` — §42~~ shipped via factory PR [#123](https://github.com/crewhaus/factory/pull/123).
+- ~~`module-marketplace-client` — §42~~ shipped via factory PR [#124](https://github.com/crewhaus/factory/pull/124).
 
 **F2 — Mobile targets (deferred indefinitely)**
 - `target-ios-bundle` — Swift Package Manager bundle around Bun-on-iOS Hermes embedding.
@@ -177,27 +182,24 @@ Deferral conditions: (1) Bun publishes a stable iOS embedding API, (2) Android N
 
 Cross-references the per-layer `Depends on` columns in the catalog with the build phases. This section names every unbuilt module whose absence would stall a target shape, a stack, or another high-leverage module.
 
+> **Closed out 2026-05-26**: the §41 plugin SDK + loader, §42 plugin registry + marketplace client, and §44 cloud-deploy adapters all shipped via factory PRs #118–#124. They are removed from this table — see the Implementation summary above for what landed.
+
 | # | Module | Layer | Candidate section | Why it matters | Direct downstream unblocked |
 |---|---|---|---|---|---|
-| 1 | 🔴 `plugin-sdk` v2 | F5 | §41 | Stable typed contract surface (semver-tracked) for third-party tools/channels/models/graders/target-backends. The §40 template marketplace gives users templates; §41 gives users *plugins*. Sequential prereq for §42. | `plugin-loader`, `module-marketplace-client`, third-party tool ecosystem |
-| 2 | 🔴 `plugin-loader` | F5 | §41 | Runtime activation of third-party plugins with sandboxed import + capability gating. Reuses §31 plugin-sandbox content-isolation + §40 sigstore-style signature verification. | Production plugin loading, marketplace install path |
-| 3 | 🟡 `plugin-registry` | F5 | §42 | Discovery + version pinning + signature verification + capability declaration. | Plugin distribution, marketplace |
-| 4 | 🟡 `module-marketplace-client` | F5 | §42 | Studio Marketplace tab for community plugins (mirroring §40 template-marketplace-client). | Community-published plugin distribution, ecosystem network effects |
-| 5 | 🟡 `cloud-adapter-{render,flyio,railway,heroku}` | F3 | §44 | One-click cloud-deploy adapters for dev-friendly platforms. Each ~200 LOC of platform-specific deploy-API + target-specific Dockerfile/runtime config. All four parallelisable; independent of §41–43 and of each other. T8 credential-leak guard mirrors §37 vendor exporter pattern. | Fast onboarding for solo devs / OSS demos / weekend hacks |
-| 6 | 🔴 `workflow-engine` | R11 | future | Async-event workflow runtime; pub/sub event bus, step decorators. | `workflow-checkpointer`, `event-bus`, `checkpoint-encoder`, MGD long-runs |
-| 7 | 🔴 `memory-service` | R6 | future | Long-term memory across CHN / CRW / GRPH / RES. | `memory-extraction`, `tool-memory` deeper integration |
-| 8 | 🔴 `durability-mode` | R1 | future | Configurable durability: `exit` / `async` / `sync` checkpoint write. | GRPH/MGD/CHN production durability tiers |
-| 9 | 🔴 `audio-stream` | R16 | future | PCM/Opus I/O streaming; buffering. | `tool-tts-stt` end-to-end, voice production hardening |
-| 10 | 🔴 `branch-explorer` | R19 | future | Multi-branch research with prune. | RES production-grade depth |
-| 11 | 🔴 `tool-browser` | R4 | future | Stateful Playwright/Chromium automation; pairs with `target-browser-driver` for non-BROW shapes. | CLI / CHN / CRW / RES browser actions |
-| 12 | 🔴 `browser-extension-bridge` | R18 | future | Bridge between harness and a browser extension MCP. | Hybrid BROW deployments where the daemon doesn't own the page |
+| 1 | 🔴 `workflow-engine` | R11 | future | Async-event workflow runtime; pub/sub event bus, step decorators. | `workflow-checkpointer`, `event-bus`, `checkpoint-encoder`, MGD long-runs |
+| 2 | 🔴 `memory-service` | R6 | future | Long-term memory across CHN / CRW / GRPH / RES. | `memory-extraction`, `tool-memory` deeper integration |
+| 3 | 🔴 `durability-mode` | R1 | future | Configurable durability: `exit` / `async` / `sync` checkpoint write. | GRPH/MGD/CHN production durability tiers |
+| 4 | 🔴 `audio-stream` | R16 | future | PCM/Opus I/O streaming; buffering. | `tool-tts-stt` end-to-end, voice production hardening |
+| 5 | 🔴 `branch-explorer` | R19 | future | Multi-branch research with prune. | RES production-grade depth |
+| 6 | 🔴 `tool-browser` | R4 | future | Stateful Playwright/Chromium automation; pairs with `target-browser-driver` for non-BROW shapes. | CLI / CHN / CRW / RES browser actions |
+| 7 | 🔴 `browser-extension-bridge` | R18 | future | Bridge between harness and a browser extension MCP. | Hybrid BROW deployments where the daemon doesn't own the page |
 
 ### Sequencing observations
 
-- `plugin-sdk` v2 and `plugin-loader` together unblock the entire third-party ecosystem. They're the highest-leverage post-v0.2.x investment.
+- ~~`plugin-sdk` v2 and `plugin-loader` together unblock the entire third-party ecosystem.~~ **Closed out 2026-05-26.** The third-party ecosystem is now unblocked from the SDK side; the next investment is community-published plugins.
 - Mobile targets (§43) are deferred indefinitely — see [Unbuilt module inventory](#unbuilt-module-inventory).
-- Cloud adapters (§44) are independent of each other and of the plugin SDK — they can ship opportunistically as partners or contributors materialise.
-- `workflow-engine` + downstream is the largest single buildout in the post-v0.2.x backlog; it adds an alternative to `graph-engine` for async-event topologies (vs. the synchronous turn-based graph today).
+- ~~Cloud adapters (§44)~~ **closed out 2026-05-26.** All four (Render, Fly.io, Railway, Heroku) shipped; a future cloud-adapter-vercel still waits on a `target-vercel-functions` shape not yet in the catalog.
+- `workflow-engine` + downstream is now the largest single buildout in the post-§41/§42/§44 backlog; it adds an alternative to `graph-engine` for async-event topologies (vs. the synchronous turn-based graph today).
 
 ---
 
@@ -215,8 +217,8 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 - **Runtime composable**: ~170 catalog rows across R1–R20 (including v0.2.x additions).
 - **Total**: ~205 catalog rows.
 - **Grouped bundles**: 18 coarse aggregations (see [MODULE-CATALOG.md → Module groups](MODULE-CATALOG.md#module-groups)).
-- **Shipped (✅)**: ~145. **Unbuilt**: ~60 (excluding the deferred mobile targets).
-- The `factory/packages/` directory contains 177 workspace packages — slightly higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
+- **Shipped (✅)**: ~152. **Unbuilt**: ~53 (excluding the deferred mobile targets).
+- The `factory/packages/` directory contains 184 workspace packages — slightly higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
 
 ---
 
