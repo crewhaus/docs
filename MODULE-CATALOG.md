@@ -309,7 +309,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `migration-runner` | Run schema migrations across all specs in the registry; dry-run + validate-hook. | GRPH, MGD | T1, T4 | `migration-engine`, `checkpoint-store` |
 | 🟡 `upgrade-controller` | In-place runtime upgrades, gradual rollout, version pinning. | CLI, CHN, MGD | T1, T3 | `deployment-controller`, `update-channel` |
 | ✅ `docker-images` / `helm-chart` / `single-binary-cli` / `crewhaus-cloud` | Packaging artifacts under `docker/`, `helm/`, and dedicated packages. | All | T1, T2 | per-row |
-| ✅ Cloud-deploy adapters | `cloud-adapter-{render,flyio,railway,heroku}` (v1.3 §44 — partially landed). | All daemon shapes | T2, T8 | `bundle-packager`, `secrets-manager` |
+| 🟡 Cloud-deploy adapters | `cloud-adapter-{render,flyio,railway,heroku}` (v1.3 §44 — not yet implemented). | All daemon shapes | T2, T8 | `bundle-packager`, `secrets-manager` |
 
 #### F4 — Studio & Authoring UX
 
@@ -406,8 +406,8 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `tool-ask-user` | Interactive question prompting. | CLI, CHN, CRW, VOICE | T1, T3 | `tool-builder`, `hitl-engine` |
 | 🟡 `tool-cron` | Cron-job CRUD tool. | CLI, CHN | T1, T3 | `tool-builder`, `scheduler-cron` |
 | ✅ `tool-task` | Spawn sub-agent in isolated context; child catalog filtered to allowed tools. | CLI, CHN, CRW, RES | T1, T3 | `tool-builder`, `sub-agent-spawner`, `sub-agent-permission-inheritance` |
-| 🟡 `tool-message-channel` | `SendMessage(channel, text)` — destructive, fail-closed, requires explicit alwaysAllow. | CHN | T1, T2, T8 | `tool-builder`, `channel-adapter-base`, `permission-engine` |
-| 🟡 `tool-memory` | Memory get / search tool. | CHN, CRW, GRPH, RES | T1, T5 | `tool-builder`, `memory-service` |
+| ✅ `tool-message-channel` | `SendMessage(channel, text)` — destructive, fail-closed, requires explicit alwaysAllow. | CHN | T1, T2, T8 | `tool-builder`, `channel-adapter-base`, `permission-engine` |
+| ✅ `tool-memory` | Memory get / search tool. | CHN, CRW, GRPH, RES | T1, T5 | `tool-builder`, `memory-service` |
 | ✅ `tool-retrieve` | Embed query → vector-store query → top-k citations. | RAG, CRW, CHN, RES | T1, T8 | `tool-builder`, `embedder`, `vector-store` |
 | `tool-plan-mode` | Plan-mode entry/exit (read-only planning). | CLI, RES | T1, T3 | `tool-builder`, `autoplan-engine` |
 | `tool-worktree` | Git worktree management. | CLI | T1, T3 | `tool-builder`, `tool-bash` |
@@ -561,7 +561,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `heartbeat-engine` / 🟡 `isolated-agent-runner` / `session-reaper` / `background-housekeeping` / 🟡 `task-scheduler` | Always-on assistant supporting modules. | CHN, MGD, CLI, RES | T1+ | per-row |
 | ✅ `queue-protocol` / ✅ `queue-consumer` | Abstract queue + long-running pull loop with sidecar visibility extension. | BATCH | T1, T2, T3, T7 | `secrets-manager`, `retry-policy`, `infra-utils` |
 | ✅ Queue backends | `createSqsAdapter`, `createRedisStreamsAdapter`, `createPostgresAdapter`. | BATCH | T2, T8 | `queue-protocol` |
-| `rate-limiter` | Token-bucket / leaky-bucket; multi-dimensional keys; partial-failure refunds. | All except EVAL | T1, T7, T8 | `infra-utils` |
+| ✅ `rate-limiter` | Token-bucket / leaky-bucket; multi-dimensional keys; partial-failure refunds. | All except EVAL | T1, T7, T8 | `infra-utils` |
 | `retry-policy` / 🟡 `dead-letter-queue` / `batch-progress-tracker` | Backoff strategies; quarantine failed items; progress streaming. | BATCH, CHN | T1, T3, T7 | per-row |
 
 #### R15 — Telemetry, Tracing, Eval
@@ -593,7 +593,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | Module | Responsibility | Targets | Tests | Depends on |
 |---|---|---|---|---|
 | 🟡 `tui-runtime` / `tui-keybindings` / 🟡 `repl-launcher` / 🟡 `web-ui` | Terminal + web client front-ends. | CLI, CHN, MGD | T1, T3 | per-row |
-| 🔴 `gateway-server` / 🟡 `gateway-protocol` | HTTP+WebSocket+JSON-RPC server; versioned wire protocol. | CHN, MGD, BATCH | T1, T2, T7, T8 | `secrets-manager`, `runtime-orchestrator`, `permission-engine` |
+| ✅ `gateway-server` / ✅ `gateway-protocol` | HTTP+WebSocket+JSON-RPC server; versioned wire protocol. | CHN, MGD, BATCH | T1, T2, T7, T8 | `secrets-manager`, `runtime-orchestrator`, `permission-engine` |
 | ✅ `voice-runtime` | Provider-agnostic realtime audio adapter (OpenAI / Vapi). PCM 16-bit mono 24kHz. | VOICE | T1, T2, T7 | `model-adapter`, `audio-stream` |
 | ✅ `vad-engine` | Energy + ZCR heuristic VAD over PCM 16-bit frames. | VOICE | T1, T5, T7 | `audio-stream` |
 | ✅ `barge-in-controller` | Hysteresis-gated coordinator (VAD + RealtimeAdapter). Default 4 frames in 200ms. | VOICE | T1, T3 | `voice-runtime`, `vad-engine` |
