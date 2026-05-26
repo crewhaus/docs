@@ -236,8 +236,8 @@ This is the navigation cross-reference that ties together the three pillars, the
 | Pillar | Owns layers | Owns build-roadmap sections | Anchored doc |
 |---|---|---|---|
 | **Pillar 1 — compiler is the protagonist** | F1 (spec / IR), F2 (compiler / codegen / target emitters), F3 (deployment / migration) | §1–§5 (cli core), §6 (workflow), §12 (channel), §19 (graph), §20 (managed), §21 (pipeline), §22 (crew), §23 (research+batch), §24 (voice), §25 (browser), §28 (ir-passes + deploy), §29 (eval target) | [COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md) |
-| **Pillar 2 — eval is active** | R15 (telemetry / eval), F-eval (optimizer / orchestrator / spec-patch — sub-layers under F2) | §16 (eval stack), §29 (eval depth), §38 (production graders), §46 (active IR-patch optimizer) | [42-active-optimization.md](https://github.com/crewhaus/demos/blob/main/walkthroughs/42-active-optimization.md) |
-| **Pillar 3 — security is a fabric** | R8 (permissions / policy / safety), R5 (MCP host — boundary site), R10 (sub-agent — boundary site), R13 (channels — boundary site), R6 (compaction — boundary site), R9 (skills — boundary site) | §7 (permissions), §9 (MCP), §11 (skills), §13 (sub-agents), §18 (safety floor primitive), §29 (compaction), §33 (channel breadth), §34 (federation) | [41-security-fabric.md](https://github.com/crewhaus/demos/blob/main/walkthroughs/41-security-fabric.md) |
+| **Pillar 2 — eval is active** | R15 (telemetry / eval), F-eval (optimizer / orchestrator / spec-patch — sub-layers under F2) | §16 (eval stack), §29 (eval depth), §38 (production graders), §46 (active IR-patch optimizer), §52 (context curation), §53 (12-metric rubric + justification gates), §54 (codegraph tool) | [42-active-optimization.md](https://github.com/crewhaus/demos/blob/main/walkthroughs/42-active-optimization.md) |
+| **Pillar 3 — security is a fabric** | R8 (permissions / policy / safety), R5 (MCP host — boundary site), R10 (sub-agent — boundary site), R13 (channels — boundary site), R6 (compaction — boundary site), R9 (skills — boundary site) | §7 (permissions), §9 (MCP), §11 (skills), §13 (sub-agents), §18 (safety floor primitive), §29 (compaction), §33 (channel breadth), §34 (federation), §51 (egress fabric) | [41-security-fabric.md](https://github.com/crewhaus/demos/blob/main/walkthroughs/41-security-fabric.md) |
 
 ---
 
@@ -298,6 +298,8 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `target-onchain-game` | Codegen for `onchain-game` target — perceive-act loop against a game contract (read state → propose move → broadcast → confirm → re-read). §47 slice 2. | ONCHAIN-GAME | T1, T3 | `compiler-core`, `chain-adapter-evm`, `boundary-classifier`, `wallet-engine` |
 | 🟡 `bundle-packager` | Package compiled artifacts (Docker/OCI/npm/pypi/manifest). | All | T1, T3 | `compiler-core`, target-* |
 | ✅ `codegen-templates` | Templates per target (Bun + Ink CLI, FastAPI service, …). | All | T1 | — |
+| ✅ `spec-patch` | Apply a `SpecPatch` to a YAML source preserving comments + key order via the yaml CST. Drives Pillar 2's active-optimization mutation loop. | All | T1, T4, T9 | `ir-model` |
+| ✅ `smoke-harness` | Compile-time smoke matrix — one minimal spec per target shape through `compile()` with emitted-bundle invariant assertions. Cross-shape CI gate. | All | T1, T3 | `compiler-core`, target-* |
 
 #### F3 — Deployment & Operations
 
@@ -369,6 +371,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `cost-tracker` | Subscribe to `model_response`, emit `cost_accrual`. Per-run + per-tenant USD aggregation. | All | T1, T3, T7, T9 | `trace-event-bus` |
 | 🟡 `auth-profiles` | Multi-provider creds; profile switching; rotation. | All | T1, T2, T8 | `secrets-manager` |
 | ✅ `embedder` | Embedding model adapter — OpenAI / Voyage / Cohere / local. | RAG, RES, CHN, MGD | T1, T2 | `model-adapter` |
+| ✅ `circuit-breaker` | Half-open circuit breaker wrapping a `ProviderAdapter`; auto-fails over to `fallbackModels` when tripped. | All | T1, T3, T7 | `adapter-anthropic`, `model-router` |
 
 #### R3 — Tool Layer (core)
 
@@ -394,8 +397,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `tool-bash` | Shell exec via `Bun.spawn`, default 30s timeout. Host trust level (operator escape hatch). | CLI, CHN, BATCH, RES | T1, T3, T8 | `tool-builder`, `abort-controller` |
 | 🟡 `tool-process` | Long-running background processes; monitoring; log capture. | CLI, CHN, BATCH | T1, T3, T7 | `tool-bash`, `scheduler` |
 | ✅ `tool-code-execution` | Sandboxed Python / JavaScript / Shell REPL tools. | CLI, MGD, EVAL, RES, BATCH | T1, T3, T7, T8 | `tool-builder`, `sandbox` |
-| ✅ `tool-web-search` | Brave / Tavily search providers via env. | CLI, CHN, CRW, RAG, RES | T1, T2 | `tool-builder`, `secrets-manager` |
-| ✅ `tool-web-fetch` | URL fetch + HTML→markdown via cheerio/turndown. Allow-list capable. | CLI, CHN, CRW, RAG, RES | T1, T2, T8 | `tool-builder` |
+| ✅ `tool-web` | Combined `WebFetch(url, prompt?)` (cheerio + turndown markdown rendering with SSRF-guarded allow-list) and `WebSearch(query, …)` (Brave / Tavily providers via env). | CLI, CHN, CRW, RAG, RES | T1, T2, T8 | `tool-builder`, `secrets-manager` |
 | 🔴 `tool-browser` | Stateful browser automation (Playwright/Chromium). | CLI, CHN, CRW, RES, BROW | T1, T3, T7, T8 | `tool-builder`, `sandbox`, `computer-use-driver` |
 | ✅ `tool-mcp` | Wrapper presenting external MCP tools as native tools. | CLI, CHN, MGD, RES, BROW | T1, T2, T3 | `mcp-host`, `tool-builder`, `tool-catalog` |
 | ✅ `tool-image` | Read image inputs and present as Anthropic content blocks. Magic-byte sniff. | CLI, CHN, CRW | T1, T8 | `tool-builder` |
@@ -423,6 +425,10 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `tool-evm` | Read-only EVM tools (EvmCall, EvmGetLogs, EvmGetTransaction, EvmGetTransactionReceipt, EvmGetBalance, EvmBlockNumber). §47 slice 0. | CLI, WF, CHN, GRPH, CRW, RES, BATCH | T1, T3 | `tool-builder`, `chain-adapter-base`, `chain-adapter-evm` |
 | ✅ `tool-evm-tx` | Destructive EVM transaction tools — sign+broadcast, simulation, status check. §47 slice 1. | CLI, WF, CHN, GRPH, CRW, BATCH, ONCHAIN | T1, T3, T8 | `tool-builder`, `wallet-engine`, `chain-adapter-evm` |
 | ✅ `tool-contract-gateway` | ABI → typed-tool generator (compile-time). §47 slice 1. | CLI, WF, CHN, GRPH, CRW | T1, T9 | `tool-builder`, `chain-adapter-base` |
+| ✅ `tool-codegraph` | AST-aware code intelligence — wraps `@colbymchenry/codegraph` to expose `CodeGraphSearch / Callers / Callees / Impact`. §54. | CLI, RES | T1, T3 | `tool-builder` |
+| ✅ `tool-navigate` | `Navigate(url)` driving `driver.goto(url)` to bootstrap BROW agents. | BROW | T1, T3 | `tool-builder`, `computer-use-driver` |
+| ✅ `tool-document-ingest` | `IngestDocument` — reads `.txt/.md/.csv/.json/.yaml` inline; PDF/DOCX/XLSX via pluggable parsers. | CLI, RAG, RES | T1, T3 | `tool-builder`, `tool-fs` |
+| ✅ `tool-image-generation` | Image-generation tool (DALL-E 3 / Replicate / Flux / SD). Calls remote API; non-destructive. | CLI, CHN, CRW, RAG, RES | T1, T2 | `tool-builder`, `secrets-manager` |
 
 #### R5 — MCP & Protocol Hosts
 
@@ -446,12 +452,14 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `compaction-snip` | Middle-message removal with marker; tool-use/result boundary defense. | CLI, CHN, RES | T1, T9 | `token-budget` |
 | 🟡 `compaction-microcompact` / `compaction-context-collapse` / `compaction-reactive` / `compaction-tool-result-budget` / `compaction-session-memory` | Compaction-stack variants for different windows + triggers. | CLI, CHN, RES, GRPH, MGD | T1, T4–T5 | per-row |
 | ✅ `compaction-autocompact` | Model-summarize-then-replace; returns marker pair. | CLI, CHN, CRW, GRPH, MGD, RES | T1, T5 | `model-adapter`, `token-budget` |
+| ✅ `compaction-curator` | Pillar 2 pre-compaction relevance + dedupe + top-K trim; lets `compaction-autocompact` skip the model call when curation alone brings tokens under the trigger threshold. §52. | CLI, CHN, CRW, GRPH, MGD, RES | T1, T5 | `embedder`, `token-budget` |
 | 🟡 `bootstrap-files` | Workspace-file injection (CLAUDE.md / AGENTS.md / …), budget, caching. | CLI, CHN, RES | T1, T3, T9 | `context-engine`, `token-budget`, `tool-fs` |
 | 🟡 `system-prompt-builder` | Composable sections with per-section token budgets. | All | T1, T9 | `context-engine`, `token-budget` |
 | 🔴 `memory-service` | Long-term memory (key-value, vector, episodic, declarative). | CHN, CRW, GRPH, RES | T1, T3, T5 | `vector-store`, `embedder`, `session-store` |
 | 🟡 `memory-extraction` | Auto-extract memories from conversations. | CHN, CLI, RES | T1, T5, T8 | `memory-service`, `model-adapter`, `pii-redactor` |
 | 🟡 `personalization-store` | User preference + identity store. | CHN | T1, T8 | `secrets-manager`, `session-store` |
 | ✅ `vector-store` | Vector index (in-memory default; Lance / Qdrant / Pinecone / Weaviate backends). | RAG, CHN, CRW, RES | T1, T2, T7 | `embedder`, `secrets-manager` |
+| ✅ `memory-store` | Persistent cross-session memory store — file-backed JSONL with BM25-style text search; per-spec scoped. | CLI, CHN, CRW, GRPH, RES | T1, T3 | `infra-utils` |
 
 #### R7 — State, Sessions, Persistence
 
@@ -485,9 +493,11 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `pii-redactor` | Detect/redact PII in inputs, outputs, logs. Regex + classifier + policy allow-list. | CHN, MGD, VOICE | T1, T5, T8 | `model-adapter` |
 | ✅ `prompt-injection-detector` | 3-layer classifier (regex + structural + optional LLM). Wired into post-tool path. | All | T1, T8 | `tool-result-store`, `model-adapter` |
 | ✅ `boundary-classifier` | Pillar 3 chokepoint — wraps `prompt-injection-detector` with TrustOrigin + content-hash cache. | All | T1, T8 | `prompt-injection-detector` |
+| ✅ `egress-classifier` | Pillar 3 sink-side counterpart to `boundary-classifier` — classifies content leaving via external sinks (fetch / web / mcp / channel / federation / evm-tx) against `RunContext.dataLineage`. §51. | All | T1, T3, T8 | `boundary-classifier`, `run-context`, `audit-log` |
 | ✅ `wallet-engine` | Custody + sign-request flow: simulate → static policy → approval → custody-sign → broadcast → boundary-classify receipt. §47 slice 1. | CLI, WF, CHN, GRPH, CRW, BATCH, ONCHAIN | T1, T8 | `boundary-classifier`, `chain-adapter-base` |
 | ✅ `permission-tokengated` | Token-gated entitlement resolver — reads on-chain ownership, emits `alwaysAllow`/`alwaysDeny` rules. §47 slice 1. | All | T1, T8 | `chain-adapter-base`, `permission-engine` |
 | ✅ `sandbox-image-{python,javascript,shell,go,rust,java,ruby,r,dotnet,php}` | Polyglot sandbox image registry. | All sandbox-using | T1, T2, T7, T8 | `sandbox` |
+| ✅ `sandbox-image-registry` | Runtime allow-list registry for sandbox images — `registerSandboxImage / lookupSandboxImage / listSandboxImages` + healthcheck contract. §36. | All sandbox-using | T1, T2, T8 | `sandbox` |
 | ✅ `audit-encryption` | Envelope encryption (AES-256-GCM) for audit-log payloads; per-tenant DEK. | MGD | T1, T2, T8 | `secrets-manager` |
 | ✅ `data-retention-engine` | GDPR-shaped retention; purge / export / sweep with cross-tenant guard. | MGD | T1, T8, T9 | `audit-log`, `secrets-manager` |
 | ✅ `compliance-controls` | SOC 2 / ISO 27001 / HIPAA evidence collection; `crewhaus compliance evidence` CLI. | MGD | T1, T3 | `audit-log` |
@@ -585,6 +595,9 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `benchmark-runner` / 🟡 `trajectory-grading` / 🟡 `canary-router` / 🟡 `cost-attribution` | Eval / observability orchestration. | EVAL, MGD, RES | T1+ | per-row |
 | ✅ `regression-runner` | Diff-based pass/fail flip detection between runs; canary gate source-of-truth. | EVAL, MGD | T1, T9 | `eval-runner`, `eval-report` |
 | ✅ `prompt-optimizer` | DSPy-style search over candidate mutations; deterministic seeded. | EVAL, CLI (advanced) | T3, T9 | `eval-runner`, `model-adapter`, `system-prompt-builder` |
+| ✅ `prompt-optimizer-claude` | Pillar 2 model-driven `MutationProvider` — asks Claude to rewrite the prompt given dev-set failures. Default for `crewhaus optimize --mutator claude`. | EVAL, CLI | T1, T3 | `prompt-optimizer`, `model-router` |
+| ✅ `eval-optimizer-orchestrator` | Pillar 2 orchestration — wires `eval-runner` (fitness) + `prompt-optimizer` (search) + `spec-patch` (mutation) into the `crewhaus optimize` active loop. | EVAL, CLI | T1, T3 | `eval-runner`, `prompt-optimizer`, `spec-patch` |
+| ✅ `grader-12-metric-rubric` | Pillar 2 canonical 12-metric rubric — named graders with industry-validated thresholds + `summarize12MetricRubric` p50/p95/p99 + threshold-breach roll-up. §53. | EVAL | T1, T5 | `grader-registry`, `eval-grader` |
 | ✅ Vendor exporters | `exporter-datadog` / `-honeycomb` / `-splunk` / `-newrelic` with credential-leak guards. | All | T1, T2, T8 | `otel-exporter` |
 | ✅ Production graders | `grader-nlg-metrics` / `-semantic-similarity` / `-safety-classifiers` / `-multimodal`. | EVAL | T1, T8, T9 | `grader-registry`, `embedder` |
 
@@ -613,6 +626,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `logging` | Structured logger interface. | All | T1 | — |
 | ✅ `error-types` | Typed error hierarchy + classification. | All | T1 | — |
 | ✅ `infra-utils` | Common: paths, env, fs, json, retry, time, ids. | All | T1 | — |
+| ✅ `context-bundle` | Slicer utilities for `crewhaus context --bundle` — assembles single-markdown manifests of docs / recipes / spec schema for reuse by the cloud demo prompt builder. Pure functions, no global state. | All (authoring) | T1 | `infra-utils` |
 | `feature-flags` | Build-time + runtime flags. | All | T1 | `config-loader` |
 | 🟡 `runtime-migrations` | Versioned runtime data migrations. | All | T1, T4 | `migration-engine` |
 | 🟡 `daemon-process` / 🟡 `node-host` / 🟡 `proxy-capture` / 🟡 `bootstrap-runtime` / `startup-profiler` / 🟡 `update-channel` | Long-running process supervision, cross-host RPC, capture/replay, first-run trust, profiling, auto-update. | varies | T1+ | per-row |
