@@ -2,19 +2,19 @@
 
 This document tracks **what's built, what's in flight, and what's deferred** across the catalog. It complements [MODULE-CATALOG.md](MODULE-CATALOG.md), which describes the catalog's shape and is intended for navigation, not for ticket-tracking.
 
-If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE-CATALOG.md) or [module-briefs/](module-briefs/README.md). If you want roadmap commitments and section-by-section history, go to [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). This document sits between them: a single-glance status board.
+If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE-CATALOG.md) or [module-briefs/](module-briefs/README.md). If you want section-by-section history with PR refs, go to [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). For shipped + planned product surface in user-facing terms, see [factory ROADMAP.md](https://github.com/crewhaus/factory/blob/main/ROADMAP.md). This document sits between them: a single-glance status board.
 
 ---
 
-## Snapshot — 2026-05-10
+## Snapshot — 2026-05-26
 
-- **Sections 1–40 shipped** — v1.0 + v1.1 + v1.2 product surface complete.
-- **180 of ~190 catalog modules implemented** across 164 workspace packages + `apps/cli`.
-- **12 target shapes ship today**: cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval.
-- **2,526 tests across ~176 test files** plus a handful of live-probe contract tests gated on env vars; all green.
-- `bun run tsc -b` clean. `biome check` clean. `example-corpus` CI matrix green.
+- **v0.1.0 launched 2026-05-15** — public release covering build-roadmap §1–§40 (compiler core, twelve target shapes, eval stack, security fabric).
+- **v0.2.x in flight (Days 30–60)** — reference-corpus integrations: §51 egress fabric, §52 context curation, §53 justification gates + 12-metric rubric, §54 codegraph tool. Most v0.2.x packages have landed in `factory/packages/`; the slate is closing out polish + recipes.
+- **~145 of ~205 catalog rows implemented**, plus the v0.2.x packages now indexed in MODULE-CATALOG.md.
+- **12 target shapes ship today** — cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval (+ §47 onchain + onchain-game).
+- `bun run tsc -b` clean. `biome check .` clean. `bun run test:smoke` (compile-time matrix across target shapes) green.
 
-The 10 unbuilt modules are all in v1.3+ and **not on any critical path**. See [v1.3 backlog](#v13-backlog) below.
+The remaining ~60 catalog rows are split between v0.2.x cleanup, the §41–§42 plugin SDK / extension surface, the §44 cloud-deploy adapters, the §43 mobile target shapes (deferred), and a long tail of low-leverage modules. See [Unbuilt module inventory](#unbuilt-module-inventory) below.
 
 ---
 
@@ -40,144 +40,183 @@ Implemented (✅) and in-progress (🚧) modules have absorbed their risk and do
 
 ---
 
+## Versioning crosswalk
+
+| Project version | Build-roadmap sections | Status |
+|---|---|---|
+| **v0.1.0** | §1–§40 | Shipped 2026-05-15. Compiler core, 12 target shapes, eval stack, security fabric (boundary classifier), production hardening, distribution. |
+| **v0.2.x** | §51–§54 + §46 (active IR-patch optimizer) + §47 (onchain slices 0–2) | In flight (Days 30–60). Reference-corpus integrations: egress fabric, context curation, justification gates, 12-metric rubric, codegraph tool. Most packages landed; recipes + polish remaining. |
+| **v0.3.x** | (TBD — see factory ROADMAP) | Crewhaus Forge community registry, `crewhaus publish`, verified-artifact distinction. |
+| **v0.4.x+** | §41–§45 + new sections | Plugin SDK v2, plugin loader/registry, module marketplace, cloud-deploy adapters, additional channel adapters, optional non-EVM chain adapters. |
+| **v1.0** (target: Q4 2026) | Stabilization | Schema + CLI commands stable, security audit complete, production-readiness statement per target shape. |
+
+Per the [factory ROADMAP](https://github.com/crewhaus/factory/blob/main/ROADMAP.md), pre-1.0 minors may include breaking changes documented in the changelog.
+
+---
+
 ## Implementation summary
 
-Sections 1–40 are closed. The build-roadmap is the section-by-section authority; this list groups what each section delivered so a contributor can locate a module's history quickly.
+Sections 1–40 (v0.1.0) are closed. Sections 46, 47, 51–54 (v0.2.x) have landed package-side; recipes + polish are the remaining v0.2.x slice. The build-roadmap is the section-by-section authority; this list groups what each section delivered so a contributor can locate a module's history quickly.
 
 | Sections | Phase | Delivered |
 |---|---|---|
-| §1–§5 | v1.0 — CLI core | spec / compiler / IR / runtime-core / tool framework / target-cli |
-| §6 | v1.0 — workflow target | `target-workflow`, IrWorkflowV0, per-step model overrides |
-| §7–§11 | v1.0 — safety + extension surface | permission-engine, hooks-engine, skills-registry, slash-commands |
-| §12–§14 | v1.0 — channel + multi-modal | target-channel-bot, Slack adapter, web/image/fetch tools |
-| §15 | v1.0 — observability | trace-event-bus, otel-exporter, metrics-collector, structured-event-printer |
-| §16 | v1.0 — eval stack | eval-dataset, eval-grader, eval-judge, eval-runner, eval-report, `crewhaus eval` |
-| §17 | v1.0 — multi-provider models | adapter-openai/gemini/bedrock, model-router with lazy SDK loading |
-| §18 | v1.0 — safety floor | sandbox, tool-code-execution, prompt-injection-detector |
-| §19 | v1.0 — graph target | target-graph, graph-engine, checkpoint-store, branch-history, durable-execution |
-| §20 | v1.0 — managed target | target-managed, gateway-protocol/server, policy-engine, tenancy, audit-log |
-| §21 | v1.0 — RAG target | target-pipeline, pipeline-engine, chunker, embedder, vector-store, tool-retrieve |
-| §22 | v1.0 — crew target | target-crew, crew-orchestrator, agent-handoff, a2a-protocol |
-| §23 | v1.0 — research + batch | target-research-bundle, target-batch-worker, queue-protocol, citation-tracker |
-| §24 | v1.0 — voice target | target-voice, voice-runtime, vad-engine, barge-in-controller, call-session |
-| §25 | v1.0 — browser target | target-browser-driver, computer-use-driver, tool-screen-capture/-mouse-keyboard/-vision-grounding |
-| §26 | v1.0 — studio | wizard, scaffold-templates, plugin-sdk v0, studio-server, studio-ui, trace-viewer, graph-visualizer |
-| §27 | v1.0 — production hardening | cost-tracker, secrets-manager, prompt-cache-manager, rate-limiter, circuit-breaker |
-| §28 | v1.0 — deployment | spec-registry, ir-passes, migration-engine/runner, deployment-controller, canary-controller |
-| §29 | v1.0 — eval depth | dataset-registry, grader-registry, regression-runner, prompt-optimizer, target-eval-bundle |
-| §30 | v1.0 — backend adapters | SQS / Redis / Postgres queue adapters; Lance / Qdrant / Pinecone / Weaviate vector backends; Twilio / LiveKit telephony; Vapi realtime |
-| §31 | v1.0 — studio v1 | Lit + Monaco + live SSE replay + plugin sandbox content isolation |
-| §32 | v1.1 — distribution | docker-images, single-binary-cli, helm-chart, crewhaus-cloud (terraform + kustomize) |
-| §33 | v1.1 — channel breadth | telegram / discord / whatsapp / imessage adapters |
-| §34 | v1.1 — federation | federation-protocol / -discovery / -router (mTLS + sigstore-style pinning) |
-| §35 | v1.1 — IDE & DX | vscode-extension, jetbrains-plugin, crewhaus-playground |
-| §36 | v1.2 — polyglot sandboxes | go / rust / java / ruby / r / dotnet / php sandbox images on a registry pattern |
-| §37 | v1.2 — vendor telemetry | datadog / honeycomb / splunk / newrelic exporters with credential-leak guards |
-| §38 | v1.2 — production graders | NLG metrics, semantic similarity, safety classifiers, multimodal graders |
-| §39 | v1.2 — compliance hardening | pii-redactor, audit-encryption, data-retention-engine, compliance-controls + `crewhaus compliance evidence` CLI |
-| §40 | v1.2 — template marketplace | template-registry, template-marketplace-client, example-corpus CI matrix gate |
+| §1–§5 | v0.1.0 — CLI core | spec / compiler / IR / runtime-core / tool framework / target-cli |
+| §6 | v0.1.0 — workflow target | `target-workflow`, `IrWorkflowV0`, per-step model overrides |
+| §7–§11 | v0.1.0 — safety + extension surface | permission-engine, hooks-engine, skills-registry, slash-commands |
+| §12–§14 | v0.1.0 — channel + multi-modal | target-channel-bot, Slack adapter, web/image/fetch tools |
+| §15 | v0.1.0 — observability | trace-event-bus, otel-exporter, metrics-collector, structured-event-printer |
+| §16 | v0.1.0 — eval stack | eval-dataset, eval-grader, eval-judge, eval-runner, eval-report, `crewhaus eval` |
+| §17 | v0.1.0 — multi-provider models | adapter-openai/gemini/bedrock, model-router with lazy SDK loading |
+| §18 | v0.1.0 — safety floor | sandbox, tool-code-execution, prompt-injection-detector |
+| §19 | v0.1.0 — graph target | target-graph, graph-engine, checkpoint-store, branch-history, durable-execution |
+| §20 | v0.1.0 — managed target | target-managed, gateway-protocol/server, policy-engine, tenancy, audit-log |
+| §21 | v0.1.0 — RAG target | target-pipeline, pipeline-engine, chunker, embedder, vector-store, tool-retrieve |
+| §22 | v0.1.0 — crew target | target-crew, crew-orchestrator, agent-handoff, a2a-protocol |
+| §23 | v0.1.0 — research + batch | target-research-bundle, target-batch-worker, queue-protocol, citation-tracker |
+| §24 | v0.1.0 — voice target | target-voice, voice-runtime, vad-engine, barge-in-controller, call-session |
+| §25 | v0.1.0 — browser target | target-browser-driver, computer-use-driver, tool-screen-capture/-mouse-keyboard/-vision-grounding |
+| §26 | v0.1.0 — studio | wizard, scaffold-templates, plugin-sdk v0, studio-server, studio-ui, trace-viewer, graph-visualizer (sibling `crewhaus/utilities` repo) |
+| §27 | v0.1.0 — production hardening | cost-tracker, secrets-manager, prompt-cache-manager, rate-limiter |
+| §28 | v0.1.0 — deployment | spec-registry, ir-passes, migration-engine/runner, deployment-controller, canary-controller |
+| §29 | v0.1.0 — eval depth | dataset-registry, grader-registry, regression-runner, prompt-optimizer, target-eval-bundle |
+| §30 | v0.1.0 — backend adapters | SQS / Redis / Postgres queue adapters; Lance / Qdrant / Pinecone / Weaviate vector backends; Twilio / LiveKit telephony; Vapi realtime |
+| §31 | v0.1.0 — studio v1 | Lit + Monaco + live SSE replay + plugin sandbox content isolation |
+| §32 | v0.1.0 — distribution | docker-images, single-binary-cli, helm-chart, crewhaus-cloud (terraform + kustomize) |
+| §33 | v0.1.0 — channel breadth | telegram / discord / whatsapp / imessage adapters |
+| §34 | v0.1.0 — federation | federation-protocol / -discovery / -router (mTLS + sigstore-style pinning) |
+| §35 | v0.1.0 — IDE & DX | vscode-extension, jetbrains-plugin, crewhaus-playground (sibling utilities repo) |
+| §36 | v0.1.0 — polyglot sandboxes | go / rust / java / ruby / r / dotnet / php sandbox images on a registry pattern; `sandbox-image-registry` |
+| §37 | v0.1.0 — vendor telemetry | datadog / honeycomb / splunk / newrelic exporters with credential-leak guards |
+| §38 | v0.1.0 — production graders | NLG metrics, semantic similarity, safety classifiers, multimodal graders |
+| §39 | v0.1.0 — compliance hardening | pii-redactor, audit-encryption, data-retention-engine, compliance-controls + `crewhaus compliance evidence` CLI |
+| §40 | v0.1.0 — template marketplace | template-registry, template-marketplace-client, example-corpus CI matrix gate |
+| §46 | v0.2.x — active IR-patch optimizer | spec-patch, prompt-optimizer-claude, eval-optimizer-orchestrator, `crewhaus optimize` |
+| §47 | v0.2.x — onchain slices 0–2 | chain-adapter-base/-evm, tool-evm, tool-evm-tx, tool-contract-gateway, wallet-engine, permission-tokengated, target-onchain, target-onchain-game |
+| §51 | v0.2.x — egress fabric (Pillar 3) | egress-classifier, tool descriptor `scope`, `RunContext.dataLineage`, `egress_decision` audit kind |
+| §52 | v0.2.x — active context curation (Pillar 2) | compaction-curator, `OPTIMIZABLE_PATHS` extensions for `compaction.curate*` |
+| §53 | v0.2.x — canonical eval rubric (Pillar 2) | grader-12-metric-rubric, `summarize12MetricRubric` cross-sample roll-up, `costPerUsefulOutput` aggregator |
+| §54 | v0.2.x — AST-aware code intelligence | tool-codegraph (`CodeGraphSearch/Callers/Callees/Impact`) wrapping `@colbymchenry/codegraph` |
 
-For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md).
-
----
-
-## v1.3 backlog
-
-The v1.2 phase closed out the breadth + ecosystem layer (§36–§40). v1.3 covers the remaining ~10 unbuilt catalog modules across:
-
-- **§41 — plugin SDK v2 + plugin-loader** (committed, kickoff prompt ready)
-- **§42 — plugin-registry + module-marketplace-client** (committed, depends on §41)
-- **§43 — mobile target shapes** (deferred indefinitely; needs Bun-on-iOS / NDK to stabilise)
-- **§44 — cloud-deploy adapters** (independent / opportunistic — Render / Fly.io / Railway / Heroku)
-- **§45 — long-tail breadth** (no-section backlog; per-addition PRs)
-
-| Module(s) | Layer | Section | Notes |
-|---|---|---|---|
-| `plugin-sdk` v2 (extend), `plugin-loader` (new) | F5 | §41 | Public typed surface for third-party tools/channels/models/graders/target-backends + runtime activation with sandboxed import + capability gating. Reuses §31 plugin-sandbox content-isolation + §40 sigstore-style Ed25519 signature verification + §29 grader-registry plugin discovery shape. **Sequential prereq for §42.** Unblocks the entire third-party ecosystem. |
-| `plugin-registry` (new), `module-marketplace-client` (new) | F5 | §42 | Extend §40 template-marketplace pattern from templates to plugins. Browse + install community-published tools/skills/channels/graders/target-emitters directly from Studio. New `crewhaus plugins {list,search,install,uninstall}` CLI subcommands. |
-| `target-ios-bundle`, `target-android-bundle` | F2 | §43 | Mobile target shapes. iOS Swift Package Manager bundle wrapping the Bun-on-iOS Hermes embedding pattern; Android AAR bundle wrapping the Bun-on-Android NDK bridge. **Deferred indefinitely** until (1) Bun publishes a stable iOS embedding API, (2) Android NDK bridge ships in Bun mainline, (3) at least one external partner signs an LOI, (4) CI runners with `xcodebuild` + `gradle` are provisioned. |
-| `cloud-adapter-render`, `cloud-adapter-flyio`, `cloud-adapter-railway`, `cloud-adapter-heroku` | F3 | §44 | One-click cloud-deploy adapters for dev-friendly platforms. Each ~200 LOC of platform-specific deploy-API + target-specific Dockerfile/runtime config. All four parallelisable; independent of §41–43 and of each other. T8 credential-leak guard mirrors §37 vendor exporter pattern. (`cloud-adapter-vercel` deferred — depends on a `target-vercel-functions` shape not yet in the catalog.) |
-| Long-tail breadth | various | §45 | Additional sub-agent templates, MCP servers, embedder backends (Cohere v3 / Mistral Embed / Voyage v3+), vector-store backends (Lance v0.10+, Postgres+pgvector), additional channel adapters (Microsoft Teams, Mattermost, Matrix), domain-specific graders. Each is small (typically <200 LOC) and piggy-backs on shipped infrastructure. Reference §45 in any per-addition PR title; promote to a dedicated section if a cluster (3+ related additions) emerges at once. |
-
-None of v1.3 is critical-path for any shipped target shape.
+For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). For user-facing release notes see [factory CHANGELOG.md](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md).
 
 ---
 
-## Critical path & risk register
+## Unbuilt module inventory
 
-Cross-references the per-layer `Depends on` columns in the catalog with the build phases. This section is the single place to look up "what is the marginal cost of unblocking shape X?" — every entry below is an unbuilt module whose absence would stall a target shape, a stack, or another high-leverage module.
+This section replaces the prior `v1.3 backlog` with a complete inventory of every catalog row that does not yet have a working `factory/packages/<name>` entry, organized by layer. None of these block a shipped target shape; the project is feature-complete for v0.1.0 + v0.2.x. The order below is roughly by leverage — higher entries unblock more downstream work or more target shapes.
 
-> **Note (2026-05):** Sections 1–40 are closed. This register documents the historical critical path that has already been consumed. The entries marked ✅ shipped in the corresponding sections; they're retained here as a record of which dependencies the project navigated. The active critical path for v1.3+ work is the [v1.3 backlog](#v13-backlog) above.
+### F-layer (factory-level)
 
-### Historical high-risk (🔴) modules and their direct blockers (all now shipped)
+**F2 — Compiler & Codegen**
+- 🟡 `bundle-packager` — Docker/OCI/npm/pypi packaging.
 
-| Module | Layer | Phase | Must land first | Unblocks (direct downstream) |
-|---|---|---|---|---|
-| `model-router` ✅ | R2 | 3 | `model-adapter`, `secrets-manager`, `auth-profiles` | `adapter-{openai,gemini,bedrock}`, multi-provider compaction, §17 |
-| `target-graph` ✅ | F2 | 2 (gated by R11) | `compiler-core`, `codegen-templates`, `graph-engine`, `checkpoint-store` | GRPH shape, MGD partial |
-| `target-pipeline` ✅ | F2 | 2 (gated by R11) | `compiler-core`, `codegen-templates`, `pipeline-engine` | RAG shape end-to-end |
-| `target-managed` ✅ | F2 | 2 (gated by F3) | `compiler-core`, `bundle-packager`, `audit-log`, `tenancy` | MGD shape |
-| `target-research-bundle` ✅ | F2 | 2 (gated by R19) | `compiler-core`, `research-planner`, `research-checkpointer`, `report-synthesizer` | RES shape |
-| `target-voice` ✅ | F2 | 2 (gated by R16) | `compiler-core`, `voice-runtime`, `audio-stream`, `call-session` | VOICE shape |
-| `target-browser-driver` ✅ | F2 | 2 (gated by R18) | `compiler-core`, `computer-use-driver`, `tool-screen-capture`, `tool-vision-grounding` | BROW shape |
-| `deployment-controller` ✅ | F3 | 18 | `compiler-core`, `bundle-packager`, `secrets-manager` | `deployment-profiles`, `canary-controller`, `upgrade-controller`, MGD |
-| `tool-code-execution` ✅ | R4 | 11 | `tool-builder`, `sandbox` | EVAL CI auto-run, RES auto-execution, MGD code samples |
-| `tool-screen-capture` ✅ | R4 | 11 | `tool-builder`, `computer-use-driver` | BROW shape |
-| `tool-mouse-keyboard` ✅ | R4 | 11 | `tool-builder`, `computer-use-driver` | BROW shape |
-| `tool-vision-grounding` ✅ | R4 | 11 | `tool-builder`, `tool-screen-capture`, `model-adapter` | BROW grounded actions |
-| `a2a-protocol` ✅ | R5 | 10 | `tool-catalog`, `model-adapter`, `webhook-host` | CRW cross-org, MGD federated agents |
-| `checkpoint-store` ✅ | R7 | 6 | `event-log`, `checkpoint-encoder`, `state-store` | `branch-history`, `target-graph`, `durable-execution`, `research-checkpointer` |
-| `branch-history` ✅ | R7 | 6 | `checkpoint-store`, `event-log` | GRPH time-travel, RES branch exploration |
-| `policy-engine` ✅ | R8 | 7 | `permission-engine`, `audit-log`, `tool-permission-matcher` | `tenancy`, regulated MGD, `sandbox` compose |
-| `sandbox` ✅ | R8 | 7 | `infra-utils`, `policy-engine` | `tool-code-execution`, `tool-browser`, `plugin-loader`, EVAL/MGD hardening |
-| `prompt-injection-detector` ✅ | R8 | 7 | `tool-result-store`, `model-adapter` | `guardrails` depth, MGD audit, RES untrusted-source ingest |
-| `graph-engine` ✅ | R11 | 12 | `state-store`, `run-context`, `recovery-engine`, `abort-controller`, `checkpoint-store` | `target-graph`, GRPH shape, durable execution for graphs |
-| `pipeline-engine` ✅ | R11 | 12 | `ir-model`, `model-adapter`, `run-context` | `target-pipeline`, `query-router`, RAG composition |
-| `durable-execution` ✅ | R11 | 12 | `checkpoint-store`, `run-context`, `idempotency-store` | GRPH/MGD/BATCH long runs, `research-checkpointer` |
-| `eval-service` ✅ | R15 | 9 | `trace-event-bus`, `dataset-registry`, `grader-registry`, `runtime-orchestrator` | `eval-runner`, `eval-report`, `prompt-optimizer`, `target-eval-bundle` |
-| `prompt-optimizer` ✅ | R15 | 9 | `eval-service`, `model-adapter`, `system-prompt-builder` | Active-eval optimization (Pillar 2) across all shapes |
-| `gateway-server` ✅ | R16 | 17 | `secrets-manager`, `runtime-orchestrator`, `permission-engine` | `gateway-protocol`, `web-ui`, `studio-server`, MGD/CHN remote, `mcp-server-host` |
-| `voice-runtime` ✅ | R16 | 17 | `model-adapter`, `audio-stream`, `vad-engine` | `target-voice`, `barge-in-controller`, `call-session`, `tool-tts-stt` |
-| `tenancy` ✅ | R17 | 17 | `secrets-manager`, `audit-log`, `gateway-server` | MGD multi-customer isolation |
-| `audit-log` ✅ | R17 | 17 | `event-log`, `secrets-manager` | `tenancy`, `policy-engine` audit story, MGD compliance |
-| `computer-use-driver` ✅ | R18 | 20 | `infra-utils` | All R4 BROW tools, `target-browser-driver` |
-| `research-planner` / `crawler` / `branch-explorer` / `report-synthesizer` / `research-checkpointer` ✅ | R19 | 20 | (per-row `Depends on`) | `target-research-bundle`, RES shape end-to-end |
-| `batch-runner` ✅ | R20 | 20 | `queue-consumer`, `retry-policy`, `runtime-orchestrator` | `target-batch-worker`, `fan-out-fan-in`, `batch-eval-loop`, BATCH shape |
+**F3 — Deployment & Operations**
+- 🟡 `deployment-profiles` — local-dev / k8s / lambda / agent-engine / foundry / agentcore / hybrid-vpc.
+- 🟡 `upgrade-controller` — in-place runtime upgrades.
+- 🟡 `cloud-adapter-{render,flyio,railway,heroku}` — §44 one-click deploy. (Previously marked "partially landed" — corrected: none of the four exist in `factory/packages/`.)
 
-### Active v1.3 critical-path candidates
+**F5 — Plugin SDK & Extension**
+- 🔴 `plugin-loader` — §41 runtime activation with sandboxed import.
+- 🟡 `plugin-registry` — §42 discovery + version pinning + signature verification.
+- 🟡 `module-marketplace-client` — §42 Studio marketplace for community plugins.
+- (Note: `plugin-sdk` v1 ships in `crewhaus/utilities`; v2 surface is in scope for §41.)
+
+**F2 — Mobile targets (deferred indefinitely)**
+- `target-ios-bundle` — Swift Package Manager bundle around Bun-on-iOS Hermes embedding.
+- `target-android-bundle` — Android AAR bundle around the Bun NDK bridge.
+
+Deferral conditions: (1) Bun publishes a stable iOS embedding API, (2) Android NDK bridge ships in Bun mainline, (3) at least one external partner signs an LOI, (4) CI runners with `xcodebuild` + `gradle` are provisioned.
+
+### R-layer (composable runtime)
+
+**R1 — Runtime Core** — 🟡 `query-engine`, 🟡 `stream-runtime`, 🟡 `scheduler`, 🔴 `durability-mode`
+
+**R2 — Model Layer** — 🟡 `response-format-coercion`, 🟡 `reasoning-controller`, 🟡 `speculation-engine`, 🟡 `auth-profiles`
+
+**R3 — Tool Layer (core)** — 🟡 `tool-search`, 🟡 `tool-display`
+
+**R4 — Built-in Tools** — 🟡 `tool-process`, 🔴 `tool-browser`, 🔴 `tool-tts-stt`, 🟡 `tool-ask-user`, 🟡 `tool-cron`, `tool-plan-mode`, `tool-worktree`, 🟡 `tool-lsp`, 🟡 `tool-monitor`, `tool-sleep`, `tool-notebook-edit`, 🟡 `tool-notification`, 🟡 `tool-remote-trigger`, 🟡 `tool-canvas`, 🟡 `tool-citations`, 🟡 `tool-dom-inspector`
+
+**R5 — MCP & Protocol Hosts** — 🟡 `mcp-server-host`, 🟡 `acp-protocol`, 🟡 `ag-ui-protocol`, 🟡 `webhook-host`, 🟡 `chain-adapter-solana`, 🟡 `chain-adapter-cosmos`, 🟡 `chain-adapter-bitcoin`
+
+**R6 — Context & Memory** — 🟡 `context-engine`, 🟡 `compaction-microcompact`, 🟡 `compaction-context-collapse`, 🟡 `compaction-reactive`, 🟡 `compaction-tool-result-budget`, 🟡 `compaction-session-memory`, 🟡 `bootstrap-files`, 🟡 `system-prompt-builder`, 🔴 `memory-service`, 🟡 `memory-extraction`, 🟡 `personalization-store`
+
+**R7 — State / Sessions** — 🟡 `app-state-store`, `global-state-singleton`, 🟡 `artifact-store`, 🟡 `session-router`, 🟡 `session-binding`, 🟡 `replay-store`
+
+**R8 — Permission / Policy / Safety** — 🟡 `approval-classifier`, `denial-tracking`, 🟡 `guardrails`, `safety-prompt-injector`, 🟡 `hitl-engine`
+
+**R9 — Hooks / Skills / Slash** — `hook-loader`, `skills-serializer`, 🟡 `output-styles`, 🟡 `autoreply-policy`
+
+**R10 — Multi-Agent** — 🟡 `subagent-runtime`, 🟡 `coordinator`, 🟡 `swarm-runtime`, 🟡 `handoff-engine`, 🟡 `role-system`, 🟡 `task-engine`, 🟡 `pairing-engine`
+
+**R11 — Workflow / Graph / Pipeline** — 🔴 `workflow-engine`, 🟡 `workflow-checkpointer`, 🟡 `event-bus`, 🟡 `checkpoint-encoder`
+
+**R12 — RAG** — 🟡 `document-store`, 🟡 `retriever`, 🟡 `ranker`, 🟡 `reader-extractor`, 🟡 `query-router`, 🟡 `generator`, `document-loader`, 🟡 `knowledge-graph`, 🟡 `ingestion-pipeline`
+
+**R13 — Channels** — `channel-registry`, 🟡 `channel-{signal,bluebubbles,email,sms,web}`, `channel-transport`, `channel-binding`, 🟡 `channel-router`, `channel-features`, `directory-adapters`, 🟡 `media-payload`, 🟡 `pairing-flow`, `message-actions`
+
+**R14 — Scheduling** — 🟡 `scheduler-cron`, 🟡 `heartbeat-engine`, 🟡 `isolated-agent-runner`, `session-reaper`, `background-housekeeping`, 🟡 `task-scheduler`, `retry-policy`, 🟡 `dead-letter-queue`, `batch-progress-tracker`
+
+**R15 — Telemetry / Eval** — 🟡 `telemetry-engine`, 🟡 `trace-recorder`, 🟡 `replay-engine`, 🟡 `benchmark-runner`, 🟡 `trajectory-grading`, 🟡 `canary-router`, 🟡 `cost-attribution`
+
+**R16 — UI / Voice / Media** — 🟡 `tui-runtime`, `tui-keybindings`, 🟡 `repl-launcher`, 🟡 `web-ui`, 🔴 `audio-stream`, 🟡 `dtmf-handler`, 🟡 `prosody-controller`, 🟡 `media-service`, 🟡 `canvas-host`, 🟡 `notifications-service`
+
+**R17 — Infrastructure** — `config-loader`, 🟡 `settings-sync`, `i18n`, `feature-flags`, 🟡 `runtime-migrations`, 🟡 `daemon-process`, 🟡 `node-host`, 🟡 `proxy-capture`, 🟡 `bootstrap-runtime`, `startup-profiler`, 🟡 `update-channel`
+
+**R18 — Specialized** — 🔴 `browser-extension-bridge`, 🟡 `lsp-host`, 🟡 `sandbox-fs-overlay`, 🟡 `structured-output-tools`, 🟡 `autoplan-engine`, 🟡 `auto-classifier`, `fingerprint`, `activity-manager`, `speculation-cache`, 🟡 `commitments-engine`
+
+**R19 — Research** — 🔴 `branch-explorer`, 🟡 `evidence-store`, 🟡 `progress-streamer`, 🟡 `source-quality-scorer`
+
+**R20 — Batch** — 🟡 `batch-job-spec`, 🟡 `fan-out-fan-in`, 🟡 `output-sink`, 🟡 `batch-eval-loop`
+
+**Total unbuilt rows**: ~115. **None are critical-path for any shipped target shape.**
+
+---
+
+## Active critical-path candidates
+
+Cross-references the per-layer `Depends on` columns in the catalog with the build phases. This section names every unbuilt module whose absence would stall a target shape, a stack, or another high-leverage module.
 
 | # | Module | Layer | Candidate section | Why it matters | Direct downstream unblocked |
 |---|---|---|---|---|---|
 | 1 | 🔴 `plugin-sdk` v2 | F5 | §41 | Stable typed contract surface (semver-tracked) for third-party tools/channels/models/graders/target-backends. The §40 template marketplace gives users templates; §41 gives users *plugins*. Sequential prereq for §42. | `plugin-loader`, `module-marketplace-client`, third-party tool ecosystem |
 | 2 | 🔴 `plugin-loader` | F5 | §41 | Runtime activation of third-party plugins with sandboxed import + capability gating. Reuses §31 plugin-sandbox content-isolation + §40 sigstore-style signature verification. | Production plugin loading, marketplace install path |
-| 3 | 🟡 `module-marketplace-client` | F5 | §42 | Studio Marketplace tab for community plugins (mirroring §40 template-marketplace-client). | Community-published plugin distribution, ecosystem network effects |
-| 4 | 🟡 `target-ios-bundle` | F2 | §43 | iOS Swift Package Manager bundle wrapping the Bun-on-iOS Hermes embedding. Substantial new compilation path. | Native iOS app embedding, consumer-mobile partners |
-| 5 | 🟡 `target-android-bundle` | F2 | §43 | Android AAR bundle wrapping the Bun-on-Android NDK bridge. Substantial new compilation path. | Native Android app embedding, consumer-mobile partners |
-| 6 | `cloud-adapter-{render,flyio,railway,heroku,vercel}` | F3 | §44 | Dev-friendly one-click deploy. Each ~200 LOC wrapping the platform's deploy API + a target-specific Dockerfile/runtime variant. | Fast onboarding for solo devs / OSS demos / weekend hacks |
+| 3 | 🟡 `plugin-registry` | F5 | §42 | Discovery + version pinning + signature verification + capability declaration. | Plugin distribution, marketplace |
+| 4 | 🟡 `module-marketplace-client` | F5 | §42 | Studio Marketplace tab for community plugins (mirroring §40 template-marketplace-client). | Community-published plugin distribution, ecosystem network effects |
+| 5 | 🟡 `cloud-adapter-{render,flyio,railway,heroku}` | F3 | §44 | One-click cloud-deploy adapters for dev-friendly platforms. Each ~200 LOC of platform-specific deploy-API + target-specific Dockerfile/runtime config. All four parallelisable; independent of §41–43 and of each other. T8 credential-leak guard mirrors §37 vendor exporter pattern. | Fast onboarding for solo devs / OSS demos / weekend hacks |
+| 6 | 🔴 `workflow-engine` | R11 | future | Async-event workflow runtime; pub/sub event bus, step decorators. | `workflow-checkpointer`, `event-bus`, `checkpoint-encoder`, MGD long-runs |
+| 7 | 🔴 `memory-service` | R6 | future | Long-term memory across CHN / CRW / GRPH / RES. | `memory-extraction`, `tool-memory` deeper integration |
+| 8 | 🔴 `durability-mode` | R1 | future | Configurable durability: `exit` / `async` / `sync` checkpoint write. | GRPH/MGD/CHN production durability tiers |
+| 9 | 🔴 `audio-stream` | R16 | future | PCM/Opus I/O streaming; buffering. | `tool-tts-stt` end-to-end, voice production hardening |
+| 10 | 🔴 `branch-explorer` | R19 | future | Multi-branch research with prune. | RES production-grade depth |
+| 11 | 🔴 `tool-browser` | R4 | future | Stateful Playwright/Chromium automation; pairs with `target-browser-driver` for non-BROW shapes. | CLI / CHN / CRW / RES browser actions |
+| 12 | 🔴 `browser-extension-bridge` | R18 | future | Bridge between harness and a browser extension MCP. | Hybrid BROW deployments where the daemon doesn't own the page |
 
-### Sequencing observations (informational)
+### Sequencing observations
 
-- `plugin-sdk` v2 and `plugin-loader` together unblock the entire third-party ecosystem. They're the highest-leverage v1.3 investment.
-- The mobile target shapes (§43) are a deep, narrow chain: deferred until the underlying Bun runtime story matures.
-- The cloud adapters (§44) are independent of each other and of the plugin SDK — they can ship opportunistically as partners or contributors materialise.
+- `plugin-sdk` v2 and `plugin-loader` together unblock the entire third-party ecosystem. They're the highest-leverage post-v0.2.x investment.
+- Mobile targets (§43) are deferred indefinitely — see [Unbuilt module inventory](#unbuilt-module-inventory).
+- Cloud adapters (§44) are independent of each other and of the plugin SDK — they can ship opportunistically as partners or contributors materialise.
+- `workflow-engine` + downstream is the largest single buildout in the post-v0.2.x backlog; it adds an alternative to `graph-engine` for async-event topologies (vs. the synchronous turn-based graph today).
 
 ---
 
 ## Cross-cutting hardening notes
 
 - **`tool-code-execution`** runs in `sandbox` with network=none / read-only-root defaults (since §18). `tool-bash` (R4) still operates at host trust level by design — it's the operator-controlled escape hatch. Any production EVAL or MGD deployment running untrusted samples should prefer `Python` / `JavaScript` / `Shell` (sandboxed) over `Bash` (host).
-- **Boundary classifier** (`@crewhaus/boundary-classifier`) is the single chokepoint for untrusted content ingestion — see [Pillar 3 in AGENTS.md](https://github.com/crewhaus/factory/blob/main/AGENTS.md). Every site that pulls externally-controlled content into the model's context must classify before injecting.
-- **Eval-driven mutations** must patch the *spec*, not the IR — see [Pillar 2 in AGENTS.md](https://github.com/crewhaus/factory/blob/main/AGENTS.md). `lower()` does destructive normalization that can't round-trip.
+- **Boundary classifier** (`@crewhaus/boundary-classifier`) is the single chokepoint for untrusted content *ingress* — see [Pillar 3 in AGENTS.md](https://github.com/crewhaus/factory/blob/main/AGENTS.md). The v0.2.x **egress-classifier** is its sink-side counterpart. Every site that pulls externally-controlled content into the model's context must classify before injecting; every external sink must classify against `RunContext.dataLineage` before emitting.
+- **Eval-driven mutations** must patch the *spec*, not the IR — see [Pillar 2 in AGENTS.md](https://github.com/crewhaus/factory/blob/main/AGENTS.md). `lower()` does destructive normalization that can't round-trip. The v0.2.x `spec-patch` package + `eval-optimizer-orchestrator` wire the full active loop.
 
 ---
 
 ## Module count
 
-- **Factory-level**: ~35 modules across F1–F5.
-- **Runtime composable**: ~155 modules across R1–R20.
-- **Total**: ~190 modules.
+- **Factory-level**: ~37 catalog rows across F1–F5.
+- **Runtime composable**: ~170 catalog rows across R1–R20 (including v0.2.x additions).
+- **Total**: ~205 catalog rows.
 - **Grouped bundles**: 18 coarse aggregations (see [MODULE-CATALOG.md → Module groups](MODULE-CATALOG.md#module-groups)).
-- **Shipped**: 180. **Remaining**: ~10 (all in v1.3+).
+- **Shipped (✅)**: ~145. **Unbuilt**: ~60 (excluding the deferred mobile targets).
+- The `factory/packages/` directory contains 177 workspace packages — slightly higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
 
 ---
 
@@ -186,4 +225,5 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 - **Architectural shape of the catalog** — [MODULE-CATALOG.md](MODULE-CATALOG.md)
 - **One-page brief per module** — [module-briefs/](module-briefs/README.md)
 - **Section-by-section history with PR refs** — [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md)
+- **User-facing release notes** — [factory CHANGELOG.md](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md) and [ROADMAP.md](https://github.com/crewhaus/factory/blob/main/ROADMAP.md)
 - **Task-oriented walkthroughs** — [walkthroughs/](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md)
