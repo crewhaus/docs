@@ -14,18 +14,17 @@ The catalog is the architectural shape of the system. Implementation status, in-
 
 ## Foundations (required reading for every contributor)
 
-Before you follow any reading path, internalise these three documents. The pillars are non-negotiable; every reading path below presupposes you've read them.
+Before you follow any reading path, internalise these two documents. The pillars are non-negotiable; every reading path below presupposes you've read them.
 
 | Document | What it gives you |
 |---|---|
 | **[AGENTS.md](https://github.com/crewhaus/factory/blob/main/AGENTS.md)** | The three architectural pillars: (1) the compiler is the protagonist, (2) eval is active not passive, (3) security is a fabric not a perimeter. Each pillar codifies an invariant the project will not violate. |
-| **[AI-Harness-Systems.md](AI-Harness-Systems.md)** | The founding thesis. Why a meta-harness; what primitives are universal across harnesses (state, typed tools, approvals, compaction, checkpointing, streaming, OTel, eval). |
 | **[COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md)** | The compiler pipeline walked through with file paths. `parseSpec → lower → applyPasses → emit`. The IR is a discriminated union; each target shape consumes its own variant. |
 
 ### The three pillars in one paragraph each
 
 - **Pillar 1 — Compiler as protagonist.** Specs flow through `parseSpec → lower → applyPasses → emit`. The IR is the contract; a target shape's IR variant is the *only* thing that holds its semantics. Adding a new target starts at the IR, not at codegen. Reaching past the IR into the raw spec from an emitter is a polymorphism break. Read this pillar before any work in F1, F2, or any package named `target-*`. ([AGENTS.md → Pillar 1](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-1--the-compiler-is-the-protagonist))
-- **Pillar 2 — Eval is active.** Eval failures must produce *spec patches*, not just HTML reports. The DSPy MIPRO result (+13% on five of seven multi-stage programs) is the empirical evidence that the harness layer can deliver measurable accuracy gains; the active-optimization stack (`eval-runner` → `prompt-optimizer` → `spec-patch` → `eval-optimizer-orchestrator`) is how crewhaus delivers them. Patches mutate the spec, never the IR — `lower()` does destructive normalization that can't round-trip. Read this pillar before any work in R15, F-eval, or any package named `eval-*` / `*-optimizer` / `spec-patch`. ([AGENTS.md → Pillar 2](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-2--eval-is-active-not-passive))
+- **Pillar 2 — Eval is active.** Eval failures must produce *spec patches*, not just HTML reports. Prior work on programmatic prompt optimization shows the harness layer can deliver measurable accuracy gains; the active-optimization stack (`eval-runner` → `prompt-optimizer` → `spec-patch` → `eval-optimizer-orchestrator`) is how crewhaus delivers them. Patches mutate the spec, never the IR — `lower()` does destructive normalization that can't round-trip. Read this pillar before any work in R15, F-eval, or any package named `eval-*` / `*-optimizer` / `spec-patch`. ([AGENTS.md → Pillar 2](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-2--eval-is-active-not-passive))
 - **Pillar 3 — Security is a fabric.** Untrusted content can enter the system at any boundary — MCP, sub-agents, channels, federation peers, skill bodies, compaction summaries, tool results. The `@crewhaus/boundary-classifier` is the single chokepoint; every site that pulls externally-controlled content into the model's context must classify before injecting. Authentication ≠ classification: mTLS and JWTs verify *who*, not *what*. Read this pillar before any work in R8, R5 (MCP), R10 (sub-agents), R13 (channels), R6 (compaction), R9 (skills), or any code path that reads bytes you didn't generate. ([AGENTS.md → Pillar 3](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-3--security-is-a-fabric-not-a-perimeter))
 
 ---
@@ -171,7 +170,7 @@ The browser target is a single-binary daemon that drives a real Chromium (or hos
 
 You're here to learn the shape of the system, not to ship a PR.
 
-- **Read:** the three pillars (AGENTS.md), then [AI-Harness-Systems.md](AI-Harness-Systems.md), then [COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md).
+- **Read:** the three pillars (AGENTS.md), then [COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md).
 - **Then:** [GETTING-STARTED.md](GETTING-STARTED.md) — run the hello-cli example, read the generated `agent.ts`. About fifty lines, no surprises.
 - **Then:** browse [recipes/](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md) — task-oriented walkthroughs that show the catalog in action.
 - **Last:** come back here, scan the [layer index](#layer-index), and follow the cross-links into module-briefs for the modules that interest you.
@@ -248,7 +247,7 @@ This section is a reference appendix. **You do not read it cover-to-cover.** Eac
 
 Status markers used below: ✅ = shipped, 🚧 = in progress, 🔴 / 🟡 = unbuilt with critical-path / moderate risk, *(no marker)* = unbuilt or low-risk.
 
-Test layer codes (defined in [AI-Harness-Systems.md](AI-Harness-Systems.md)):
+Test layer codes:
 
 | Code | Layer | What it proves |
 |---|---|---|
@@ -765,7 +764,6 @@ End-to-end tests for the catalog itself (independent of any single module):
 
 ## Critical files for implementation reference
 
-- [docs/AI-Harness-Systems.md](AI-Harness-Systems.md) — IR schema, reference architecture, test layers, deployment profiles, OTel dimensions, cross-cutting tradeoffs.
 - [docs/COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md) — the compiler walked through with file paths.
 - [docs/architecture studies/openclaw-architecture.md](architecture%20studies/openclaw-architecture.md) — channel, cron, skills, context-engine, plugin patterns; tool catalog + profiles; system-prompt anti-patterns.
 - [docs/architecture studies/cc-architecture.md](architecture%20studies/cc-architecture.md) — Tool interface + buildTool; query loop; multi-layer compaction; permission system; streaming; subagents.

@@ -4,8 +4,6 @@ Crewhaus is a **meta-harness compiler**. A single high-level YAML spec compiles 
 
 This doc walks the compiler with file paths so contributors can navigate from a YAML key all the way to the line that emits the corresponding TypeScript.
 
-The thesis itself lives in [docs/AI-Harness-Systems.md §reference-architecture-for-a-harness-creator-tool](AI-Harness-Systems.md). This doc is the implementation map.
-
 ## The pipeline at a glance
 
 ```mermaid
@@ -230,6 +228,6 @@ If you're adding a feature and you can't find where it goes, the answer is almos
 
 ## Why this architecture matters
 
-[docs/AI-Harness-Systems.md](AI-Harness-Systems.md) surveys the harness landscape and concludes that no single brand wins; what matters is having "explicit state, typed tools, approvals, compaction, checkpointing, streaming events, OpenTelemetry traces, and first-class eval datasets" available behind a single composable surface. The meta-harness compiler is how crewhaus delivers all of those without locking the user into one harness brand: a pipeline spec lowers into the same `runtime-core` primitives a CLI spec lowers into, but emitted as a Haystack-style component DAG; a graph spec lowers into a LangGraph-style stateful runtime; a managed spec lowers into something closer to Anthropic Managed Agents.
+The harness landscape has no single winner; what matters is having explicit state, typed tools, approvals, compaction, checkpointing, streaming events, OpenTelemetry traces, and first-class eval datasets available behind a single composable surface. The meta-harness compiler is how crewhaus delivers all of those without locking the user into one harness brand: a pipeline spec lowers into the same `runtime-core` primitives a CLI spec lowers into, but emitted as a Haystack-style component DAG; a graph spec lowers into a LangGraph-style stateful runtime; a managed spec lowers into something closer to Anthropic Managed Agents.
 
 That polymorphism is only honest if the IR variant is the contract. Every drift toward "the cli target reads a thing the IR doesn't expose" is a drift back toward "yet another agent loop with eleven flavours." The contract this document codifies is what keeps the project on the meta-harness side of that line.

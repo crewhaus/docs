@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`AI-Harness-Systems.md` sectionPolicyEngine; `openclaw/.../security/exec-policy.ts`; `openclaw/.../agents/auth-mode-policy.ts`
+`openclaw/.../security/exec-policy.ts`; `openclaw/.../agents/auth-mode-policy.ts`
 
 Research focus: Policy DSL; compile vs runtime
 

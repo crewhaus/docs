@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`AI-Harness-Systems.md` sectionIR schema; `agent-framework/.../_workflow_builder.py`; LangGraph graph IR; ADK declarative IR
+`agent-framework/.../_workflow_builder.py`; LangGraph graph IR; ADK declarative IR
 
 Research focus: Single IR vs multiple? Event encoding (envelope vs typed message); type system depth
 

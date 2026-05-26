@@ -36,7 +36,7 @@ A good first PR should include package metadata, the public entrypoint, unit tes
 
 ## Study References
 
-`gstack-main/.../prompt-injection-defense/`; `AI-Harness-Systems.md` sectionsecurity
+`gstack-main/.../prompt-injection-defense/`
 
 Research focus: Injection taxonomy; mitigation cost
 
