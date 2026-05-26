@@ -202,7 +202,7 @@ Outputs the parsed frontmatter as JSON or an explanatory error. Useful in CI bef
 
 - Schema: [packages/skills-registry/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/skills-registry/src/index.ts)
 - Tests: [packages/skills-registry/src/index.test.ts](https://github.com/crewhaus/factory/blob/main/packages/skills-registry/src/index.test.ts)
-- Recipe: [demos/recipes/15-skills.md](https://github.com/crewhaus/demos/blob/main/recipes/15-skills.md)
+- Recipe: [demos/walkthroughs/15-skills.md](https://github.com/crewhaus/demos/blob/main/walkthroughs/15-skills.md)
 - Anthropic vertical pack references:
   - `academic-research-skills` — metadata + agents subdirectory convention
   - [claude-for-legal](https://github.com/anthropics/claude-for-legal) — argument-hint + practice-profile CLAUDE.md

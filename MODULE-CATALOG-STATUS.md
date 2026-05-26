@@ -186,4 +186,4 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 - **Architectural shape of the catalog** — [MODULE-CATALOG.md](MODULE-CATALOG.md)
 - **One-page brief per module** — [module-briefs/](module-briefs/README.md)
 - **Section-by-section history with PR refs** — [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md)
-- **Task-oriented walkthroughs** — [recipes/](https://github.com/crewhaus/demos/blob/main/recipes/INDEX.md)
+- **Task-oriented walkthroughs** — [walkthroughs/](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md)

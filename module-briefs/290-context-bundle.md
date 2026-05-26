@@ -12,7 +12,7 @@ Test layers: T1
 
 Builds a single-markdown orientation manifest of CrewHaus's docs + recipes + spec schema, plus a small set of pure slicing helpers that the cloud demo's prompt builder reuses so the two surfaces don't drift.
 
-The package owns the *parsing* of CrewHaus's documentation tree (slice the decision tree out of `recipes/INDEX.md`, slice the discriminated-union excerpt out of `packages/spec/src/index.ts`, extract H1/H2/H3 headings from `MODULE-CATALOG.md`, walk `recipes/` for filename + first-heading). The source files themselves remain the source of truth.
+The package owns the *parsing* of CrewHaus's documentation tree (slice the decision tree out of `walkthroughs/INDEX.md`, slice the discriminated-union excerpt out of `packages/spec/src/index.ts`, extract H1/H2/H3 headings from `MODULE-CATALOG.md`, walk `walkthroughs/` for filename + first-heading). The source files themselves remain the source of truth.
 
 ## Boundaries
 
