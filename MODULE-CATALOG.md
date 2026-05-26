@@ -311,7 +311,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `migration-runner` | Run schema migrations across all specs in the registry; dry-run + validate-hook. | GRPH, MGD | T1, T4 | `migration-engine`, `checkpoint-store` |
 | 🟡 `upgrade-controller` | In-place runtime upgrades, gradual rollout, version pinning. | CLI, CHN, MGD | T1, T3 | `deployment-controller`, `update-channel` |
 | ✅ `docker-images` / `helm-chart` / `single-binary-cli` / `crewhaus-cloud` | Packaging artifacts under `docker/`, `helm/`, and dedicated packages. | All | T1, T2 | per-row |
-| 🟡 Cloud-deploy adapters | `cloud-adapter-{render,flyio,railway,heroku}` (v1.3 §44 — not yet implemented). | All daemon shapes | T2, T8 | `bundle-packager`, `secrets-manager` |
+| ✅ Cloud-deploy adapters | `cloud-adapter-{render,flyio,railway,heroku}` (§44 — shipped 2026-05-26 via factory PRs #118/#119/#120). | All daemon shapes | T2, T8 | `docker-images`, `secrets-manager` |
 
 #### F4 — Studio & Authoring UX
 
@@ -331,10 +331,10 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 
 | Module | Responsibility | Targets | Tests | Depends on |
 |---|---|---|---|---|
-| ✅ `plugin-sdk` (v1; v2 in §41) | Public typed surface for third-party tools, channels, models, graders, target backends. | All | T1, T2 | `tool-catalog`, `channel-adapter-base`, `model-adapter`, `grader-registry` |
-| 🔴 `plugin-loader` (v1.3) | Runtime activation, sandboxed import, capability gating. | All | T1, T3, T8 | `plugin-sdk`, `plugin-registry`, `sandbox` |
-| 🟡 `plugin-registry` (v1.3) | Discovery, version pinning, signature verification, capability declaration. | All | T1, T2, T8 | `plugin-sdk`, `secrets-manager` |
-| 🟡 `module-marketplace-client` (v1.3) | Remote registry for sharing modules (tools / skills / channels / graders). | All | T1, T2 | `plugin-registry`, `secrets-manager` |
+| ✅ `plugin-sdk` (v1 in `utilities`; v2 shipped §41 via factory PR #121) | Public typed surface for third-party tools, channels, models, graders, target emitters. Ed25519 manifest signatures + capability declarations. | All | T1, T2 | `tool-catalog` |
+| ✅ `plugin-loader` (§41 — shipped 2026-05-26 via factory PR #122) | Runtime activation: path allow-list (realpath-checked), Ed25519 signature verification, capability gating. | All | T1, T3, T8 | `plugin-sdk` |
+| ✅ `plugin-registry` (§42 — shipped 2026-05-26 via factory PR #123) | Discovery + version pinning + signature verification + capability declaration. File-backed JSON with secrets-manager-resolvable trust anchors. | All | T1, T2, T8 | `plugin-sdk`, `secrets-manager` |
+| ✅ `module-marketplace-client` (§42 — shipped 2026-05-26 via factory PR #124) | Remote registry client for sharing plugins. Search / install / uninstall / update / draftPublish over an abstract `ModuleRegistrySource`. | All | T1, T2 | `plugin-registry`, `plugin-sdk` |
 
 ### Composable runtime modules (the building blocks)
 
