@@ -6,15 +6,16 @@ If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE
 
 ---
 
-## Snapshot — 2026-05-26 (post-§41/§42/§44 close-out)
+## Snapshot — 2026-05-26 (post-§41/§42/§44 close-out + §55–§59 integration batch)
 
 - **v0.1.0 launched 2026-05-15** — public release covering build-roadmap §1–§40 (compiler core, twelve target shapes, eval stack, security fabric).
 - **v0.2.x in flight (Days 30–60)** — reference-corpus integrations: §51 egress fabric, §52 context curation, §53 justification gates + 12-metric rubric, §54 codegraph tool. Most v0.2.x packages have landed in `factory/packages/`; the slate is closing out polish + recipes.
 - **§41–§42 plugin extension surface shipped 2026-05-26** — plugin-sdk v2, plugin-loader, plugin-registry, module-marketplace-client. Closes out the highest-leverage v1.3 investment per the prior status doc.
 - **§44 cloud-deploy adapters shipped 2026-05-26** — cloud-adapter-{render, flyio, railway, heroku}.
-- **~152 of ~205 catalog rows implemented**, plus the v0.2.x packages now indexed in MODULE-CATALOG.md.
-- **12 target shapes ship today** — cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval (+ §47 onchain + onchain-game).
-- `bun run tsc -b` clean. `biome check .` clean. `bun run test:smoke` (compile-time matrix across target shapes) green.
+- **§55–§59 integration batch shipped 2026-05-26** — eight tracks (A–H) plus cross-cutting work derived from external research (5 arxiv papers + 4 blog studies + 3 reference repos). Six new packages and three pull-through changes; see new §55–§59 rows in [Implementation summary](#implementation-summary).
+- **~158 of ~211 catalog rows implemented**, including the six new §55–§59 packages.
+- **12 target shapes ship today** — cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval (+ §47 onchain + onchain-game). The §59 `target-claude-plugin` emitter transforms any of these into an Anthropic-compatible Claude Code plugin directory.
+- `bun run tsc -b` clean. `biome check .` clean. `bun run test:smoke` (compile-time matrix across target shapes) green. 5896 unit tests pass.
 
 The remaining ~53 catalog rows are split between v0.2.x cleanup, the §43 mobile target shapes (deferred), and a long tail of low-leverage runtime modules. See [Unbuilt module inventory](#unbuilt-module-inventory) below.
 
@@ -101,6 +102,12 @@ Sections 1–40 (v0.1.0) are closed. Sections 46, 47, 51–54 (v0.2.x) have land
 | §41 | 2026-05-26 — plugin SDK v2 + loader | plugin-sdk (typed surface for tools / channels / models / graders / target emitters + Ed25519 manifest signatures), plugin-loader (path allow-list + signature verification + capability gating) |
 | §42 | 2026-05-26 — plugin discovery + marketplace | plugin-registry (file-backed JSON with secrets-resolvable trust anchors), module-marketplace-client (search / install / update / draftPublish over an abstract `ModuleRegistrySource`) |
 | §44 | 2026-05-26 — cloud-deploy adapters | cloud-adapter-{render, flyio, railway, heroku} — config emission + Dockerfile + Deploy-API client per platform, all with the T8 credential-leak guard from §37 |
+| §55 (Tracks A+B+C+D) | 2026-05-26 — failure taxonomy + arbiter + verifier synthesis + 12-metric coverage | `spec.failure_taxonomy` + `IrFailureTaxonomy` + recovery-engine `matchNamedFailure`; `eval-optimizer-orchestrator/failure-arbiter` (bug/spec-gap/noise/contract-ambiguity); `tool-harness-synthesizer` (Thompson-sampled tree search per AutoHarness 2603.03329); 12-metric coverage test guard. Sources: NLAH 2603.25723, Meta-Engineering Harnesses 2605.25665, AutoHarness 2603.03329, TDS 12-Metric. |
+| §56 (Track E) | 2026-05-26 — meta-harness optimizer (**BREAKING**, opt-in) | `meta-harness-optimizer` — filesystem-backed full-history coding-agent proposer. Default mutator stays `rule`; this is `--mutator meta-harness`. Bundle output diverges from spec; run-header comment marks the divergence. Source: Meta-Harness 2603.28052. |
+| §57 (Track F) | 2026-05-26 — typed graph DSL + runtime feedback channels | `IrMessageSchema` + `IrSchemaRef` on `IrCrewV0`/`IrGraphV0`; `wellFormednessCheck` pass in `ir-passes`; four new TraceEventBus event kinds (test_verdict, program_output, coverage_report, sanitizer_report). Source: AgentFlow 2604.20801. |
+| §58 (Track G) | 2026-05-26 — contract compilation + specializations | `contract-compiler` (two-pass: completeness + ambiguity); `specialization-registry` (payments, auth, booking built-ins; project-local JSON overrides under `.crewhaus/specializations/`). Source: Meta-Engineering Harnesses 2605.25665. |
+| §59 (Track H) | 2026-05-26 — `target-claude-plugin` emitter | `target-claude-plugin` package emits an Anthropic-compatible plugin directory (plugin.json + skills/ + agents/ + optional .mcp.json) from any IR variant. Source: claude-plugins-official (Anthropic reference repo). |
+| §59-cross (Track 10) | 2026-05-26 — cross-cutting integrations | `RunContext.agentIdentity` (per-skill / sub-agent / role identity for audit); `rules-engine` (multi-language rule packs from `rules/{common,typescript,...}` with `CREWHAUS_RULES_PROFILE=core\|standard\|full` gating). Sources: Identity Governance; ECC §4.1. |
 
 For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). For user-facing release notes see [factory CHANGELOG.md](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md).
 
