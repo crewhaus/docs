@@ -105,7 +105,14 @@ Prerequisites: [Bun](https://bun.sh) ≥ 1.2 and a model-provider credential
 (Anthropic, OpenAI, Gemini, Bedrock, or any OpenAI-compatible local endpoint
 — see [`.env.example`](https://github.com/crewhaus/factory/blob/main/.env.example)).
 
+All commands in this section run from the `demos/` checkout (sibling
+to `factory/` — see the preamble above). The `compile` / `run` /
+`list` shortcuts live in `demos/package.json`.
+
 ```bash
+# 0. Switch to the demos checkout
+cd demos              # or `cd ../demos` if you're in factory/ or docs/
+
 # 1. Install the workspace
 bun install
 
@@ -520,14 +527,17 @@ trace stream is the source. When you're reconstructing what the agent
 ### Inspecting the IR before codegen
 
 ```bash
-# Print the IR as JSON to stdout
+# Print the IR as JSON to stdout (run from the demos/ checkout)
 bun ../factory/apps/cli/src/index.ts compile starters/cli/crewhaus.yaml --emit-ir
 
-# Or write it to disk for diffing across spec edits
+# Or write it to disk for diffing across spec edits — capture before & after
 bun ../factory/apps/cli/src/index.ts compile starters/cli/crewhaus.yaml \
-    --emit-ir -o /tmp/hello-ir
-diff <(jq -S . /tmp/hello-ir-before/ir.json) \
-     <(jq -S . /tmp/starters/ir/ir.json)
+    --emit-ir -o /tmp/ir-before
+# …edit starters/cli/crewhaus.yaml, then…
+bun ../factory/apps/cli/src/index.ts compile starters/cli/crewhaus.yaml \
+    --emit-ir -o /tmp/ir-after
+diff <(jq -S . /tmp/ir-before/ir.json) \
+     <(jq -S . /tmp/ir-after/ir.json)
 ```
 
 The output is a typed JSON value matching one of the twelve `IrNode`
@@ -593,7 +603,7 @@ disk if you want the same kind of after-the-fact `jq` filtering you'd
 do on the JSONL.
 
 ```bash
-# Capture the full trace stream for the run.
+# Capture the full trace stream for the run (from the demos/ checkout).
 CREWHAUS_TRACE=json bun run run starters/cli 2> hello.stderr > hello.trace.jsonl
 
 # Find permission decisions the engine made during the run.
@@ -884,8 +894,8 @@ from this section without diving into the runtime source.
 
 The `crewhaus` CLI lives at
 [`apps/cli/src/index.ts`](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts). The
-package.json exposes shortcuts (`bun run compile starters/cli` etc.); the
-underlying invocation is always `bun apps/cli/src/index.ts <subcommand>`.
+`demos/package.json` exposes shortcuts (`bun run compile starters/cli`
+etc.) that wrap the underlying invocation `bun ../factory/apps/cli/src/index.ts <subcommand>`.
 
 | Subcommand                                   | Purpose                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -1031,10 +1041,15 @@ worked examples.
 ## Studio: the visual front door
 
 Studio is a Bun-served web UI for browsing specs, running the wizard,
-visualizing graphs, and replaying traces.
+visualizing graphs, and replaying traces. It lives in the sibling
+[`crewhaus/utilities`](https://github.com/crewhaus/utilities) checkout —
+clone it next to `demos/` and `factory/`, then:
 
 ```bash
-bun run studio   # listens on :4187 by default; STUDIO_PORT to override
+cd ../utilities   # from demos/ or docs/; or wherever you cloned utilities/
+bun install
+bun run studio    # UI on http://localhost:4243 (backend on :4242)
+                  # override with PORT (UI) or STUDIO_PORT (backend)
 ```
 
 What you get:
