@@ -54,7 +54,7 @@ and audit trails. Different output shapes.
 > you can move a working agent into a new shape — Slack today, voice
 > tomorrow, batch worker the week after — by changing one line of YAML.
 
-[`MODULE-CATALOG.md`](https://github.com/crewhaus/factory/blob/main/docs/MODULE-CATALOG.md) lists the ~190 modules
+[`MODULE-CATALOG.md`](https://github.com/crewhaus/factory/blob/main/docs/MODULE-CATALOG.md) lists the ~290 modules
 that compose into the runtime. You don't need to read it to use the
 system; come back to it when you want to extend the system or when a
 recipe links to a specific module.
@@ -433,7 +433,7 @@ Different `target:` values unlock additional top-level fields. A
 `channel` spec adds `channels:` and `routing:`. A `crew` spec replaces
 `agent:` with `roles:` and `entry:`. A `graph` spec adds `nodes:` and
 `edges:`. The smallest example for each shape is the best reference —
-they.re all under `starters/`.
+they're all under `starters/`.
 
 The full Zod schema lives in
 [`packages/spec/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts) — when
@@ -591,7 +591,7 @@ Studio reads the same JSONL to render its trace timeline.
 The diagram above is honest about *what* happens; this section is
 about *where to look* when the agent does something you didn't expect.
 A 50-line YAML lowers into multi-hundred-line generated TypeScript
-running against a runtime built from ~190 modules — that's a lot of
+running against a runtime built from ~290 modules — that's a lot of
 distance between your intent and the running program. The system
 ships three compiler-equivalents-of-debugging-symbols that keep the
 distance crossable:
