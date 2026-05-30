@@ -5,10 +5,11 @@
 >
 > If you only have five minutes, jump to **[Your first agent in 60 seconds](#your-first-agent-in-60-seconds)**.
 >
-> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo
-> (clone it next to this one). The compiler and runtime packages live in
-> [crewhaus/factory](https://github.com/crewhaus/factory) — clone that as a sibling too so the `compile:*`
-> scripts in demos can find the CLI at `../factory/apps/cli/src/index.ts`.
+> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the `@crewhaus/cli` npm package; install it once with `bun add -d @crewhaus/cli` and use `bun x crewhaus ...` throughout.
+>
+> If you'd prefer to develop directly against the [crewhaus/factory](https://github.com/crewhaus/factory) workspace, clone it as a sibling and the `compile:*` scripts in demos will fall back to `../factory/apps/cli/src/index.ts`. The npm install path is what this guide assumes.
+>
+> **0.1.1 status (2026-05-30):** `@crewhaus/*` is currently published with `publishConfig.access: "restricted"`. You need scope access from the maintainer to install. Pin `^0.1.1` or newer — v0.1.0 shipped with broken workspace:* deps and is tombstoned. Public flip is on the launch checklist in [factory/PACKAGES.md](https://github.com/crewhaus/factory/blob/main/PACKAGES.md).
 
 ---
 
@@ -632,13 +633,13 @@ trace stream is the source. When you're reconstructing what the agent
 
 ```bash
 # Print the IR as JSON to stdout (run from the demos/ checkout)
-bun ../factory/apps/cli/src/index.ts compile starters/cli/crewhaus.yaml --emit-ir
+bun x crewhaus compile starters/cli/crewhaus.yaml --emit-ir
 
 # Or write it to disk for diffing across spec edits — capture before & after
-bun ../factory/apps/cli/src/index.ts compile starters/cli/crewhaus.yaml \
+bun x crewhaus compile starters/cli/crewhaus.yaml \
     --emit-ir -o /tmp/ir-before
 # …edit starters/cli/crewhaus.yaml, then…
-bun ../factory/apps/cli/src/index.ts compile starters/cli/crewhaus.yaml \
+bun x crewhaus compile starters/cli/crewhaus.yaml \
     --emit-ir -o /tmp/ir-after
 diff <(jq -S . /tmp/ir-before/ir.json) \
      <(jq -S . /tmp/ir-after/ir.json)
@@ -797,7 +798,7 @@ permissions:
 ```
 
 **Panel 2 — the IR after `lower()`**, captured by
-`bun ../factory/apps/cli/src/index.ts compile note-keeper.yaml --emit-ir`:
+`bun x crewhaus compile note-keeper.yaml --emit-ir`:
 
 ```json
 {
@@ -999,7 +1000,7 @@ from this section without diving into the runtime source.
 The `crewhaus` CLI lives at
 [`apps/cli/src/index.ts`](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts). The
 `demos/package.json` exposes shortcuts (`bun run compile starters/cli`
-etc.) that wrap the underlying invocation `bun ../factory/apps/cli/src/index.ts <subcommand>`.
+etc.) that wrap the underlying invocation `bun x crewhaus <subcommand>` (or `bun ../factory/apps/cli/src/index.ts <subcommand>` when developing from a sibling factory clone).
 
 | Subcommand                                   | Purpose                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |

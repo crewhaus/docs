@@ -1,0 +1,15 @@
+CrewHaus Docs
+Copyright 2026 Max Meier
+
+This documentation is authored by Max Meier (operating as
+StudioMax — https://studiomax.io) and contributors.
+
+The CrewHaus name and logo are trademarks of Max Meier. See
+the sibling factory repository's TRADEMARK.md for the use-of-marks policy:
+https://github.com/crewhaus/factory/blob/main/TRADEMARK.md
+
+================================================================
+The documentation prose is licensed under Apache-2.0 alongside the code
+it describes. Code fragments embedded in the docs may be copied into
+downstream projects under the same license.
+================================================================
