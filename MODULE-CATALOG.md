@@ -208,7 +208,7 @@ A target shape's IR variant *is* its contract. If a field isn't on the variant, 
 
 ## Target harness shapes
 
-The compiler ships 12 target shapes today. The spec's `target:` field is the discriminator.
+The compiler ships many target shapes today. The spec's `target:` field is the discriminator.
 
 | Code | Shape | Reference style | Distinguishing IR fields |
 |---|---|---|---|
@@ -272,7 +272,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `spec-schema` | YAML/TS DSL: agents, tools, channels, workflow, eval, deploy. Versioned, JSON Schema-backed. | All | T1, T9 | — |
 | ✅ `spec-parser` | Parse, lint, resolve includes/macros/overlays → AST. | All | T1, T9 | `spec-schema` |
 | ✅ `spec-validator` | Type-check, resolve refs, verify tool/agent/model existence, profile constraints. | All | T1, T2, T9 | `spec-schema`, `ir-model` |
-| ✅ `ir-model` | Canonical typed IR — discriminated union over 12 target variants. Runtime-agnostic. | All | T1 | — |
+| ✅ `ir-model` | Canonical typed IR — discriminated union over all target variants. Runtime-agnostic. | All | T1 | — |
 | ✅ `ir-passes` | Idempotent IR-level optimization passes (dead-tool elimination, MCP collapse, permission canonicalize). | All | T1, T4 | `ir-model` |
 | ✅ `spec-registry` | Multi-version spec storage with environment pinning + tenant overlays. | All | T1, T3 | `ir-model`, `migration-engine` |
 | ✅ `migration-engine` | Versioned schema migrations across IR versions; round-trip safe. | All | T1, T4 | `ir-model` |
@@ -755,7 +755,7 @@ Drawn from the architecture studies. The codegen / IR pipeline refuses to produc
 
 End-to-end tests for the catalog itself (independent of any single module):
 
-1. **Catalog completeness check** — for each of the 12 target shapes, the compiler picks a non-empty, type-checked module set covering all required layers from the target-shape matrix above.
+1. **Catalog completeness check** — for each of the target shapes, the compiler picks a non-empty, type-checked module set covering all required layers from the target-shape matrix above.
 2. **Shape coverage matrix** — automated test confirms every required layer × shape cell has at least one module that satisfies it.
 3. **Reference reproduction** — minimal harnesses that mimic Claude Code (CLI), OpenClaw (CHN), Haystack RAG (RAG) emit module lists that overlap ≥ 80% with the originals' layer coverage.
 4. **Cross-cutting switch matrix** — for each IR-level switch above, at least one IR pass adjusts module selection accordingly.
