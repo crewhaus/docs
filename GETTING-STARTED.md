@@ -18,7 +18,7 @@
 1. [What this is, in one minute](#what-this-is-in-one-minute)
 2. [The mental model](#the-mental-model)
 3. [Your first agent in 60 seconds](#your-first-agent-in-60-seconds)
-4. [The 12 target shapes](#the-12-target-shapes)
+4. [The target shapes](#the-target-shapes)
 5. [Anatomy of a spec](#anatomy-of-a-spec)
 6. [How data moves through the system](#how-data-moves-through-the-system)
 7. [Debugging the compiler](#debugging-the-compiler)
@@ -39,12 +39,12 @@ file describing the agent you want — what model, what tools, what shape
 of runtime. The compiler emits a self-contained TypeScript program that
 you run with [Bun](https://bun.sh).
 
-The same spec language can produce **twelve different runtime shapes** —
+The same spec language can produce **many different runtime shapes** —
 a CLI agent, a Slack bot, a multi-agent crew, a stateful graph with
 human-in-the-loop, a multi-tenant managed daemon, a RAG pipeline, an
 autonomous research worker, a queue consumer, a realtime voice service,
-a browser-driving agent, an evaluation harness, or a sequential
-workflow. The same compiler. The same runtime core. The same observability
+a browser-driving agent, an evaluation harness, a sequential
+workflow, and more. The same compiler. The same runtime core. The same observability
 and audit trails. Different output shapes.
 
 > **Why this exists.** Today, every agent framework picks one shape and
@@ -54,7 +54,7 @@ and audit trails. Different output shapes.
 > you can move a working agent into a new shape — Slack today, voice
 > tomorrow, batch worker the week after — by changing one line of YAML.
 
-[`MODULE-CATALOG.md`](https://github.com/crewhaus/factory/blob/main/docs/MODULE-CATALOG.md) lists the ~190 modules
+[`MODULE-CATALOG.md`](https://github.com/crewhaus/factory/blob/main/docs/MODULE-CATALOG.md) lists the ~290 modules
 that compose into the runtime. You don't need to read it to use the
 system; come back to it when you want to extend the system or when a
 recipe links to a specific module.
@@ -112,7 +112,7 @@ await runChatLoop({
 That's the compiler's whole job. There is no daemon between the YAML
 and the running agent — the YAML *becomes* that TypeScript, the
 TypeScript runs with `bun`, and the imports are normal npm packages.
-The eleven other target shapes work the same way: more lines on each
+The other target shapes work the same way: more lines on each
 side, same relationship. If you've used LangGraph or CrewAI, this is
 the structural difference — there's no invisible runtime unpacking your
 config, just generated code you can read.
@@ -201,7 +201,7 @@ and read it — it's about fifty lines, no surprises.
 
 ---
 
-## The 12 target shapes
+## The target shapes
 
 `target:` in your spec picks the shape. Each shape has its own minimal
 example under `starters/` and a recipe under
@@ -209,7 +209,7 @@ example under `starters/` and a recipe under
 
 ### Pick your target — an intent → shape decision matrix
 
-Twelve shapes is a lot to absorb at once. This matrix maps the
+That's a lot of shapes to absorb at once. This matrix maps the
 *intent* in your head to the right `target:`. Each row gives the
 one-line reason that shape exists and the recipe that walks it.
 Read top-to-bottom and stop at the first row that matches your
@@ -243,7 +243,7 @@ questions instead of "what shape do you want?".
 
 ### Full survey
 
-The remaining eight shapes round out the runtime. Skim once for
+The remaining shapes round out the runtime. Skim once for
 breadth; return to the row that matches your problem when you need
 it.
 
@@ -433,7 +433,7 @@ Different `target:` values unlock additional top-level fields. A
 `channel` spec adds `channels:` and `routing:`. A `crew` spec replaces
 `agent:` with `roles:` and `entry:`. A `graph` spec adds `nodes:` and
 `edges:`. The smallest example for each shape is the best reference —
-they.re all under `starters/`.
+they're all under `starters/`.
 
 The full Zod schema lives in
 [`packages/spec/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts) — when
@@ -591,7 +591,7 @@ Studio reads the same JSONL to render its trace timeline.
 The diagram above is honest about *what* happens; this section is
 about *where to look* when the agent does something you didn't expect.
 A 50-line YAML lowers into multi-hundred-line generated TypeScript
-running against a runtime built from ~190 modules — that's a lot of
+running against a runtime built from ~290 modules — that's a lot of
 distance between your intent and the running program. The system
 ships three compiler-equivalents-of-debugging-symbols that keep the
 distance crossable:
@@ -645,7 +645,7 @@ diff <(jq -S . /tmp/ir-before/ir.json) \
      <(jq -S . /tmp/ir-after/ir.json)
 ```
 
-The output is a typed JSON value matching one of the twelve `IrNode`
+The output is a typed JSON value matching one of the `IrNode`
 variants listed under [The mental model](#the-mental-model). The
 `target` field tells you which variant you're looking at; everything
 else is what that target's emitter will receive verbatim. **If a
