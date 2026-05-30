@@ -1,6 +1,6 @@
 # Module Catalog
 
-> A navigation map for the ~190 modules that compose `factory`. This document is structured so **you don't read it cover-to-cover**. You pick a reading path that matches what you're trying to do, and the path tells you which 5–15 modules to focus on, which pillar to internalise, and which recipes and briefs to follow.
+> A navigation map for the ~290 modules that compose `factory` (catalogued below as ~205 layer-index rows, where some rows aggregate a family of related packages). This document is structured so **you don't read it cover-to-cover**. You pick a reading path that matches what you're trying to do, and the path tells you which 5–15 modules to focus on, which pillar to internalise, and which recipes and briefs to follow.
 
 ## How to use this document
 
@@ -133,7 +133,7 @@ Deployment is where target shapes meet production constraints. Multi-tenancy is 
 - **Layers:** F3 (deployment / operations), R17 (infrastructure / cross-cutting), R16 (`gateway-server`), R14 (rate-limiter / retry-policy / DLQ).
 - **Entry-point packages:** [packages/deployment-controller](https://github.com/crewhaus/factory/tree/main/packages/deployment-controller), [packages/canary-controller](https://github.com/crewhaus/factory/tree/main/packages/canary-controller), [packages/migration-runner](https://github.com/crewhaus/factory/tree/main/packages/migration-runner), [packages/spec-registry](https://github.com/crewhaus/factory/tree/main/packages/spec-registry), [packages/tenancy](https://github.com/crewhaus/factory/tree/main/packages/tenancy), [packages/audit-log](https://github.com/crewhaus/factory/tree/main/packages/audit-log), [packages/gateway-server](https://github.com/crewhaus/factory/tree/main/packages/gateway-server), [packages/cost-tracker](https://github.com/crewhaus/factory/tree/main/packages/cost-tracker), [packages/rate-limiter](https://github.com/crewhaus/factory/tree/main/packages/rate-limiter), [packages/circuit-breaker](https://github.com/crewhaus/factory/tree/main/packages/circuit-breaker), [packages/secrets-manager](https://github.com/crewhaus/factory/tree/main/packages/secrets-manager).
 - **Packaging artifacts:** [docker/](../docker), [helm/](../helm), [packages/single-binary-cli](https://github.com/crewhaus/factory/tree/main/packages/single-binary-cli), [packages/crewhaus-cloud](https://github.com/crewhaus/factory/tree/main/packages/crewhaus-cloud).
-- **Mandatory contract:** audit-log is hash-chained — `crewhaus audit verify <tenant>` re-walks the chain. Cross-tenant reads throw at every storage layer (sessions, evals, tool-results, audit). Canary gate calls `regression-runner.gate()` — promotion / auto-rollback both audit-log under kind `deployment_action`.
+- **Mandatory contract:** audit-log is hash-chained — the `audit-log` package's `verify(rootDir)` re-walks the chain. Cross-tenant reads throw at every storage layer (sessions, evals, tool-results, audit). Canary gate calls `regression-runner.gate()` — promotion / auto-rollback both audit-log under kind `deployment_action`.
 - **Recipes:** [11-managed-multitenant](https://github.com/crewhaus/demos/blob/main/walkthroughs/11-managed-multitenant.md), [21-deployment-and-canary](https://github.com/crewhaus/demos/blob/main/walkthroughs/21-deployment-and-canary.md), [22-compliance-and-audit](https://github.com/crewhaus/demos/blob/main/walkthroughs/22-compliance-and-audit.md), [24-docker-and-helm](https://github.com/crewhaus/demos/blob/main/walkthroughs/24-docker-and-helm.md), [36-cloud-deploy](https://github.com/crewhaus/demos/blob/main/walkthroughs/36-cloud-deploy.md), [27-federation](https://github.com/crewhaus/demos/blob/main/walkthroughs/27-federation.md).
 
 ### If you are working on Studio, IDE integration, or developer experience
@@ -208,7 +208,7 @@ A target shape's IR variant *is* its contract. If a field isn't on the variant, 
 
 ## Target harness shapes
 
-The compiler ships 12 target shapes today. The spec's `target:` field is the discriminator.
+The compiler ships many target shapes today. The spec's `target:` field is the discriminator.
 
 | Code | Shape | Reference style | Distinguishing IR fields |
 |---|---|---|---|
@@ -272,7 +272,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `spec-schema` | YAML/TS DSL: agents, tools, channels, workflow, eval, deploy. Versioned, JSON Schema-backed. | All | T1, T9 | — |
 | ✅ `spec-parser` | Parse, lint, resolve includes/macros/overlays → AST. | All | T1, T9 | `spec-schema` |
 | ✅ `spec-validator` | Type-check, resolve refs, verify tool/agent/model existence, profile constraints. | All | T1, T2, T9 | `spec-schema`, `ir-model` |
-| ✅ `ir-model` | Canonical typed IR — discriminated union over 12 target variants. Runtime-agnostic. | All | T1 | — |
+| ✅ `ir-model` | Canonical typed IR — discriminated union over all target variants. Runtime-agnostic. | All | T1 | — |
 | ✅ `ir-passes` | Idempotent IR-level optimization passes (dead-tool elimination, MCP collapse, permission canonicalize). | All | T1, T4 | `ir-model` |
 | ✅ `spec-registry` | Multi-version spec storage with environment pinning + tenant overlays. | All | T1, T3 | `ir-model`, `migration-engine` |
 | ✅ `migration-engine` | Versioned schema migrations across IR versions; round-trip safe. | All | T1, T4 | `ir-model` |
@@ -631,7 +631,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `runtime-migrations` | Versioned runtime data migrations. | All | T1, T4 | `migration-engine` |
 | 🟡 `daemon-process` / 🟡 `node-host` / 🟡 `proxy-capture` / 🟡 `bootstrap-runtime` / `startup-profiler` / 🟡 `update-channel` | Long-running process supervision, cross-host RPC, capture/replay, first-run trust, profiling, auto-update. | varies | T1+ | per-row |
 | ✅ `tenancy` | Per-tenant isolation (sessionRoot / evalRoot / toolResultRoot / policyOverrides / budget). | MGD | T1, T3, T8 | `secrets-manager`, `audit-log`, `gateway-server` |
-| ✅ `audit-log` | Append-only hash-chained audit trail; `crewhaus audit verify`. | MGD | T1, T8 | `event-log`, `secrets-manager` |
+| ✅ `audit-log` | Append-only hash-chained audit trail; programmatic `verify(rootDir)` re-walk. | MGD | T1, T8 | `event-log`, `secrets-manager` |
 
 #### R18 — Specialized / Advanced
 
@@ -755,7 +755,7 @@ Drawn from the architecture studies. The codegen / IR pipeline refuses to produc
 
 End-to-end tests for the catalog itself (independent of any single module):
 
-1. **Catalog completeness check** — for each of the 12 target shapes, the compiler picks a non-empty, type-checked module set covering all required layers from the target-shape matrix above.
+1. **Catalog completeness check** — for each of the target shapes, the compiler picks a non-empty, type-checked module set covering all required layers from the target-shape matrix above.
 2. **Shape coverage matrix** — automated test confirms every required layer × shape cell has at least one module that satisfies it.
 3. **Reference reproduction** — minimal harnesses that mimic Claude Code (CLI), OpenClaw (CHN), Haystack RAG (RAG) emit module lists that overlap ≥ 80% with the originals' layer coverage.
 4. **Cross-cutting switch matrix** — for each IR-level switch above, at least one IR pass adjusts module selection accordingly.

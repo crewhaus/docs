@@ -13,8 +13,8 @@ If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE
 - **§41–§42 plugin extension surface shipped 2026-05-26** — plugin-sdk v2, plugin-loader, plugin-registry, module-marketplace-client. Closes out the highest-leverage v1.3 investment per the prior status doc.
 - **§44 cloud-deploy adapters shipped 2026-05-26** — cloud-adapter-{render, flyio, railway, heroku}.
 - **§55–§59 integration batch shipped 2026-05-26** — eight tracks (A–H) plus cross-cutting work derived from external research (5 arxiv papers + 4 blog studies + 3 reference repos). Six new packages and three pull-through changes; see new §55–§59 rows in [Implementation summary](#implementation-summary).
-- **~158 of ~211 catalog rows implemented**, including the six new §55–§59 packages.
-- **12 target shapes ship today** — cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval (+ §47 onchain + onchain-game). The §59 `target-claude-plugin` emitter transforms any of these into an Anthropic-compatible Claude Code plugin directory.
+- **~152 of ~205 catalog rows implemented**, including the six new §55–§59 packages.
+- **Target shapes ship today** — cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval / onchain / onchain-game. The §59 `target-claude-plugin` emitter transforms any of these into an Anthropic-compatible Claude Code plugin directory.
 - `bun run tsc -b` clean. `biome check .` clean. `bun run test:smoke` (compile-time matrix across target shapes) green. 5896 unit tests pass.
 
 The remaining ~53 catalog rows are split between v0.2.x cleanup, the §43 mobile target shapes (deferred), and a long tail of low-leverage runtime modules. See [Unbuilt module inventory](#unbuilt-module-inventory) below.

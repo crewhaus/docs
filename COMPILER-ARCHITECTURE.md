@@ -1,6 +1,6 @@
 # Compiler architecture
 
-Crewhaus is a **meta-harness compiler**. A single high-level YAML spec compiles into one of twelve target shapes (CLI agent, sequential workflow, channel bot, stateful graph, managed multi-tenant daemon, RAG pipeline, multi-agent crew, autonomous research bundle, batch worker, voice agent, browser-driving agent, eval bundle). The intent is not "yet another agent loop." It is a typed compiler whose IR is the *only* thing that holds the agent's semantics, and whose backends are swappable codegen functions over that IR.
+Crewhaus is a **meta-harness compiler**. A single high-level YAML spec compiles into one of many target shapes — a CLI agent, a channel bot, a stateful graph, a RAG pipeline, a multi-agent crew, an on-chain daemon, and more; the canonical IR-variant table below maps every target to its IR variant and emitter. The intent is not "yet another agent loop." It is a typed compiler whose IR is the *only* thing that holds the agent's semantics, and whose backends are swappable codegen functions over that IR.
 
 This doc walks the compiler with file paths so contributors can navigate from a YAML key all the way to the line that emits the corresponding TypeScript.
 
@@ -36,7 +36,7 @@ The CLI does not branch on `spec.target`. The discriminator lives in the YAML an
 ## The IR is a discriminated union
 
 ```ts
-// packages/ir/src/index.ts:537
+// packages/ir/src/index.ts:912
 export type IrNode =
   | IrV0          // CLI agent
   | IrWorkflowV0  // Sequential workflow
@@ -49,7 +49,9 @@ export type IrNode =
   | IrBatchV0     // Queue-driven batch worker
   | IrVoiceV0     // Voice / realtime agent
   | IrBrowserV0   // Computer-use / browser-driving agent
-  | IrEvalV0;     // Eval bundle (bootable artefact)
+  | IrEvalV0      // Eval bundle (bootable artefact)
+  | IrChainV0     // On-chain event/block/address daemon
+  | IrChainGameV0; // On-chain game-playing agent (perceive-act loop)
 ```
 
 Each variant is a separate Zod-validated type with a `target` discriminator. Variants only carry the fields they need: `IrPipelineV0` has `indexing` and `retrieve` blocks but no `tools` array; `IrGraphV0` has `nodes` and `edges` but no `agent`; `IrVoiceV0` has `vad` and `barge_in` settings that no other variant needs. There is no shared mega-shape that targets cherry-pick from.
@@ -74,6 +76,8 @@ This is the canonical mapping. Use this table when you need to navigate from a Y
 | `voice` | `IrVoiceV0` | [compiler L425](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) | `emitVoice` | [packages/target-voice](https://github.com/crewhaus/factory/tree/main/packages/target-voice) | §24 | [09](https://github.com/crewhaus/demos/blob/main/walkthroughs/09-voice-agent.md) | [starters/voice](https://github.com/crewhaus/demos/tree/main/starters/voice) |
 | `browser` | `IrBrowserV0` | [compiler L450](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) | `emitBrowserDriver` | [packages/target-browser-driver](https://github.com/crewhaus/factory/tree/main/packages/target-browser-driver) | §25 | [10](https://github.com/crewhaus/demos/blob/main/walkthroughs/10-browser-agent.md) | [starters/browser](https://github.com/crewhaus/demos/tree/main/starters/browser) |
 | `eval` | `IrEvalV0` | [compiler L478](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) | `emitEval` | [packages/target-eval-bundle](https://github.com/crewhaus/factory/tree/main/packages/target-eval-bundle) | §29 | [12](https://github.com/crewhaus/demos/blob/main/walkthroughs/12-eval-harness.md) | [starters/eval](https://github.com/crewhaus/demos/tree/main/starters/eval) |
+| `onchain` | `IrChainV0` | [compiler L733](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) | `emitOnchain` | [packages/target-onchain](https://github.com/crewhaus/factory/tree/main/packages/target-onchain) | §47 | [47](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) | [inline](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) |
+| `onchain-game` | `IrChainGameV0` | [compiler L784](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) | `emitOnchainGame` | [packages/target-onchain-game](https://github.com/crewhaus/factory/tree/main/packages/target-onchain-game) | §47 | [47](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) | [inline](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) |
 
 The exact `lower` line numbers may shift as the compiler grows; the table is best-effort. The contract that *does* hold: `emit(ir: IrNode): Bundle` at [packages/compiler/src/index.ts:502](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts#L502) is an exhaustive switch ending in `assertNever(ir)`. Add a variant without registering it here and `tsc` fails.
 
