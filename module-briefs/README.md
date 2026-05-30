@@ -4,6 +4,8 @@ These briefs continue [`docs/MODULE-CATALOG.md`](../MODULE-CATALOG.md) by turnin
 
 Each brief is intentionally compact: purpose, boundary, inputs/outputs, first slice, and validation plan. The catalog remains the source of truth for the complete matrix.
 
+To see which task-oriented walkthrough exercises each catalog layer (i.e. "is module X covered anywhere?"), use the [Module coverage matrix](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md#module-coverage) in the demos repo. It also lists the brief-slug → catalog/package-name aliases (e.g. `embedding-adapter` → `embedder`) so a brief here maps cleanly to the module the recipes demonstrate.
+
 ## Phase 1: Foundations
 
 | # | Module | Status | Catalog layer | Origin |

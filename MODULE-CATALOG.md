@@ -1,6 +1,6 @@
 # Module Catalog
 
-> A navigation map for the ~190 modules that compose `factory`. This document is structured so **you don't read it cover-to-cover**. You pick a reading path that matches what you're trying to do, and the path tells you which 5–15 modules to focus on, which pillar to internalise, and which recipes and briefs to follow.
+> A navigation map for the ~290 modules that compose `factory` (catalogued below as ~205 layer-index rows, where some rows aggregate a family of related packages). This document is structured so **you don't read it cover-to-cover**. You pick a reading path that matches what you're trying to do, and the path tells you which 5–15 modules to focus on, which pillar to internalise, and which recipes and briefs to follow.
 
 ## How to use this document
 
@@ -133,7 +133,7 @@ Deployment is where target shapes meet production constraints. Multi-tenancy is 
 - **Layers:** F3 (deployment / operations), R17 (infrastructure / cross-cutting), R16 (`gateway-server`), R14 (rate-limiter / retry-policy / DLQ).
 - **Entry-point packages:** [packages/deployment-controller](https://github.com/crewhaus/factory/tree/main/packages/deployment-controller), [packages/canary-controller](https://github.com/crewhaus/factory/tree/main/packages/canary-controller), [packages/migration-runner](https://github.com/crewhaus/factory/tree/main/packages/migration-runner), [packages/spec-registry](https://github.com/crewhaus/factory/tree/main/packages/spec-registry), [packages/tenancy](https://github.com/crewhaus/factory/tree/main/packages/tenancy), [packages/audit-log](https://github.com/crewhaus/factory/tree/main/packages/audit-log), [packages/gateway-server](https://github.com/crewhaus/factory/tree/main/packages/gateway-server), [packages/cost-tracker](https://github.com/crewhaus/factory/tree/main/packages/cost-tracker), [packages/rate-limiter](https://github.com/crewhaus/factory/tree/main/packages/rate-limiter), [packages/circuit-breaker](https://github.com/crewhaus/factory/tree/main/packages/circuit-breaker), [packages/secrets-manager](https://github.com/crewhaus/factory/tree/main/packages/secrets-manager).
 - **Packaging artifacts:** [docker/](../docker), [helm/](../helm), [packages/single-binary-cli](https://github.com/crewhaus/factory/tree/main/packages/single-binary-cli), [packages/crewhaus-cloud](https://github.com/crewhaus/factory/tree/main/packages/crewhaus-cloud).
-- **Mandatory contract:** audit-log is hash-chained — `crewhaus audit verify <tenant>` re-walks the chain. Cross-tenant reads throw at every storage layer (sessions, evals, tool-results, audit). Canary gate calls `regression-runner.gate()` — promotion / auto-rollback both audit-log under kind `deployment_action`.
+- **Mandatory contract:** audit-log is hash-chained — the `audit-log` package's `verify(rootDir)` re-walks the chain. Cross-tenant reads throw at every storage layer (sessions, evals, tool-results, audit). Canary gate calls `regression-runner.gate()` — promotion / auto-rollback both audit-log under kind `deployment_action`.
 - **Recipes:** [11-managed-multitenant](https://github.com/crewhaus/demos/blob/main/walkthroughs/11-managed-multitenant.md), [21-deployment-and-canary](https://github.com/crewhaus/demos/blob/main/walkthroughs/21-deployment-and-canary.md), [22-compliance-and-audit](https://github.com/crewhaus/demos/blob/main/walkthroughs/22-compliance-and-audit.md), [24-docker-and-helm](https://github.com/crewhaus/demos/blob/main/walkthroughs/24-docker-and-helm.md), [36-cloud-deploy](https://github.com/crewhaus/demos/blob/main/walkthroughs/36-cloud-deploy.md), [27-federation](https://github.com/crewhaus/demos/blob/main/walkthroughs/27-federation.md).
 
 ### If you are working on Studio, IDE integration, or developer experience
@@ -631,7 +631,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `runtime-migrations` | Versioned runtime data migrations. | All | T1, T4 | `migration-engine` |
 | 🟡 `daemon-process` / 🟡 `node-host` / 🟡 `proxy-capture` / 🟡 `bootstrap-runtime` / `startup-profiler` / 🟡 `update-channel` | Long-running process supervision, cross-host RPC, capture/replay, first-run trust, profiling, auto-update. | varies | T1+ | per-row |
 | ✅ `tenancy` | Per-tenant isolation (sessionRoot / evalRoot / toolResultRoot / policyOverrides / budget). | MGD | T1, T3, T8 | `secrets-manager`, `audit-log`, `gateway-server` |
-| ✅ `audit-log` | Append-only hash-chained audit trail; `crewhaus audit verify`. | MGD | T1, T8 | `event-log`, `secrets-manager` |
+| ✅ `audit-log` | Append-only hash-chained audit trail; programmatic `verify(rootDir)` re-walk. | MGD | T1, T8 | `event-log`, `secrets-manager` |
 
 #### R18 — Specialized / Advanced
 
