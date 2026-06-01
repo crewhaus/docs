@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Claude Code session state
+.claude/
+
+# Secrets & env
+.env
+.env.*
+!.env.example
