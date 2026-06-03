@@ -1,0 +1,34 @@
+name: No private-repo links
+
+# Public repos must never link into the private launch-plan/operations repo.
+# The lychee link-checker (links.yml) excludes all github.com/crewhaus/* URLs to
+# avoid 404s on still-private siblings, so it cannot catch a link INTO a repo
+# that must stay private. This grep-guard can, and stays valid after launch.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: No links into private crewhaus repos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail on links to private crewhaus repos
+        run: |
+          if grep -rnI -E 'github\.com/crewhaus/(operations|launch-plan)' \
+               --include='*.md' --include='*.mdx' \
+               --include='*.yml' --include='*.yaml' --include='*.json' \
+               --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
+               --exclude-dir=node_modules --exclude-dir=.git . ; then
+            echo "::error::Found a link into a private crewhaus repo (operations/launch-plan). Repoint it to the public docs repo before merge."
+            exit 1
+          fi
+          echo "OK -- no links into private crewhaus repos."
