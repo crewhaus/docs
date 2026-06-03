@@ -16,3 +16,8 @@
 # never imported when docs/ was carved out of factory. Real link rot, tracked
 # separately — excluded here so the lychee gate isn't blocked by it.
 ^file:///home/runner/work/docs/docs/architecture%20studies/.*$
+
+# npmjs.com returns 403 to CI link-checkers (bot blocking), so the valid
+# @colbymchenry/codegraph package link in build-roadmap.md false-positives.
+# The package page exists and resolves in a browser; exclude npm package URLs.
+^https?://(www\.)?npmjs\.com/
