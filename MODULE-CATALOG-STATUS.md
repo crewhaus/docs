@@ -2,7 +2,7 @@
 
 This document tracks **what's built, what's in flight, and what's deferred** across the catalog. It complements [MODULE-CATALOG.md](MODULE-CATALOG.md), which describes the catalog's shape and is intended for navigation, not for ticket-tracking.
 
-If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE-CATALOG.md) or [module-briefs/](module-briefs/README.md). If you want section-by-section history with PR refs, go to [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). For shipped + planned product surface in user-facing terms, see [factory ROADMAP.md](https://github.com/crewhaus/factory/blob/main/ROADMAP.md). This document sits between them: a single-glance status board.
+If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE-CATALOG.md) or [module-briefs/](module-briefs/README.md). If you want section-by-section history with PR refs, go to [build-roadmap.md](build-roadmap.md). For shipped + planned product surface in user-facing terms, see [factory ROADMAP.md](https://github.com/crewhaus/factory/blob/main/ROADMAP.md). This document sits between them: a single-glance status board.
 
 ---
 
@@ -109,7 +109,7 @@ Sections 1–40 (v0.1.0) are closed. Sections 46, 47, 51–54 (v0.2.x) have land
 | §59 (Track H) | 2026-05-26 — `target-claude-plugin` emitter | `target-claude-plugin` package emits an Anthropic-compatible plugin directory (plugin.json + skills/ + agents/ + optional .mcp.json) from any IR variant. Source: claude-plugins-official (Anthropic reference repo). |
 | §59-cross (Track 10) | 2026-05-26 — cross-cutting integrations | `RunContext.agentIdentity` (per-skill / sub-agent / role identity for audit); `rules-engine` (multi-language rule packs from `rules/{common,typescript,...}` with `CREWHAUS_RULES_PROFILE=core\|standard\|full` gating). Sources: Identity Governance; ECC §4.1. |
 
-For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md). For user-facing release notes see [factory CHANGELOG.md](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md).
+For per-section detail (file paths, kickoff prompts, PR refs), see [build-roadmap.md](build-roadmap.md). For user-facing release notes see [factory CHANGELOG.md](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md).
 
 ---
 
@@ -233,6 +233,6 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 
 - **Architectural shape of the catalog** — [MODULE-CATALOG.md](MODULE-CATALOG.md)
 - **One-page brief per module** — [module-briefs/](module-briefs/README.md)
-- **Section-by-section history with PR refs** — [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md)
+- **Section-by-section history with PR refs** — [build-roadmap.md](build-roadmap.md)
 - **User-facing release notes** — [factory CHANGELOG.md](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md) and [ROADMAP.md](https://github.com/crewhaus/factory/blob/main/ROADMAP.md)
 - **Task-oriented walkthroughs** — [walkthroughs/](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md)

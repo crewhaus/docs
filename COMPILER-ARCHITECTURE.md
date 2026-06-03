@@ -116,7 +116,7 @@ Then register the emitter in `emit()` at [packages/compiler/src/index.ts:502](ht
 - Add a recipe to [docs/walkthroughs/](https://github.com/crewhaus/demos/tree/main/walkthroughs) and reserve its slot in [docs/walkthroughs/INDEX.md](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md).
 - Add an example under [starters/<target>/](https://github.com/crewhaus/demos/tree/main/smoke) with a `crewhaus.yaml` and a smoke script in [scripts/](../scripts).
 - Add a row to the IR-variant table above so future contributors can find your target the same way they find the existing ones.
-- Add a section to [operations/build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md) annotated with `IR variant: Ir<Target>V0 · Catalog layer: F2 · Compiler stage: emit`.
+- Add a section to [build-roadmap.md](build-roadmap.md) annotated with `IR variant: Ir<Target>V0 · Catalog layer: F2 · Compiler stage: emit`.
 
 ## Adding an IR-level optimisation pass
 

@@ -8,7 +8,7 @@
 2. **Jump to the [reading path](#reading-paths) for your task.** Each path is self-contained: pillar callout, layers to focus on, entry-point packages, recipes, and module briefs.
 3. **Use the [layer index](#layer-index) only when you need the full matrix.** It's a reference appendix, not the main body of the document.
 
-The catalog is the architectural shape of the system. Implementation status, in-flight work, and the v1.3 backlog live in [MODULE-CATALOG-STATUS.md](MODULE-CATALOG-STATUS.md). Per-module build briefs (one page each) live in [module-briefs/](module-briefs/README.md). Section-by-section history lives in [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md).
+The catalog is the architectural shape of the system. Implementation status, in-flight work, and the v1.3 backlog live in [MODULE-CATALOG-STATUS.md](MODULE-CATALOG-STATUS.md). Per-module build briefs (one page each) live in [module-briefs/](module-briefs/README.md). Section-by-section history lives in [build-roadmap.md](build-roadmap.md).
 
 ---
 
@@ -770,7 +770,7 @@ End-to-end tests for the catalog itself (independent of any single module):
 
 - **One-page brief per module** — [module-briefs/](module-briefs/README.md). The briefs continue the catalog by turning rows into per-module purpose / boundary / inputs-outputs / first-slice / validation plan.
 - **Implementation status & v1.3 backlog** — [MODULE-CATALOG-STATUS.md](MODULE-CATALOG-STATUS.md).
-- **Section-by-section history with PR refs** — [build-roadmap.md](https://github.com/crewhaus/operations/blob/main/build-roadmap.md).
+- **Section-by-section history with PR refs** — [build-roadmap.md](build-roadmap.md).
 - **Task-oriented walkthroughs** — [walkthroughs/](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md). Start with [01-cli-coding-agent](https://github.com/crewhaus/demos/blob/main/walkthroughs/01-cli-coding-agent.md), then jump to the recipe most relevant to your reading path.
 - **First-time setup** — [GETTING-STARTED.md](GETTING-STARTED.md).
 
