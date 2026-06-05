@@ -5189,5 +5189,5 @@ The full rejection table lives in the internal planning review. The notable omis
 - **Behavioral baselines / anomaly scoring.** Prerequisite plumbing (data-lineage + egress audit events) is now in place; defer to a follow-up slice that consumes them.
 - **Plan-mode / explicit modes** (Devin, Cline, Cursor pattern). CrewHaus's eval-optimizer addresses the "first plan, then execute" axis differently; revisit if a strong demand signal emerges.
 - **Skills format extensions** (`metadata.version`, `argument-hint`, `agents/` subdirs, `references/*.schema.json`). One-line change in `skills-registry` plus a `docs/SKILLS-FORMAT.md`. Tracked as a follow-up.
-- **`ref/big-system-prompts/` as a vendored benchmark dataset.** Tracked as a follow-up under `operations/research-corpus/`.
+- **`ref/big-system-prompts/` as a vendored benchmark dataset.** Tracked as an internal follow-up.
 ```
