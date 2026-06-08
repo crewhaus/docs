@@ -2575,7 +2575,7 @@ All three packages are independent and parallelisable. Each is its own PR.
 - Published to JetBrains Marketplace.
 
 **`packages/crewhaus-playground`** — browser-based REPL
-- Single-page app at `play.crewhaus.io` (or wherever the project hosts it).
+- Single-page app at `play.crewhaus.ai` (or wherever the project hosts it).
 - Edits a spec in-browser via Monaco; runs against a hosted CrewHaus deployment over the §20 gateway-server.
 - Templates from §26 `scaffold-templates` available as one-click examples.
 - Anonymous sessions get a small free quota; signing in via OAuth (GitHub / Google) lifts the quota and persists specs to the user's account.
@@ -4700,7 +4700,7 @@ PR 2: packages/jetbrains-plugin (IntelliJ / WebStorm / PyCharm parity)
 - Published to JetBrains Marketplace
 
 PR 3: packages/crewhaus-playground (browser-based REPL)
-- Single-page app at play.crewhaus.io
+- Single-page app at play.crewhaus.ai
 - Edits a spec in-browser via Monaco; runs against a hosted CrewHaus deployment over §20 gateway-server
 - Templates from §26 scaffold-templates available as one-click examples
 - Anonymous sessions get a small free quota; OAuth (GitHub / Google) lifts the quota and persists specs
