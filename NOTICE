@@ -12,4 +12,10 @@ https://github.com/crewhaus/factory/blob/main/TRADEMARK.md
 The documentation prose is licensed under Apache-2.0 alongside the code
 it describes. Code fragments embedded in the docs may be copied into
 downstream projects under the same license.
+
+EXCEPTION — the whitepaper under `whitepaper/`
+(crewhaus-meta-harness-compiler.md and the rendered .pdf) is licensed under the
+Creative Commons Attribution 4.0 International License (CC-BY-4.0), per
+`whitepaper/LICENSE` — not Apache-2.0. It is published here from a separate
+source of record.
 ================================================================
