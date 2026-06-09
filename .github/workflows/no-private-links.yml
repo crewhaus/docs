@@ -1,6 +1,8 @@
 name: No private-repo links
 
-# Public repos must never link into the private launch-plan/operations repo.
+# Public repos must never link into a private crewhaus repo (operations,
+# launch-plan, cloud, whitepaper). The whitepaper is published into this repo as
+# rendered artifacts (whitepaper/*.md|.pdf), but its source repo stays private.
 # The lychee link-checker (links.yml) excludes all github.com/crewhaus/* URLs to
 # avoid 404s on still-private siblings, so it cannot catch a link INTO a repo
 # that must stay private. This grep-guard can, and stays valid after launch.
@@ -23,12 +25,12 @@ jobs:
 
       - name: Fail on links to private crewhaus repos
         run: |
-          if grep -rnI -E 'github\.com/crewhaus/(operations|launch-plan)' \
+          if grep -rnI -E 'github\.com/crewhaus/(operations|launch-plan|cloud|whitepaper)' \
                --include='*.md' --include='*.mdx' \
                --include='*.yml' --include='*.yaml' --include='*.json' \
                --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
                --exclude-dir=node_modules --exclude-dir=.git . ; then
-            echo "::error::Found a link into a private crewhaus repo (operations/launch-plan). Repoint it to the public docs repo before merge."
+            echo "::error::Found a link into a private crewhaus repo (operations/launch-plan/cloud/whitepaper). Repoint it to a public repo before merge."
             exit 1
           fi
           echo "OK -- no links into private crewhaus repos."
