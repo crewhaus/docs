@@ -54,7 +54,7 @@ and audit trails. Different output shapes.
 > you can move a working agent into a new shape — Slack today, voice
 > tomorrow, batch worker the week after — by changing one line of YAML.
 
-[`MODULE-CATALOG.md`](https://github.com/crewhaus/factory/blob/main/docs/MODULE-CATALOG.md) lists the ~290 modules
+[`MODULE-CATALOG.md`](https://github.com/crewhaus/docs/blob/main/MODULE-CATALOG.md) lists the ~290 modules
 that compose into the runtime. You don't need to read it to use the
 system; come back to it when you want to extend the system or when a
 recipe links to a specific module.
@@ -1244,13 +1244,13 @@ The full recipe index lives at [`walkthroughs/INDEX.md`](https://github.com/crew
 ### The full module catalog
 
 When a recipe says "uses module X," the canonical reference is
-[`MODULE-CATALOG.md`](https://github.com/crewhaus/factory/blob/main/docs/MODULE-CATALOG.md). It's organised as
+[`MODULE-CATALOG.md`](https://github.com/crewhaus/docs/blob/main/MODULE-CATALOG.md). It's organised as
 role-based reading paths ("if you are adding a new target shape, go
 to …") rather than a flat glossary, so you can land on the ~5
 modules that matter for your task without reading the rest. Per-module
-build briefs live in [`module-briefs/`](https://github.com/crewhaus/factory/tree/main/docs/module-briefs);
+build briefs live in [`module-briefs/`](https://github.com/crewhaus/docs/tree/main/module-briefs);
 implementation status and the v1.3 backlog live in
-[`MODULE-CATALOG-STATUS.md`](https://github.com/crewhaus/factory/blob/main/docs/MODULE-CATALOG-STATUS.md).
+[`MODULE-CATALOG-STATUS.md`](https://github.com/crewhaus/docs/blob/main/MODULE-CATALOG-STATUS.md).
 
 ---
 
