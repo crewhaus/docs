@@ -411,11 +411,11 @@ agent:
   model: claude-sonnet-4-6
   instructions: |
     You help with TypeScript. Read files before editing.
-  tools:
-    - read         # filesystem read
-    - write        # filesystem write
-    - edit         # filesystem edit
-    - bash         # shell exec (sandboxed working dir)
+tools:
+  - read           # filesystem read
+  - write          # filesystem write
+  - edit           # filesystem edit
+  - bash           # shell exec (sandboxed working dir)
 permissions:
   mode: default   # default | plan | auto | bypass
   rules:
@@ -1067,8 +1067,10 @@ federation certs); project-level overrides user-level.
 
 ### Built-in tools
 
-These ship with the runtime; declare them under `agent.tools:` in your
-spec to register them.
+These ship with the runtime; declare them in your spec's `tools:` list to
+register them. Where that list lives depends on the target: top-level
+`tools:` for `cli`, `agent.tools:` for `channel`, per-step/per-role
+`tools:` for `workflow` and `crew` — the starters show each placement.
 
 | Tool                            | Purpose                                                              |
 | ------------------------------- | -------------------------------------------------------------------- |
