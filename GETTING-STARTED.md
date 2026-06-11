@@ -191,8 +191,10 @@ and read it — it's about fifty lines, no surprises.
 
 > **Don't have a credential yet?** Any supported provider works — Anthropic
 > (`claude-…`), OpenAI (`openai/…`), Gemini (`gemini/…`), Bedrock
-> (`bedrock/…`), or any OpenAI-compatible local endpoint
-> (`local/<model>@<url>`). The spec model string is one field; pick whichever
+> (`bedrock/…`), Azure OpenAI (`azure/…`), Vertex AI (`vertex/…`), named
+> OpenAI-compatible hosts (`groq/…`, `openrouter/…`, …), or any
+> OpenAI-compatible local endpoint
+> (`local/<model>[@<url>]`). The spec model string is one field; pick whichever
 > provider you already have access to. For Anthropic, `claude setup-token`
 > sets up a Pro/Max OAuth token or grab an API key from
 > <https://console.anthropic.com/settings/keys>. See
@@ -290,7 +292,7 @@ agent:
 
 > **Want a different provider?** The `model:` line is the only field
 > tied to a provider. Swap `claude-sonnet-4-6` for `openai/gpt-4o`,
-> `gemini/gemini-2.0-pro`, `bedrock/anthropic.claude-…`, or
+> `gemini/gemini-2.5-pro`, `bedrock/us.anthropic.claude-…`, or
 > `local/llama3@http://localhost:8080/v1`. See
 > [Other model providers](#other-model-providers) for the full prefix
 > grammar.
@@ -1187,14 +1189,19 @@ grammar:
 
 | Prefix                          | Provider                                                              | Env vars                                              |
 | ------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------- |
-| `claude-…`                      | Anthropic                                                             | `ANTHROPIC_AUTH_TOKEN` (recommended) or `ANTHROPIC_API_KEY` |
-| `openai/…`                      | OpenAI Chat Completions                                               | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL`           |
-| `gemini/…`                      | Google Gemini                                                         | `GEMINI_API_KEY` or `GOOGLE_API_KEY`                   |
-| `bedrock/…` (e.g. `bedrock/anthropic.claude-…`, `bedrock/meta.llama3-…`, `bedrock/mistral.mistral-…`) | AWS Bedrock | Standard AWS credential chain                         |
-| `local/<model>@<url>`           | Any OpenAI-compatible local endpoint (Ollama, vLLM, llama.cpp server) | None — URL is in the model string                     |
+| `claude-…`                      | Anthropic                                                             | `ANTHROPIC_AUTH_TOKEN` (recommended) or `ANTHROPIC_API_KEY`; `ANTHROPIC_BASE_URL` optional for gateways/proxies |
+| `openai/…`                      | OpenAI Chat Completions — or any OpenAI-compatible endpoint via `OPENAI_BASE_URL` | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL`           |
+| `gemini/…`                      | Google Gemini — or Vertex AI when the env says so                     | `GEMINI_API_KEY` or `GOOGLE_API_KEY`; for Vertex AI instead: `GOOGLE_GENAI_USE_VERTEXAI=true` (or just `GOOGLE_CLOUD_PROJECT` + `GOOGLE_CLOUD_LOCATION` with no API key) and Application Default Credentials |
+| `bedrock/…` (inference-profile ids, e.g. `bedrock/us.anthropic.claude-…`, `bedrock/eu.meta.llama3-…` — AWS requires the `us.`/`eu.`/… prefix for current models) | AWS Bedrock — eleven model families | Standard AWS credential chain or `AWS_BEARER_TOKEN_BEDROCK`; region from `AWS_REGION`/`AWS_DEFAULT_REGION` or your AWS profile |
+| `local/<model>@<url>` (URL must include `/v1`) or `local/<model>` (Ollama default `http://localhost:11434/v1`) | Any OpenAI-compatible local endpoint (Ollama, vLLM, llama.cpp server, LM Studio) | None for loopback URLs (they may inherit `OPENAI_API_KEY` for LiteLLM-style gateways); a non-loopback URL only ever receives `CREWHAUS_LOCAL_API_KEY` — never your OpenAI key |
+| `groq/…`, `together/…`, `fireworks/…`, `openrouter/…`, `deepseek/…`, `xai/…`, `mistral/…`, `cerebras/…` | Named OpenAI-compatible cloud hosts | Each host's own key (`GROQ_API_KEY`, `XAI_API_KEY`, …) — never `OPENAI_API_KEY` |
+| `azure/<deployment>`            | Azure OpenAI (your deployment name, not a model name)                 | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, optional `AZURE_OPENAI_API_VERSION` (default `2024-10-21`) |
+| `vertex/claude-…`, `vertex/gemini-…` | Claude / Gemini on Google Vertex AI                              | ADC + `ANTHROPIC_VERTEX_PROJECT_ID` (or `GOOGLE_CLOUD_PROJECT`), region via `CLOUD_ML_REGION` (default `us-east5`) for Claude; `GOOGLE_CLOUD_PROJECT` (+ `GOOGLE_CLOUD_LOCATION`, default `us-central1`) for Gemini |
 
 The router lazy-imports each adapter, so an Anthropic-only spec never
-loads the AWS SDK.
+loads the AWS SDK. The full reference — per-provider setup, local-server
+ports, the Bedrock family capability matrix, and troubleshooting — is
+[`PROVIDERS.md`](https://github.com/crewhaus/docs/blob/main/PROVIDERS.md).
 
 ### Production hardening
 

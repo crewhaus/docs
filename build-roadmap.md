@@ -1460,8 +1460,8 @@ adapter-anthropic (refactor)  ──►  adapter-openai      (parallel)  ──�
   - `claude-sonnet-4-5` (no prefix) → `adapter-anthropic`
   - `openai/gpt-4o-mini`, `openai/o4-mini` → `adapter-openai`
   - `gemini/gemini-2.5-flash`, `gemini/gemini-2.5-pro` → `adapter-gemini`
-  - `bedrock/anthropic.claude-sonnet-4-v1:0` → `adapter-bedrock`
-  - `local/llama-3.1-8b@http://localhost:11434` → `adapter-openai` against the OpenAI-compatible local URL
+  - `bedrock/us.anthropic.claude-sonnet-4-v1:0` → `adapter-bedrock`
+  - `local/llama-3.1-8b@http://localhost:11434/v1` → `adapter-openai` against the OpenAI-compatible local URL (the URL must include `/v1`)
 - Returns `{ adapter, modelId }`; loads adapter lazily so e.g. running an Anthropic spec does not require AWS SDK on disk
 - Surfaces `features` to the runtime so behavior degrades gracefully (e.g. skip explicit cache markers when `caching === "automatic"`)
 
@@ -2120,7 +2120,7 @@ prompt-cache-manager (parallel)
 
 **`packages/circuit-breaker`** — half-open provider state
 - `wrap(adapter, opts): WrappedAdapter` returns a thin proxy. After `failureThreshold` consecutive failures within `windowMs`, the breaker trips: subsequent calls reject immediately for `cooldownMs`, then a single probe call goes through (half-open). Probe success closes the breaker; failure re-opens.
-- Composes with §17 `model-router` so a tripped Anthropic breaker auto-fails-over to OpenAI when `agent.fallbackModels` is configured.
+- Composes with §17 `model-router` so a tripped Anthropic breaker can fail over to OpenAI when a fallback adapter is wired at the TypeScript level. (The breaker itself only refuses to stream while open — no spec-level fallback field shipped.)
 - Emits `circuit_state_changed` TraceEvents (`closed | open | half_open`).
 
 **`packages/prompt-cache-manager`** — explicit cache rotation
@@ -3666,8 +3666,8 @@ End-to-end smoke test before opening the PR:
   1. bun run compile:hello && echo "say hi" | bun run run:hello — regression confirms the refactor did not break the existing path
   2. Modify the spec to model: openai/gpt-4o-mini and rerun if OPENAI_API_KEY is present; confirm the run succeeds, tool calls work end-to-end with tool-fs Read, and stream tokens render as expected
   3. Repeat for model: gemini/gemini-2.5-flash if GEMINI_API_KEY is present
-  4. Repeat for model: bedrock/anthropic.claude-sonnet-4-v1:0 if AWS creds are present
-  5. Repeat for model: local/llama-3.1-8b@http://localhost:11434 if a local Ollama is running
+  4. Repeat for model: bedrock/us.anthropic.claude-sonnet-4-v1:0 if AWS creds are present
+  5. Repeat for model: local/llama-3.1-8b@http://localhost:11434/v1 if a local Ollama is running
 
   Cross-provider regression:
   6. Compaction across providers — force snip + autocompact (use the Section 4 mechanism) on each available provider and confirm the conversation continues coherently
@@ -4263,7 +4263,7 @@ Build in this order (cost-tracker + secrets-manager + prompt-cache-manager paral
 5. packages/circuit-breaker (depends on 4)
    - wrap(adapter, opts): WrappedAdapter — failureThreshold consecutive failures within windowMs trips breaker
    - States: closed → open → half_open → closed (probe call after cooldownMs)
-   - Composes with §17 model-router for fallbackModels failover
+   - Composes with §17 model-router for TypeScript-level failover wiring (the breaker only refuses to stream while open)
    - Emits circuit_state_changed TraceEvents
 
 Tests: T1 per pricing-table format + accumulation math; T9 associative-aggregation property test; T1 per rate-limiter algorithm edge case; T7 1000-acquirer load test; T8 fail-closed when keys missing; T1 circuit-breaker state-machine per transition; T3 against flaky stub (10 fails → trip; cooldown elapsed → probe → success → close); T1 prompt-cache rotation trigger logic; T1 secrets-manager per-backend; T8 cross-tenant secret isolation.

@@ -4,7 +4,7 @@ Status: implemented and tested
 Dependency phase: 3 - Model & Tool primitives
 Catalog layer: R2 - Model Layer
 Origin in ordering: named in Part G
-Workspace home: packages/runtime-core
+Workspace home: packages/adapter-anthropic (owns the shared `ProviderAdapter` interface and canonical event shapes), with packages/adapter-openai, packages/adapter-gemini, and packages/adapter-bedrock as siblings
 Targets: All
 Test layers: T1, T2
 

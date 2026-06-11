@@ -1,48 +1,45 @@
 # model-router
 
-Status: planned
+Status: implemented and tested
 Dependency phase: 3 - Model & Tool primitives
 Catalog layer: R2 - Model Layer
 Origin in ordering: named in Part G
-Workspace home: not created yet; likely packages/model-router unless folded into a target bundle
+Workspace home: packages/model-router
 Targets: All
 Test layers: T1, T2, T7
 
 ## Purpose
 
-Route by policy: cost/quality/latency, alias resolution, regional routing.
+Parse `agent.model` strings and lazy-load the matching `ProviderAdapter`. Every model call in a compiled harness routes through `resolveModel(modelString)`.
 
-This module should be the single owner for that concern. Keep the boundary small enough that generated targets can compose it without inheriting unrelated runtime policy.
+The router is the single owner of the model-string grammar: `claude-*` (unprefixed, Anthropic), `openai/<model>`, `gemini/<model>`, `bedrock/<modelId>` (family inferred from the id, cross-region inference-profile prefixes tolerated), `local/<model>[@<url>]` (any OpenAI-compatible server; defaults to Ollama's `http://localhost:11434/v1`), eight named OpenAI-compatible cloud hosts (`groq/`, `together/`, `fireworks/`, `openrouter/`, `deepseek/`, `xai/`, `mistral/`, `cerebras/`), `azure/<deployment>`, and `vertex/claude-*` / `vertex/gemini-*`. The user-facing matrix lives in [PROVIDERS.md](../PROVIDERS.md).
 
 ## Boundaries
 
-Owns the behavior named above, its typed public contract, and the fixtures needed to prove it. It should expose boring, explicit APIs rather than requiring callers to know internal storage or provider details.
+Owns `parseModelString` (model string → discriminated union), `resolveModel` (parsed string → `{ adapter, modelId, providerId }`), the per-`(provider, baseUrl/deployment/family, key-env)` adapter cache, and the API-key policy for the OpenAI-routed paths — named hosts read their own key env var (never `OPENAI_API_KEY`); `local/` loopback URLs may inherit `OPENAI_API_KEY`, while non-loopback URLs only ever receive `CREWHAUS_LOCAL_API_KEY` so a spec-supplied URL cannot exfiltrate the OpenAI key.
 
-Does not own neighboring concerns from the same phase unless the catalog explicitly says so. If implementation pressure suggests merging modules, keep the module names visible as exported interfaces so the catalog can still map to code.
+Does not own adapter behavior — `@crewhaus/adapter-openai`, `@crewhaus/adapter-gemini`, and `@crewhaus/adapter-bedrock` are optionalDependencies loaded with dynamic `import()` only when a model string routes to them (a missing install fails with a `ConfigError` naming the package). Policy routing (cost/quality/latency), failover, and rate limiting live in their own modules (`circuit-breaker`, `rate-limiter`).
 
 ## Inputs and Outputs
 
-Inputs are normalized messages, tool schemas, model policy, credentials, and budget constraints. Outputs are model responses, usage data, and routing decisions.
+Input is the spec's `agent.model` string plus the process env. Output is a `ModelResolution` — the lazily-constructed adapter, the wire `modelId`, and the `providerId`. Malformed or unrecognised strings reject at parse time with a `ConfigError` carrying the accepted-grammar hint.
 
 ## Dependency Notes
 
-Build this after the stable contracts from phases 1 through 2. Within phase 3, earlier numeric briefs are the preferred stabilization order, but independent modules can still be developed in parallel if their write sets do not overlap.
+Depends only on `@crewhaus/adapter-anthropic` (the `ProviderAdapter` interface, always installed) and `@crewhaus/errors`. The Bedrock family table and geo-prefix regex are twinned with `adapter-bedrock/src/family.ts` — the router cannot import the optional package eagerly, so the two copies carry identical test vectors.
 
 ## First Implementation Slice
 
-Start with a minimal typed interface, an in-memory or no-op implementation where possible, and focused tests for the catalog responsibility. Wire it to one nearby consumer only after the contract is stable.
-
-A good first PR should include package metadata, the public entrypoint, unit tests for happy and failure paths, and one README or doc comment showing how the next layer imports it.
+The repo has the full tested surface. The next slice should preserve the existing exported grammar — adding a provider means adding a prefix branch in `parse.ts`, a lazy-import seam in `router.ts`, and updating the README table plus docs/PROVIDERS.md in the same change.
 
 ## Study References
 
-`openclaw/.../agents/anthropic-vertex-stream.ts`; `crewAI/.../llm.py`
+`packages/model-router/README.md` (grammar table); `packages/model-router/src/parse.ts`; `packages/model-router/src/router.ts`
 
-Research focus: Policy DSL; failover topology
+Research focus: grammar extensions; key-isolation policy for new host classes
 
 ## Validation Plan
 
-Catalog tests: T1, T2, T7. Primary risks: load, long-run behavior, and storage pressure; contract drift with providers or protocols.
+Catalog tests: T1, T2, T7. Primary risks: contract drift with providers or protocols; the twin Bedrock family tables in router and adapter drifting apart.
 
 Definition of done: tests are green, public types are exported from the intended workspace, failure modes use typed `CrewhausError`-style errors where applicable, and the catalog status can be updated without hand-waving.
-
