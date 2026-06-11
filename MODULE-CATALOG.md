@@ -98,7 +98,7 @@ The boundary classifier is a single chokepoint, but new boundary sites are the k
 
 The provider adapter is small but conformance-critical — every spec routes through `model-router`, every adapter must honour the canonical `ProviderRequest` / `StreamEvent` shapes.
 
-- **Primary pillar:** [Pillar 1 — Compiler as protagonist](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-1--the-compiler-is-the-protagonist). Required re-read. The `model-router` prefix grammar (`claude-*` / `openai/*` / `gemini/*` / `bedrock/*` / `local/<model>@<url>`) is part of the spec contract.
+- **Primary pillar:** [Pillar 1 — Compiler as protagonist](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-1--the-compiler-is-the-protagonist). Required re-read. The `model-router` prefix grammar (`claude-*` / `openai/*` / `gemini/*` / `bedrock/*` / `local/<model>[@<url>]` / `azure/<deployment>` / `vertex/*` / named OpenAI-compatible hosts `groq/`, `together/`, `fireworks/`, `openrouter/`, `deepseek/`, `xai/`, `mistral/`, `cerebras/`) is part of the spec contract. The user-facing matrix is [PROVIDERS.md](PROVIDERS.md).
 - **Layers:** R2 (model layer).
 - **Entry-point packages:** [packages/adapter-anthropic](https://github.com/crewhaus/factory/tree/main/packages/adapter-anthropic) owns the shared `ProviderAdapter` interface and the canonical event shapes. Other adapters: [adapter-openai](https://github.com/crewhaus/factory/tree/main/packages/adapter-openai), [adapter-gemini](https://github.com/crewhaus/factory/tree/main/packages/adapter-gemini), [adapter-bedrock](https://github.com/crewhaus/factory/tree/main/packages/adapter-bedrock). [model-router](https://github.com/crewhaus/factory/tree/main/packages/model-router) lazy-loads them.
 - **Mandatory contract:** declare `features = { caching, tool_use, vision, thinking, web_search }` accurately — `prompt-cache-manager` and `model-router` route based on these. The `local/<model>@<url>` path reuses the OpenAI client against any OpenAI-compatible local server.
@@ -359,10 +359,10 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | Module | Responsibility | Targets | Tests | Depends on |
 |---|---|---|---|---|
 | ✅ `adapter-anthropic` | Owns the shared ProviderAdapter interface + canonical StreamEvent shapes. | All | T1, T2 | — |
-| ✅ `adapter-openai` | OpenAI Chat Completions adapter; also drives `local/<model>@<url>`. | All | T1, T2 | `adapter-anthropic` |
-| ✅ `adapter-gemini` | Google Gemini adapter via `@google/genai`. | All | T1, T2 | `adapter-anthropic` |
-| ✅ `adapter-bedrock` | AWS Bedrock adapter (Anthropic / Llama / Mistral families). | All | T1, T2 | `adapter-anthropic` |
-| ✅ `model-router` | Parse `agent.model`, lazy-load matching adapter. Strict prefix grammar. | All | T1, T7 | `adapter-anthropic` |
+| ✅ `adapter-openai` | OpenAI Chat Completions adapter; also drives `local/<model>[@<url>]`, `azure/<deployment>`, and the named OpenAI-compatible hosts (`groq/`, `xai/`, …). | All | T1, T2 | `adapter-anthropic` |
+| ✅ `adapter-gemini` | Google Gemini adapter via `@google/genai` — Gemini API or Vertex AI (ADC) from the same adapter. | All | T1, T2 | `adapter-anthropic` |
+| ✅ `adapter-bedrock` | AWS Bedrock adapter — eleven model families behind cross-region inference-profile ids; Anthropic on native InvokeModel, every other family on ConverseStream. | All | T1, T2 | `adapter-anthropic` |
+| ✅ `model-router` | Parse `agent.model`, lazy-load matching adapter. Strict prefix grammar: `claude-*` / `openai/*` / `gemini/*` / `bedrock/*` / `local/*` / `azure/*` / `vertex/*` / eight named OpenAI-compatible hosts ([PROVIDERS.md](PROVIDERS.md)). | All | T1, T7 | `adapter-anthropic` |
 | ✅ `token-budget` | `estimateTokens` + `TokenBudget` with `isApproachingLimit`. | All | T1, T9 | — |
 | ✅ `prompt-cache-manager` | Rotate Anthropic `cache_control` markers; skip for OpenAI auto / Bedrock non-Anthropic. | All | T1, T3, T9 | `model-adapter` |
 | 🟡 `response-format-coercion` | Force structured JSON output; schema validation; retry-on-malformed. | All | T1, T2, T9 | `model-adapter`, `recovery-engine` |
@@ -371,7 +371,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `cost-tracker` | Subscribe to `model_response`, emit `cost_accrual`. Per-run + per-tenant USD aggregation. | All | T1, T3, T7, T9 | `trace-event-bus` |
 | 🟡 `auth-profiles` | Multi-provider creds; profile switching; rotation. | All | T1, T2, T8 | `secrets-manager` |
 | ✅ `embedder` | Embedding model adapter — OpenAI / Voyage / Cohere / local. | RAG, RES, CHN, MGD | T1, T2 | `model-adapter` |
-| ✅ `circuit-breaker` | Half-open circuit breaker wrapping a `ProviderAdapter`; auto-fails over to `fallbackModels` when tripped. | All | T1, T3, T7 | `adapter-anthropic`, `model-router` |
+| ✅ `circuit-breaker` | Half-open circuit breaker wrapping a `ProviderAdapter`; refuses to stream while tripped so TypeScript-level fallback wiring can route around it. | All | T1, T3, T7 | `adapter-anthropic`, `model-router` |
 
 #### R3 — Tool Layer (core)
 
