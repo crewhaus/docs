@@ -5,11 +5,11 @@
 >
 > If you only have five minutes, jump to **[Your first agent in 60 seconds](#your-first-agent-in-60-seconds)**.
 >
-> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the `@crewhaus/cli` npm package; install it once with `bun add -d @crewhaus/cli` and use `bun x crewhaus ...` throughout.
+> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the `@crewhaus/cli` npm package; install it once with `bun add -d @crewhaus/cli` and use `bun x crewhaus ...` throughout. bun may report blocked postinstalls from transitive dependencies during the install — that's expected and safe to ignore: the skipped scripts are no-ops, the CLI works fully without them, and no `bun pm trust` step is needed.
 >
 > If you'd prefer to develop directly against the [crewhaus/factory](https://github.com/crewhaus/factory) workspace, clone it as a sibling and the `compile:*` scripts in demos will fall back to `../factory/apps/cli/src/index.ts`. The npm install path is what this guide assumes.
 >
-> **0.1.1 status (2026-05-30):** `@crewhaus/*` is currently published with `publishConfig.access: "restricted"`. You need scope access from the maintainer to install. Pin `^0.1.1` or newer — v0.1.0 shipped with broken workspace:* deps and is tombstoned. Public flip is on the launch checklist in [factory/PACKAGES.md](https://github.com/crewhaus/factory/blob/main/PACKAGES.md).
+> **Status (2026-06-12):** `@crewhaus/*` is public on npm — no scope access needed. Pin `^0.1.1` or newer; v0.1.0 shipped with broken workspace:* deps and is tombstoned.
 
 ---
 
