@@ -5,11 +5,21 @@
 >
 > If you only have five minutes, jump to **[Your first agent in 60 seconds](#your-first-agent-in-60-seconds)**.
 >
-> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the `@crewhaus/cli` npm package; install it once with `bun add -d @crewhaus/cli` and use `bun x crewhaus ...` throughout. bun may report blocked postinstalls from transitive dependencies during the install — that's expected and safe to ignore: the skipped scripts are no-ops, the CLI works fully without them, and no `bun pm trust` step is needed.
+> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the bare, unscoped `crewhaus` package. Install it however you like — a self-contained binary needs no runtime:
 >
-> If you'd prefer to develop directly against the [crewhaus/factory](https://github.com/crewhaus/factory) workspace, clone it as a sibling and the `compile:*` scripts in demos will fall back to `../factory/apps/cli/src/index.ts`. The npm install path is what this guide assumes.
+> ```bash
+> brew install crewhaus/tap/crewhaus          # macOS / Linux (Homebrew)
+> scoop install crewhaus                       # Windows (Scoop)
+> winget install CrewHaus.CLI                   # Windows (winget)
+> # Debian / Ubuntu: signed apt repo at https://crewhaus.github.io/apt
+> npm install -g crewhaus                       # npm/Bun (needs Bun >= 1.2)
+> ```
 >
-> **Status (2026-06-12):** `@crewhaus/*` is public on npm — no scope access needed. Pin `^0.1.1` or newer; v0.1.0 shipped with broken workspace:* deps and is tombstoned.
+> Then use `crewhaus ...` throughout (if you added it as a dev dependency with `bun add -d crewhaus`, prefix commands with `bun x`). bun may report blocked postinstalls from transitive dependencies during an npm/Bun install — that's expected and safe to ignore: the skipped scripts are no-ops, the CLI works fully without them, and no `bun pm trust` step is needed.
+>
+> If you'd prefer to develop directly against the [crewhaus/factory](https://github.com/crewhaus/factory) workspace, clone it as a sibling and the `compile:*` scripts in demos will fall back to `../factory/apps/cli/src/index.ts`. The packaged-CLI install path is what this guide assumes.
+>
+> **Status:** `crewhaus` and the supporting `@crewhaus/*` libraries are public on npm — no scope access needed. (The earlier `@crewhaus/cli` package name is deprecated and points at `crewhaus`.)
 
 ---
 
@@ -637,13 +647,13 @@ trace stream is the source. When you're reconstructing what the agent
 
 ```bash
 # Print the IR as JSON to stdout (run from the demos/ checkout)
-bun x crewhaus compile starters/cli/crewhaus.yaml --emit-ir
+crewhaus compile starters/cli/crewhaus.yaml --emit-ir
 
 # Or write it to disk for diffing across spec edits — capture before & after
-bun x crewhaus compile starters/cli/crewhaus.yaml \
+crewhaus compile starters/cli/crewhaus.yaml \
     --emit-ir -o /tmp/ir-before
 # …edit starters/cli/crewhaus.yaml, then…
-bun x crewhaus compile starters/cli/crewhaus.yaml \
+crewhaus compile starters/cli/crewhaus.yaml \
     --emit-ir -o /tmp/ir-after
 diff <(jq -S . /tmp/ir-before/ir.json) \
      <(jq -S . /tmp/ir-after/ir.json)
@@ -802,7 +812,7 @@ permissions:
 ```
 
 **Panel 2 — the IR after `lower()`**, captured by
-`bun x crewhaus compile note-keeper.yaml --emit-ir`:
+`crewhaus compile note-keeper.yaml --emit-ir`:
 
 ```json
 {
@@ -1004,7 +1014,7 @@ from this section without diving into the runtime source.
 The `crewhaus` CLI lives at
 [`apps/cli/src/index.ts`](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts). The
 `demos/package.json` exposes shortcuts (`bun run compile starters/cli`
-etc.) that wrap the underlying invocation `bun x crewhaus <subcommand>` (or `bun ../factory/apps/cli/src/index.ts <subcommand>` when developing from a sibling factory clone).
+etc.) that wrap the underlying invocation `crewhaus <subcommand>` (or `bun ../factory/apps/cli/src/index.ts <subcommand>` when developing from a sibling factory clone).
 
 | Subcommand                                   | Purpose                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
