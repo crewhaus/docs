@@ -8,7 +8,7 @@
 > The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the bare, unscoped `crewhaus` package. Install it however you like — a self-contained binary needs no runtime:
 >
 > ```bash
-> brew install crewhaus/tap/crewhaus          # macOS / Linux (Homebrew)
+> brew tap crewhaus/tap && brew install crewhaus          # macOS / Linux (Homebrew)
 > scoop install crewhaus                       # Windows (Scoop)
 > winget install CrewHaus.CLI                   # Windows (winget)
 > # Debian / Ubuntu: signed apt repo at https://crewhaus.github.io/apt
