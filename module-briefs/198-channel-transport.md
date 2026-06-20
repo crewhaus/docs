@@ -10,6 +10,8 @@ Test layers: T1, T7
 
 ## Purpose
 
+> **Not shipped.** There is no standalone channel-transport package in the codebase. Only five channel adapters ship today: **slack, telegram, discord, whatsapp, imessage** (`packages/channel-adapter-*`, over the shared `channel-adapter-base`). This brief is kept as a historical planning doc; see [`docs/MODULE-CATALOG-STATUS.md`](../MODULE-CATALOG-STATUS.md) for what actually ships.
+
 Stall watchdog, retries, batching.
 
 This module should be the single owner for that concern. Keep the boundary small enough that generated targets can compose it without inheriting unrelated runtime policy.

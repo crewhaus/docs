@@ -4,6 +4,8 @@ These briefs continue [`docs/MODULE-CATALOG.md`](../MODULE-CATALOG.md) by turnin
 
 Each brief is intentionally compact: purpose, boundary, inputs/outputs, first slice, and validation plan. The catalog remains the source of truth for the complete matrix.
 
+> **Caveat — the `Status` column is a historical planning snapshot and may be stale.** It records the build-phase intent at the time these briefs were written, not the current shipping state, so a row that reads `planned` may have since shipped (or been folded into another package, or dropped). For what actually ships today, defer to [`docs/MODULE-CATALOG-STATUS.md`](../MODULE-CATALOG-STATUS.md) (the current-count source) and the [Module coverage matrix](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md#module-coverage) in the demos repo. These briefs are kept as historical build docs.
+
 To see which task-oriented walkthrough exercises each catalog layer (i.e. "is module X covered anywhere?"), use the [Module coverage matrix](https://github.com/crewhaus/demos/blob/main/walkthroughs/INDEX.md#module-coverage) in the demos repo. It also lists the brief-slug → catalog/package-name aliases (e.g. `embedding-adapter` → `embedder`) so a brief here maps cleanly to the module the recipes demonstrate.
 
 ## Phase 1: Foundations
@@ -262,6 +264,8 @@ To see which task-oriented walkthrough exercises each catalog layer (i.e. "is mo
 | 185 | [`citation-tracker`](185-citation-tracker.md) | planned | R12 - RAG / Retrieval / Knowledge | named in Part G |
 
 ## Phase 15: Channels
+
+> **What actually ships:** exactly **five** channel adapters exist today — **slack, telegram, discord, whatsapp, imessage** (see `packages/channel-adapter-*` in the factory repo, over the shared `channel-adapter-base`). The remaining channel briefs in this phase — `channel-registry`, `channel-signal`, `channel-bluebubbles`, `channel-email`, `channel-sms`, `channel-web`, `channel-transport`, `channel-binding`, `channel-router`, `channel-features`, and friends — are **not shipped**; they remain historical planning briefs. See [`docs/MODULE-CATALOG-STATUS.md`](../MODULE-CATALOG-STATUS.md) for the authoritative channel list.
 
 | # | Module | Status | Catalog layer | Origin |
 |---:|---|---|---|---|

@@ -25,10 +25,10 @@ Each stage corresponds to a function with a stable signature; nothing in the pip
 | Stage | Function | File |
 |---|---|---|
 | Parse + Zod-validate YAML → typed `Spec` | `parseSpec(yaml: string)` | [packages/spec/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts) |
-| Lower `Spec` → `IrNode` (the variant matching `spec.target`) | `lower(spec)` | [packages/compiler/src/index.ts:245](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts#L245) |
-| Apply IR-level optimisation passes | `applyPasses(ir)` | [packages/ir-passes/src/index.ts:46](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts#L46) |
-| Dispatch to target emitter | `emit(ir)` | [packages/compiler/src/index.ts:502](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts#L502) |
-| Top-level convenience | `compile(yamlText, opts)` | [packages/compiler/src/index.ts:77](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts#L77) |
+| Lower `Spec` → `IrNode` (the variant matching `spec.target`) | `lower(spec)` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`export function lower`) |
+| Apply IR-level optimisation passes | `applyPasses(ir)` | [packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts) (`export function applyPasses`) |
+| Dispatch to target emitter | `emit(ir)` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`function emit`) |
+| Top-level convenience | `compile(yamlText, opts)` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`export function compile`) |
 | CLI entry point | `runCompile(args)` | [apps/cli/src/index.ts](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts) |
 
 The CLI does not branch on `spec.target`. The discriminator lives in the YAML and is honoured polymorphically by `lower()` and `emit()`. Adding a new target therefore never touches the CLI.
@@ -36,7 +36,7 @@ The CLI does not branch on `spec.target`. The discriminator lives in the YAML an
 ## The IR is a discriminated union
 
 ```ts
-// packages/ir/src/index.ts:912
+// packages/ir/src/index.ts — `export type IrNode`
 export type IrNode =
   | IrV0          // CLI agent
   | IrWorkflowV0  // Sequential workflow
@@ -79,7 +79,7 @@ This is the canonical mapping. Use this table when you need to navigate from a Y
 | `onchain` | `IrChainV0` | [compiler L733](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) | `emitOnchain` | [packages/target-onchain](https://github.com/crewhaus/factory/tree/main/packages/target-onchain) | §47 | [47](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) | [inline](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) |
 | `onchain-game` | `IrChainGameV0` | [compiler L784](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) | `emitOnchainGame` | [packages/target-onchain-game](https://github.com/crewhaus/factory/tree/main/packages/target-onchain-game) | §47 | [47](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) | [inline](https://github.com/crewhaus/demos/blob/main/walkthroughs/47-onchain-daemon-and-game.md) |
 
-The exact `lower` line numbers may shift as the compiler grows; the table is best-effort. The contract that *does* hold: `emit(ir: IrNode): Bundle` at [packages/compiler/src/index.ts:502](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts#L502) is an exhaustive switch ending in `assertNever(ir)`. Add a variant without registering it here and `tsc` fails.
+The exact `lower` line numbers may shift as the compiler grows; the table is best-effort. The contract that *does* hold: `emit(ir: IrNode): Bundle` (the `function emit` switch in [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts)) is an exhaustive switch ending in `assertNever(ir)`. Add a variant without registering it here and `tsc` fails.
 
 ## Adding a new target shape
 
@@ -91,25 +91,25 @@ Add an `Ir<Target>V0` type to [packages/ir/src/index.ts](https://github.com/crew
 
 The variant should contain *only* what your target needs. If two targets need the same nested type (e.g. `IrPermissions`, `IrMcpServers`), reuse the existing types — those live near the top of `packages/ir/src/index.ts`.
 
-### 2. Add the lowering case
+### 2. Add the spec branch
 
-Open [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) and add a case to the `lower(spec: Spec)` switch (around line 245). The case takes `spec.target === "<target>"` and returns a value of your new IR variant. Use the existing `lowerPermissions`, `lowerMcpServers`, `lowerSubAgents`, `lowerSecret`, `lowerToolConfigs` helpers when your variant needs those nested shapes — duplicating the helper logic is a bug.
+Add a Zod schema for the new target to [packages/spec/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts) and append it to the `Spec` discriminated union. The Zod schema is the source of truth for what the YAML may contain; if it isn't in the schema, your `lower` case can't read it. This must come *before* the lowering case below, because `lower()` switches on `spec.target` — the discriminator has to exist on the `Spec` union first.
+
+### 3. Add the lowering case
+
+Open [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) and add a case to the `lower(spec: Spec)` switch (search for `export function lower`). The case takes `spec.target === "<target>"` and returns a value of your new IR variant. Use the existing `lowerPermissions`, `lowerMcpServers`, `lowerSubAgents`, `lowerSecret`, `lowerToolConfigs` helpers when your variant needs those nested shapes — duplicating the helper logic is a bug.
 
 The output of `lower` is intentionally **lossy** and **canonical**: sub-agent maps become arrays, role names become alphabetically sorted, secrets are rewritten to env-var refs, permission rules are de-duped and re-ordered. This is fine for the IR (its job is to feed codegen) but is the reason eval-driven mutations patch the *spec*, not the IR — see [Pillar 2 in AGENTS.md](https://github.com/crewhaus/factory/blob/main/AGENTS.md).
 
-### 3. Add the spec branch
-
-Add a Zod schema for the new target to [packages/spec/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts) and append it to the `Spec` discriminated union. The Zod schema is the source of truth for what the YAML may contain; if it isn't in the schema, your `lower` case can't read it.
-
 ### 4. Add the target emitter
 
-Create `packages/target-<target>/` with a `src/index.ts` exporting `emit<Target>(ir: Ir<Target>V0): Bundle`. The `Bundle` type lives in [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts); it's `{ files: ReadonlyArray<{path, content}> }`. Existing targets are the right templates:
+Create `packages/target-<target>/` with a `src/index.ts` exporting `emit<Target>(ir: Ir<Target>V0): Bundle`. The `Bundle` type is defined in [packages/ir/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir/src/index.ts) (the compiler merely re-exports it); it's `{ files: ReadonlyArray<{path, content}> }`. Existing targets are the right templates:
 
 - Smallest: [packages/target-cli](https://github.com/crewhaus/factory/tree/main/packages/target-cli) — single `agent.ts` + `package.json`.
 - Most complex: [packages/target-managed](https://github.com/crewhaus/factory/tree/main/packages/target-managed) — daemon entrypoint + per-tenant config + audit-log wiring.
 - Streaming-heavy: [packages/target-voice](https://github.com/crewhaus/factory/tree/main/packages/target-voice) — VAD, barge-in, audio adapter.
 
-Then register the emitter in `emit()` at [packages/compiler/src/index.ts:502](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts#L502). The `assertNever(ir)` at the end of the switch will refuse to typecheck until you do.
+Then register the emitter in `emit()` (the `function emit` switch in [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts)). The `assertNever(ir)` at the end of the switch will refuse to typecheck until you do.
 
 ### 5. Wire the periphery
 
@@ -122,7 +122,7 @@ Then register the emitter in `emit()` at [packages/compiler/src/index.ts:502](ht
 
 IR passes are pure `(IrNode) → IrNode` functions. They run between `lower` and `emit`. They are *not* the place for eval-driven mutation (those patch the spec — see Pillar 2); they are for codegen-time optimisations that are safe regardless of runtime evaluation.
 
-Use `redundantMcpServerCollapse` ([packages/ir-passes/src/index.ts:113](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts#L113)) as the template. The pattern:
+Use `redundantMcpServerCollapse` ([packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts)) as the template. The pattern:
 
 ```ts
 export function myPass(ir: IrNode): IrNode {
@@ -147,7 +147,7 @@ export function myPass(ir: IrNode): IrNode {
 }
 ```
 
-Then append your pass to `DEFAULT_PIPELINE` at [packages/ir-passes/src/index.ts:198](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts#L198). The pipeline order matters; document why your pass goes where it does in the comment above `DEFAULT_PIPELINE`.
+Then append your pass to `DEFAULT_PIPELINE` ([packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts)). The pipeline order matters; document why your pass goes where it does in the comment above `DEFAULT_PIPELINE`.
 
 Passes must be **idempotent**: applying a pass twice must produce the same result as applying it once. Tests should include a fixed-point assertion (`pass(pass(ir)) === pass(ir)`).
 
@@ -207,7 +207,7 @@ When the eval optimizer produces a `SpecPatch` and the user runs `crewhaus optim
 
 The lossy lower has predictable consequences when you inspect the IR with `crewhaus compile --emit-ir`. None of them are bugs; they are the canonical form the IR commits to. Knowing the shape in advance saves a lot of "where did my rule go?" debugging:
 
-- **A rule you wrote isn't there.** If your spec had two `alwaysAllow Read` rules and `--emit-ir` shows one, `lowerPermissions` deduped them. The remaining rule is the canonical representative; matching behaviour is unchanged. The same applies to `mcp_servers` — `redundantMcpServerCollapse` ([packages/ir-passes/src/index.ts:113](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts#L113)) merges entries whose transport+command+args are identical.
+- **A rule you wrote isn't there.** If your spec had two `alwaysAllow Read` rules and `--emit-ir` shows one, `lowerPermissions` deduped them. The remaining rule is the canonical representative; matching behaviour is unchanged. The same applies to `mcp_servers` — `redundantMcpServerCollapse` ([packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts)) merges entries whose transport+command+args are identical.
 - **Rule order doesn't match your source.** Permission rules emerge ordered by `(type, pattern)` after `lowerPermissions`, not in the order you typed. Search the IR by tool name (the pattern field), not by line position. The tier order — **deny > ask > allow** — is what the engine evaluates, not the array order.
 - **Your `"sk-…"` literal is gone.** `lowerSecret` rewrites every `$VAR_NAME` reference into `{kind:"env", name:"VAR_NAME"}` and every non-prefixed string into `{kind:"literal", value:"…"}`. If you see `kind:"literal"` where you expected an env-ref, your `$` prefix was malformed (env refs match `^\$[A-Z_][A-Z0-9_]*$` only — lowercase or numbers-first are silently treated as literals).
 - **A sub-agent map became an array.** Spec-level `subAgents: { researcher: …, fact_checker: … }` becomes `subAgents: [{name: "fact_checker", …}, {name: "researcher", …}]` in the IR — alphabetised by name. The index position is not a stable id.

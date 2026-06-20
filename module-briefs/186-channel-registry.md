@@ -10,6 +10,8 @@ Test layers: T1
 
 ## Purpose
 
+> **Not shipped.** This module does not exist in the codebase — there is no standalone channel registry package. Only five channel adapters ship today: **slack, telegram, discord, whatsapp, imessage** (`packages/channel-adapter-*`). This brief is kept as a historical planning doc; see [`docs/MODULE-CATALOG-STATUS.md`](../MODULE-CATALOG-STATUS.md) for what actually ships.
+
 Register channel adapters by id; normalize ids.
 
 This module should be the single owner for that concern. Keep the boundary small enough that generated targets can compose it without inheriting unrelated runtime policy.

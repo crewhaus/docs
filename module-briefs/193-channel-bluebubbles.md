@@ -10,6 +10,8 @@ Test layers: T1, T2, T3
 
 ## Purpose
 
+> **Not shipped.** There is no BlueBubbles channel adapter in the codebase. Only five channel adapters ship today: **slack, telegram, discord, whatsapp, imessage** (`packages/channel-adapter-*`); the shipping iMessage support is the native `channel-adapter-imessage`, not a BlueBubbles bridge. This brief is kept as a historical planning doc; see [`docs/MODULE-CATALOG-STATUS.md`](../MODULE-CATALOG-STATUS.md) for what actually ships.
+
 iMessage via BlueBubbles.
 
 This module should be the single owner for that concern. Keep the boundary small enough that generated targets can compose it without inheriting unrelated runtime policy.
