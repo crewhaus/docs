@@ -307,6 +307,22 @@ agent:
 > [Other model providers](#other-model-providers) for the full prefix
 > grammar.
 
+> **Turns that write many files at once?** The `cli` agent block takes an
+> optional `max_tokens:` — the per-turn cap on how much the model may
+> *output* (default 8,192; raise it, up to the model's output ceiling, for
+> turns that emit large multi-file edits):
+>
+> ```yaml
+> agent:
+>   model: claude-sonnet-4-6
+>   instructions: …
+>   max_tokens: 32000   # optional, cli-only; omit it for the 8,192 default
+> ```
+>
+> It's optional and `cli`-only. A turn that hits the cap mid-tool-call no
+> longer wedges the session — the runtime drops the truncated call and
+> asks the model to continue.
+
 Once the agent has any tools, the next thing the spec should declare
 is its permission posture. The minimal addition is a `permissions:`
 block with `mode:` set explicitly — even leaving `rules: []` empty
