@@ -87,7 +87,8 @@ agent:
 ```
 
 Twenty-seven lines of TypeScript out — the contents of `dist/agent.ts`
-after `bun run compile starters/cli`:
+after `bunx crewhaus compile crewhaus.yaml -o dist` (run from
+`starters/cli/`):
 
 ```ts
 #!/usr/bin/env bun
@@ -174,30 +175,40 @@ Prerequisites: [Bun](https://bun.sh) ≥ 1.2 and a model-provider credential
 (Anthropic, OpenAI, Gemini, Bedrock, or any OpenAI-compatible local endpoint
 — see [`.env.example`](https://github.com/crewhaus/factory/blob/main/.env.example)).
 
-All commands in this section run from the `demos/` checkout (sibling
-to `factory/` — see the preamble above). The `compile` / `run` /
-`list` shortcuts live in `demos/package.json`.
+Each harness is self-contained: the CLI resolves the spec, local data
+sources, MCP servers, skills, and the `.crewhaus/` session store from
+the directory you run in — not from the spec file's location — so run
+every command from **inside the harness directory**. `bunx crewhaus`
+resolves the published CLI, so the loop below works after you copy a
+starter anywhere on disk, no repo checkout required.
 
 ```bash
-# 0. Switch to the demos checkout
-cd demos              # or `cd ../demos` if you're in factory/ or docs/
+# 0. Switch into the starter's own directory (copy it elsewhere first if you like)
+cd starters/cli
 
-# 1. Install the workspace
-bun install
-
-# 2. Set a credential in .env. This example uses Anthropic to match the
-#    starters/cli spec below; see .env.example for OpenAI / Gemini / Bedrock / local.
+# 1. Set a credential in .env. This example uses Anthropic to match the
+#    starters/cli spec; see .env.example for OpenAI / Gemini / Bedrock / local.
 echo 'ANTHROPIC_AUTH_TOKEN=sk-ant-oat01-...' > .env   # Pro/Max OAuth
 # echo 'ANTHROPIC_API_KEY=sk-ant-...'        > .env   # pay-per-token
 
-# 3. Compile + run the smallest example
-bun run compile starters/cli   # writes starters/cli/dist/agent.ts
-bun run run starters/cli       # opens an interactive REPL — type, get streaming reply, type "exit" to quit
+# 2. Compile + run the smallest example
+bunx crewhaus compile crewhaus.yaml -o dist   # writes dist/agent.ts
+bunx crewhaus run crewhaus.yaml               # interactive REPL — type, get streaming reply, "exit" to quit
+                                              # (or: bun dist/agent.ts)
 ```
 
 That's the whole loop. The 5-line spec [`starters/cli/crewhaus.yaml`](https://github.com/crewhaus/demos/blob/main/starters/cli/crewhaus.yaml)
-became a real, runnable agent. Open the generated `starters/cli/dist/agent.ts`
+became a real, runnable agent. Open the generated `dist/agent.ts`
 and read it — it's about fifty lines, no surprises.
+
+> **Contributors — in-tree dev loop.** Working inside a clone of the
+> [demos repo](https://github.com/crewhaus/demos)? From the repo root,
+> `bun install` once, then the `compile` / `run` / `list` shortcuts in
+> `demos/package.json` resolve the CLI (sibling `../factory` →
+> `node_modules/crewhaus` → `bunx crewhaus`) and auto-load `demos/.env`:
+> `bun run compile starters/cli` then `bun run run starters/cli`. That
+> path is for developing the demos themselves; the standalone loop above
+> is the one to teach.
 
 > **Don't have a credential yet?** Any supported provider works — Anthropic
 > (`claude-…`), OpenAI (`openai/…`), Gemini (`gemini/…`), Bedrock
@@ -646,14 +657,14 @@ trace stream is the source. When you're reconstructing what the agent
 ### Inspecting the IR before codegen
 
 ```bash
-# Print the IR as JSON to stdout (run from the demos/ checkout)
-crewhaus compile starters/cli/crewhaus.yaml --emit-ir
+# Print the IR as JSON to stdout (run from your harness directory: cd starters/cli)
+bunx crewhaus compile crewhaus.yaml --emit-ir
 
 # Or write it to disk for diffing across spec edits — capture before & after
-crewhaus compile starters/cli/crewhaus.yaml \
+bunx crewhaus compile crewhaus.yaml \
     --emit-ir -o /tmp/ir-before
-# …edit starters/cli/crewhaus.yaml, then…
-crewhaus compile starters/cli/crewhaus.yaml \
+# …edit crewhaus.yaml, then…
+bunx crewhaus compile crewhaus.yaml \
     --emit-ir -o /tmp/ir-after
 diff <(jq -S . /tmp/ir-before/ir.json) \
      <(jq -S . /tmp/ir-after/ir.json)
@@ -722,8 +733,8 @@ disk if you want the same kind of after-the-fact `jq` filtering you'd
 do on the JSONL.
 
 ```bash
-# Capture the full trace stream for the run (from the demos/ checkout).
-CREWHAUS_TRACE=json bun run run starters/cli 2> hello.stderr > hello.trace.jsonl
+# Capture the full trace stream for the run (run from your harness directory: cd starters/cli).
+CREWHAUS_TRACE=json bunx crewhaus run crewhaus.yaml 2> hello.stderr > hello.trace.jsonl
 
 # Find permission decisions the engine made during the run.
 jq -c 'select(.kind == "permission_decision")' hello.trace.jsonl
@@ -1012,9 +1023,11 @@ from this section without diving into the runtime source.
 ## The CLI, end to end
 
 The `crewhaus` CLI lives at
-[`apps/cli/src/index.ts`](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts). The
-`demos/package.json` exposes shortcuts (`bun run compile starters/cli`
-etc.) that wrap the underlying invocation `crewhaus <subcommand>` (or `bun ../factory/apps/cli/src/index.ts <subcommand>` when developing from a sibling factory clone).
+[`apps/cli/src/index.ts`](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts).
+Day to day you invoke it from inside a harness directory as
+`bunx crewhaus <subcommand> crewhaus.yaml` (the published CLI; `crewhaus
+<subcommand>` if you installed it globally). The subcommand table below
+applies the same way regardless of how you launched the CLI.
 
 | Subcommand                                   | Purpose                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -1036,8 +1049,16 @@ etc.) that wrap the underlying invocation `crewhaus <subcommand>` (or `bun ../fa
 | `sandbox doctor [--probe]`                   | List registered sandbox images and run their healthchecks.                              |
 | `compliance evidence --framework <id>`       | Collect SOC 2 / ISO 27001 / HIPAA evidence bundles from the audit log.                  |
 
-Day to day, you'll mostly use `compile`, `run`, `init`, `doctor`, and
-the `bun run …` shortcuts in `package.json`.
+Day to day, you'll mostly use `compile`, `run`, `init`, and `doctor`.
+
+> **Contributors — in-tree dev loop.** Inside a clone of the
+> [demos repo](https://github.com/crewhaus/demos), `demos/package.json`
+> exposes `bun run compile starters/cli` / `bun run run starters/cli` /
+> `bun run list` shortcuts that wrap `crewhaus <subcommand>` (resolving a
+> sibling `../factory/apps/cli/src/index.ts` when developing against a
+> factory clone) and auto-load `demos/.env`. That path is for working on
+> the demos themselves; the standalone `bunx crewhaus` invocation above is
+> the user-facing one.
 
 ---
 
