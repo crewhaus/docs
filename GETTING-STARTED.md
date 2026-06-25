@@ -1226,6 +1226,18 @@ with or without it.
 
 ---
 
+## See your harness in the browser
+
+Once you've compiled a harness, you don't have to drive it from a terminal.
+[`@crewhaus/ui`](https://github.com/crewhaus/ui) is a drop-in, shape-aware web UI: from a
+directory holding a compiled harness and its `crewhaus.yaml`, run `bunx
+@crewhaus/ui` to scaffold a 3-line runner, then `bun crewhaus-ui.ts` to open a
+browser interface at `http://localhost:4100` with a live activity feed — tool
+calls, sub-agents, permission decisions, cost, and model output — rendered from
+the same `TraceEvent` stream as `CREWHAUS_TRACE=json`.
+
+---
+
 ## Going further
 
 ### Other model providers
