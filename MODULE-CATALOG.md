@@ -132,7 +132,7 @@ Deployment is where target shapes meet production constraints. Multi-tenancy is 
 - **Primary pillar:** [Pillar 3 — Security is a fabric](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-3--security-is-a-fabric-not-a-perimeter) (tenancy / audit) and [Pillar 1 — Compiler as protagonist](https://github.com/crewhaus/factory/blob/main/AGENTS.md#pillar-1--the-compiler-is-the-protagonist) (canary / migration patch the IR not the runtime). Required re-read of both.
 - **Layers:** F3 (deployment / operations), R17 (infrastructure / cross-cutting), R16 (`gateway-server`), R14 (rate-limiter / retry-policy / DLQ).
 - **Entry-point packages:** [packages/deployment-controller](https://github.com/crewhaus/factory/tree/main/packages/deployment-controller), [packages/canary-controller](https://github.com/crewhaus/factory/tree/main/packages/canary-controller), [packages/migration-runner](https://github.com/crewhaus/factory/tree/main/packages/migration-runner), [packages/spec-registry](https://github.com/crewhaus/factory/tree/main/packages/spec-registry), [packages/tenancy](https://github.com/crewhaus/factory/tree/main/packages/tenancy), [packages/audit-log](https://github.com/crewhaus/factory/tree/main/packages/audit-log), [packages/gateway-server](https://github.com/crewhaus/factory/tree/main/packages/gateway-server), [packages/cost-tracker](https://github.com/crewhaus/factory/tree/main/packages/cost-tracker), [packages/rate-limiter](https://github.com/crewhaus/factory/tree/main/packages/rate-limiter), [packages/circuit-breaker](https://github.com/crewhaus/factory/tree/main/packages/circuit-breaker), [packages/secrets-manager](https://github.com/crewhaus/factory/tree/main/packages/secrets-manager).
-- **Packaging artifacts:** [docker/](../docker), [helm/](../helm), [packages/single-binary-cli](https://github.com/crewhaus/factory/tree/main/packages/single-binary-cli), [packages/crewhaus-cloud](https://github.com/crewhaus/factory/tree/main/packages/crewhaus-cloud).
+- **Packaging artifacts:** `docker/`, `helm/`, [packages/single-binary-cli](https://github.com/crewhaus/factory/tree/main/packages/single-binary-cli), [packages/crewhaus-cloud](https://github.com/crewhaus/factory/tree/main/packages/crewhaus-cloud).
 - **Mandatory contract:** audit-log is hash-chained — the `audit-log` package's `verify(rootDir)` re-walks the chain. Cross-tenant reads throw at every storage layer (sessions, evals, tool-results, audit). Canary gate calls `regression-runner.gate()` — promotion / auto-rollback both audit-log under kind `deployment_action`.
 - **Recipes:** [11-managed-multitenant](https://github.com/crewhaus/demos/blob/main/walkthroughs/11-managed-multitenant.md), [21-deployment-and-canary](https://github.com/crewhaus/demos/blob/main/walkthroughs/21-deployment-and-canary.md), [22-compliance-and-audit](https://github.com/crewhaus/demos/blob/main/walkthroughs/22-compliance-and-audit.md), [24-docker-and-helm](https://github.com/crewhaus/demos/blob/main/walkthroughs/24-docker-and-helm.md), [36-cloud-deploy](https://github.com/crewhaus/demos/blob/main/walkthroughs/36-cloud-deploy.md), [27-federation](https://github.com/crewhaus/demos/blob/main/walkthroughs/27-federation.md).
 
@@ -781,17 +781,19 @@ End-to-end tests for the catalog itself (independent of any single module):
 - [docs/COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md) — the compiler walked through with file paths.
 - [docs/architecture studies/openclaw-architecture.md](architecture%20studies/openclaw-architecture.md) — channel, cron, skills, context-engine, plugin patterns; tool catalog + profiles; system-prompt anti-patterns.
 - [docs/architecture studies/cc-architecture.md](architecture%20studies/cc-architecture.md) — Tool interface + buildTool; query loop; multi-layer compaction; permission system; streaming; subagents.
-- [reference-repos/claude-code/src/Tool.ts](../reference-repos/claude-code/src/Tool.ts) — Tool interface contract.
-- [reference-repos/claude-code/src/query.ts](../reference-repos/claude-code/src/query.ts) — async-generator agent loop reference.
-- [reference-repos/claude-code/src/services/compact/](../reference-repos/claude-code/src/services/compact/) — multi-layer compaction reference.
-- [reference-repos/claude-code/src/utils/permissions/](../reference-repos/claude-code/src/utils/permissions/) — layered permission system.
-- [reference-repos/openclaw/src/context-engine/](../reference-repos/openclaw/src/context-engine/) — pluggable context-engine interface.
-- [reference-repos/openclaw/src/cron/](../reference-repos/openclaw/src/cron/) — cron + heartbeat + isolated-agent.
-- [reference-repos/openclaw/src/channels/plugins/](../reference-repos/openclaw/src/channels/plugins/) — channel adapter pattern.
-- [reference-repos/agent-framework/python/packages/core/agent_framework/_workflows/_workflow_builder.py](../reference-repos/agent-framework/python/packages/core/agent_framework/_workflows/_workflow_builder.py) — declarative workflow IR + builder.
-- [reference-repos/langgraph/libs/langgraph/langgraph/pregel/](../reference-repos/langgraph/libs/langgraph/langgraph/pregel/) — Pregel-style stateful graph runtime.
-- [reference-repos/haystack/haystack/core/](../reference-repos/haystack/haystack/core/) — pipeline + component decorator pattern.
-- [reference-repos/dspy/dspy/teleprompt/](../reference-repos/dspy/dspy/teleprompt/) — prompt program optimization.
-- [reference-repos/lm-evaluation-harness/lm_eval/evaluator.py](../reference-repos/lm-evaluation-harness/lm_eval/evaluator.py) — benchmark runner.
-- [reference-repos/ragas/src/ragas/evaluation.py](../reference-repos/ragas/src/ragas/evaluation.py) — RAG-specific evaluation.
-- [reference-repos/openai-agents-python/src/agents/](../reference-repos/openai-agents-python/src/agents/) — handoffs, guardrails, sessions, voice, realtime.
+The architectural studies above distill the following upstream open-source projects (studied locally during design; paths shown for reference, not committed to this repo):
+
+- `claude-code` `src/Tool.ts` — Tool interface contract.
+- `claude-code` `src/query.ts` — async-generator agent loop reference.
+- `claude-code` `src/services/compact/` — multi-layer compaction reference.
+- `claude-code` `src/utils/permissions/` — layered permission system.
+- `openclaw` `src/context-engine/` — pluggable context-engine interface.
+- `openclaw` `src/cron/` — cron + heartbeat + isolated-agent.
+- `openclaw` `src/channels/plugins/` — channel adapter pattern.
+- `agent-framework` `python/packages/core/agent_framework/_workflows/_workflow_builder.py` — declarative workflow IR + builder.
+- `langgraph` `libs/langgraph/langgraph/pregel/` — Pregel-style stateful graph runtime.
+- `haystack` `haystack/core/` — pipeline + component decorator pattern.
+- `dspy` `dspy/teleprompt/` — prompt program optimization.
+- `lm-evaluation-harness` `lm_eval/evaluator.py` — benchmark runner.
+- `ragas` `src/ragas/evaluation.py` — RAG-specific evaluation.
+- `openai-agents-python` `src/agents/` — handoffs, guardrails, sessions, voice, realtime.
