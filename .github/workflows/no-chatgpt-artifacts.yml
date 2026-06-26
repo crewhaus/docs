@@ -1,0 +1,52 @@
+name: No ChatGPT citation artifacts
+
+# ChatGPT's web-search / deep-research output embeds citation markers wrapped in
+# invisible Private Use Area characters: U+E200 (cite start), U+E202 (separator),
+# U+E201 (cite end), e.g. "<E200>cite<E202>turn21search0<E202>turn22search0<E201>".
+# Browsers don't render the PUA delimiters, so on the published site they collapse
+# into visible junk like "citeturn21search0turn22search0". The website vendors this
+# repo's markdown verbatim at build time (see redeploy-website.yml), so anything
+# pasted here ships to crewhaus.ai. This guard blocks it before merge.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: No ChatGPT citation artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Fail on ChatGPT citation artifacts
+        run: |
+          status=0
+
+          # 1) Invisible PUA delimiters U+E200-U+E20F (UTF-8 bytes EE 88 80-8F).
+          #    Byte-level pattern => locale-independent on any runner.
+          if grep -rnIP '\xEE\x88[\x80-\x8F]' \
+               --include='*.md' --include='*.mdx' \
+               --exclude-dir=node_modules --exclude-dir=.git . ; then
+            echo "::error::Found invisible ChatGPT citation delimiters (U+E200-E20F). Strip the citeturn... markers before merge."
+            status=1
+          fi
+
+          # 2) The visible text these markers collapse into once a renderer drops
+          #    the delimiters (e.g. citeturn21search0, turn22view3, navlist).
+          if grep -rnIE 'turn[0-9]+(search|view|news|image|forecast|finance|sports|product|file|video|academia|map)[0-9]+' \
+               --include='*.md' --include='*.mdx' \
+               --exclude-dir=node_modules --exclude-dir=.git . ; then
+            echo "::error::Found leaked ChatGPT citation text (turn...search/view...). Remove it before merge."
+            status=1
+          fi
+
+          if [ "$status" -eq 0 ]; then
+            echo "OK -- no ChatGPT citation artifacts."
+          fi
+          exit "$status"
