@@ -183,6 +183,20 @@ shared chrome, and one CSS design system. All rendering is done with DOM nodes
 and `textContent`, so a harness can never inject markup into the page — a
 deliberate isolation property.
 
+## Rating responses (👍/👎)
+
+Since `@crewhaus/ui` 0.1.3 every assistant turn renders a **rating bar** —
+thumbs up/down plus an optional comment. Ratings persist as feedback records to
+`.crewhaus/feedback/feedback.jsonl` in the harness directory, and each one
+emits a `response_rated` trace event into the same activity feed.
+
+Those files are not just telemetry: `crewhaus distill` reads
+`.crewhaus/feedback/` alongside the session transcripts and turns the ratings
+into an eval dataset + grader, which `crewhaus optimize --ratings` feeds back
+into the spec. Rate a few answers in the browser, then close the loop from the
+terminal — the walkthrough is
+[Recipe 56 — Response Ratings](https://github.com/crewhaus/demos/blob/main/walkthroughs/56-response-ratings.md).
+
 ## Requirements
 
 - [Bun](https://bun.sh) ≥ 1.2 (the same runtime CrewHaus bundles use).
