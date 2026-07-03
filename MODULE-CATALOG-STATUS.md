@@ -6,6 +6,15 @@ If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE
 
 ---
 
+## Snapshot — 2026-07-03 (v0.2.0 — the automation release)
+
+- **v0.2.0 shipped 2026-07-03** — the automation release. Lands all 69 items from the [automation audit](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md): the self-building eval flywheel, the observer/advisor (`advise` + `optimize --from-advice`), model & cost automation (provider failover, right-sizing, budget caps), self-healing operations (`deploy canary`, `mcp doctor`, SLO monitor), fleet/lifecycle/marketplace, and safety-that-learns.
+- **No new packages.** The package count is unchanged at v0.2.0 (identical package set to v0.1.8) — the release is dozens of new **CLI verbs**, several new optional **spec blocks** (`memory:`, `budget:`, `observability.slo:`, `agent.model_fallbacks`/`circuit_breaker`/`model_tiers`, `feedback.autoDistill`/`exitPrompt`, top-level `version:`), schedulers, and event persistence that **wire the already-shipped engines together**. This is the automation audit's headline finding realized: "the engines were built, the wiring wasn't." Catalog module counts are therefore unchanged from the 2026-05-26 snapshot below.
+- **New user-facing docs** — the [CLI reference](CLI-REFERENCE.md) (the full command surface) and the [optional v0.2.0 spec blocks](GETTING-STARTED.md#optional-spec-blocks-v020) in GETTING-STARTED.
+- **Target shapes are unchanged** — cli / workflow / channel / graph / managed / pipeline / crew / research / batch / voice / browser / eval / onchain / onchain-game, plus the `target-claude-plugin` emitter. v0.2.0 unlocked eval/optimize for the non-cli shapes via auto-generated eval bridges (`compile --with-eval-harness`), rather than adding shapes.
+
+---
+
 ## Snapshot — 2026-05-26 (post-§41/§42/§44 close-out + §55–§59 integration batch)
 
 - **v0.1.0 launched 2026-05-15** — public release covering build-roadmap §1–§40 (compiler core, twelve target shapes, eval stack, security fabric).
@@ -48,7 +57,9 @@ Implemented (✅) and in-progress (🚧) modules have absorbed their risk and do
 | Project version | Build-roadmap sections | Status |
 |---|---|---|
 | **v0.1.0** | §1–§40 | Shipped 2026-05-15. Compiler core, 12 target shapes, eval stack, security fabric (boundary classifier), production hardening, distribution. |
-| **v0.2.x** | §51–§54 + §46 (active IR-patch optimizer) + §47 (onchain slices 0–2) | In flight (Days 30–60). Reference-corpus integrations: egress fabric, context curation, justification gates, 12-metric rubric, codegraph tool. Most packages landed; recipes + polish remaining. |
+| **v0.1.7–0.1.8** | Response ratings | Shipped 2026-07-01. `rate`/`feedback`/`distill`(`--judge`) + `optimize --ratings` + `feedback:` spec block: human ratings become eval datasets/graders that feed the optimizer. |
+| **v0.2.0** | Automation release (all 69 [automation-audit](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md) items) | Shipped 2026-07-03. Dozens of new CLI commands + several new optional spec blocks that wire the *already-shipped* engines together: the self-building eval flywheel, the observer/advisor, model & cost automation, self-healing ops, fleet/lifecycle, and safety-that-learns. **No new packages** — additive CLI verbs, spec blocks, schedulers, and event persistence over existing machinery. See the [CLI reference](CLI-REFERENCE.md) + the [v0.2.0 spec blocks](GETTING-STARTED.md#optional-spec-blocks-v020). |
+| **v0.2.x** | §51–§54 + §46 (active IR-patch optimizer) + §47 (onchain slices 0–2) | Reference-corpus integrations: egress fabric, context curation, justification gates, 12-metric rubric, codegraph tool. Packages landed; recipes + polish remaining. |
 | **v0.3.x** | (TBD — see factory ROADMAP) | Crewhaus Forge community registry, `crewhaus publish`, verified-artifact distinction. |
 | **v0.4.x+** | §41–§45 + new sections | Plugin SDK v2, plugin loader/registry, module marketplace, cloud-deploy adapters, additional channel adapters, optional non-EVM chain adapters. |
 | **v1.0** (target: Q4 2026) | Stabilization | Schema + CLI commands stable, security audit complete, production-readiness statement per target shape. |
