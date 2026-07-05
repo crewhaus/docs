@@ -14,13 +14,13 @@ Parse `agent.model` strings and lazy-load the matching `ProviderAdapter`. Every 
 
 The router is the single owner of the model-string grammar: `claude-*` (unprefixed, Anthropic), `openai/<model>`, `gemini/<model>`, `bedrock/<modelId>` (family inferred from the id, cross-region inference-profile prefixes tolerated), `local/<model>[@<url>]` (any OpenAI-compatible server; defaults to Ollama's `http://localhost:11434/v1`), eight named OpenAI-compatible cloud hosts (`groq/`, `together/`, `fireworks/`, `openrouter/`, `deepseek/`, `xai/`, `mistral/`, `cerebras/`), `azure/<deployment>`, and `vertex/claude-*` / `vertex/gemini-*`. The user-facing matrix lives in [PROVIDERS.md](../PROVIDERS.md).
 
-Since 0.2.0 the package also owns the two spec-native routing layers built on that resolution path: `createFailoverChain` — the breaker-driven failover meta-adapter behind `agent.model_fallbacks` / `agent.circuit_breaker` ([#264](https://github.com/crewhaus/factory/pull/264)) — and `createTierRouter` / `pickTier` — the deterministic two-tier turn-difficulty router behind `agent.model_tiers` ([#268](https://github.com/crewhaus/factory/pull/268)).
+Since 0.2.0 the package also owns the spec-native routing layers built on that resolution path: `createFailoverChain` — the breaker-driven failover meta-adapter behind `agent.model_fallbacks` / `agent.circuit_breaker` ([#264](https://github.com/crewhaus/factory/pull/264)) — and `createTierRouter` / `pickTier` — the deterministic two-tier turn-difficulty router behind `agent.model_tiers` ([#268](https://github.com/crewhaus/factory/pull/268)). Since 0.2.1 it also owns `createPolicyRouter` — the adaptive N-candidate router behind `agent.model_pool` ([#280](https://github.com/crewhaus/factory/pull/280)), whose `learned` policy improves selection with usage off a durable reward scoreboard in [`@crewhaus/routing-store`](https://github.com/crewhaus/factory/tree/main/packages/routing-store).
 
 ## Boundaries
 
 Owns `parseModelString` (model string → discriminated union), `resolveModel` (parsed string → `{ adapter, modelId, providerId }`), the per-`(provider, baseUrl/deployment/family, key-env)` adapter cache, and the API-key policy for the OpenAI-routed paths — named hosts read their own key env var (never `OPENAI_API_KEY`); `local/` loopback URLs may inherit `OPENAI_API_KEY`, while non-loopback URLs only ever receive `CREWHAUS_LOCAL_API_KEY` so a spec-supplied URL cannot exfiltrate the OpenAI key.
 
-Also owns the failover chain (`failover.ts`: per-candidate breaker wrapping, `model_failover` events with reasons `breaker_open` / `probe_restore` / `candidate_error`, tolerant fallback preflight surfaced via `warnings()`, `tripActive()` backing the `switch-model` recovery action, the `rankFallbacks` reordering seam, `FailoverExhaustedError`) and the tier router (`tier-router.ts`: deterministic `pickTier` over per-turn signals, boot-resolved `fast`/`default` tiers, `escalation()` for fast-tier misroute recovery).
+Also owns the failover chain (`failover.ts`: per-candidate breaker wrapping, `model_failover` events with reasons `breaker_open` / `probe_restore` / `candidate_error`, tolerant fallback preflight surfaced via `warnings()`, `tripActive()` backing the `switch-model` recovery action, the `rankFallbacks` reordering seam, `FailoverExhaustedError`), the tier router (`tier-router.ts`: deterministic `pickTier` over per-turn signals, boot-resolved `fast`/`default` tiers, `escalation()` for fast-tier misroute recovery), and — since 0.2.1 — the adaptive model pool (`policy-router.ts`: `createPolicyRouter` over N declared candidates with a `static` / `heuristic` / `learned` policy, `model_route` events, band-keyed `escalation()`). The `learned` policy is fs-free — it reads the reward scoreboard through an injected `score(routeKey, model)` lookup, so all persistence lives in `@crewhaus/routing-store` and this package stays free of I/O.
 
 Does not own adapter behavior — `@crewhaus/adapter-openai`, `@crewhaus/adapter-gemini`, and `@crewhaus/adapter-bedrock` are optionalDependencies loaded with dynamic `import()` only when a model string routes to them (a missing install fails with a `ConfigError` naming the package). Cost/quality policy (market scan, right-sizing) lives in the CLI's model tooling atop `cost-tracker`, and rate limiting lives in `rate-limiter`; the breaker state machine itself stays in `circuit-breaker` — the failover chain composes `wrap()` per candidate and never re-implements the transition rules.
 
@@ -38,9 +38,9 @@ The repo has the full tested surface. The next slice should preserve the existin
 
 ## Study References
 
-`packages/model-router/README.md` (grammar table); `packages/model-router/src/parse.ts`; `packages/model-router/src/router.ts`; `packages/model-router/src/failover.ts`; `packages/model-router/src/tier-router.ts`
+`packages/model-router/README.md` (grammar table); `packages/model-router/src/parse.ts`; `packages/model-router/src/router.ts`; `packages/model-router/src/failover.ts`; `packages/model-router/src/tier-router.ts`; `packages/model-router/src/policy-router.ts`; `packages/routing-store/src/{reward,scoreboard}.ts`
 
-Research focus: grammar extensions; key-isolation policy for new host classes; failover/tier routing semantics
+Research focus: grammar extensions; key-isolation policy for new host classes; failover/tier/pool routing semantics; the learned-policy reward + scoreboard contract
 
 ## Validation Plan
 

@@ -572,6 +572,36 @@ budget:
 entry — it re-issues the same turn onto the next `model_fallbacks`
 candidate (a no-op when no chain is declared).
 
+Since **v0.2.1**, `agent.model_pool` is the N-candidate, learning
+generalisation of `model_tiers`: declare a set of candidate models and a
+selection `policy`, and the runtime picks one per turn. It is mutually
+exclusive with `model_tiers` / `model_fallbacks` (it is their superset), so it
+gets its own block:
+
+```yaml
+agent:
+  model: claude-sonnet-4-6
+  instructions: …
+  model_pool:
+    policy: learned              # static | heuristic (default) | learned
+    candidates:
+      - { model: claude-haiku-4-5, tags: [cheap] }
+      - { model: claude-sonnet-4-6, tags: [balanced] }
+      - { model: claude-opus-4-1, tags: [strong] }
+    objective: { quality: 0.7, cost: 0.2, latency: 0.1 }   # optional weights
+    learning: { minSamplesPerArm: 25 }                      # learned policy only
+```
+
+`heuristic` (the default) routes hard turns to a `strong`-tagged candidate and
+easy turns to a `cheap` one, using the same difficulty signals as `model_tiers`.
+`learned` picks the best model *per difficulty band* from a durable reward
+scoreboard (`.crewhaus/routing/arms.jsonl`) that accumulates across runs — so
+the choice improves the more the harness is used, folding each turn's success,
+latency, and cost back in. Every pick emits a `model_route` trace event; inspect
+or reset the accumulated scoreboard with `crewhaus route status` / `crewhaus
+route reset`. Like the blocks above, the candidate roster stays outside the
+optimizer's reach — learning only tunes selection *within* the set you declare.
+
 #### Memory and feedback blocks (v0.2.0)
 
 The `memory:` block's mere presence wires the Remember/Recall tools into
