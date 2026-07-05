@@ -179,10 +179,14 @@ comment-preserving CST edits, always human-initiated.
 | `pricing sync [--file <feed>]` | Load a versioned pricing feed into `~/.crewhaus/pricing/` so cost tracking overrides the hand-snapshotted table without a code release. |
 | `pricing show` | Print the active pricing table. |
 | `cost-summary --session <id> [--tenant <t>] [--format <f>]` | Aggregate `cost_accrual` events into total USD spend, including per-session cache-hit ratio and realized cache savings. |
+| `route status [--dir <root>]` | Show the adaptive `agent.model_pool` reward scoreboard: per-difficulty-band arms with sample count, mean reward, mean latency/cost, best-per-band starred (what a `learned` policy exploits). |
+| `route reset [--dir <root>]` | Wipe the `model_pool` reward scoreboard (kill switch). `--dir` points at the `.crewhaus` root (default `.crewhaus`). |
 
 Model automation is also declarative in the spec:
 `agent.model_fallbacks` + `agent.circuit_breaker` (failover chain),
-`agent.model_tiers` (two-tier turn router), and `budget:` (run-level spend
+`agent.model_tiers` (two-tier turn router), `agent.model_pool` (v0.2.1 —
+N-candidate adaptive routing whose `learned` policy improves with usage;
+mutually exclusive with the previous two), and `budget:` (run-level spend
 cap). See the [spec reference](GETTING-STARTED.md#model-cost-and-budget-blocks-v020).
 
 ---
