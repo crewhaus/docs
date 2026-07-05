@@ -21,6 +21,16 @@
 >
 > **Status:** `crewhaus` and the supporting `@crewhaus/*` libraries are public on npm — no scope access needed. (The earlier `@crewhaus/cli` package name is deprecated and points at `crewhaus`.)
 
+> **New in v0.2.0 — the automation release.** Harnesses can now build their
+> own evals, tune themselves from real usage, and heal their own operations,
+> with manual control preserved everywhere. Two flagship commands anchor it:
+> **`crewhaus flywheel run`** runs the nightly self-improvement loop (compile
+> → eval → optimize → gate → write-back) as one command, and **`crewhaus
+> advise`** mines your session logs into eval-validated spec suggestions.
+> Every addition is additive and opt-in — existing specs compile
+> byte-identically. See the [full CLI reference](CLI-REFERENCE.md) and the
+> [optional v0.2.0 spec blocks](#optional-spec-blocks-v020).
+
 ---
 
 ## Table of contents
@@ -501,6 +511,132 @@ Different `target:` values unlock additional top-level fields. A
 `agent:` with `roles:` and `entry:`. A `graph` spec adds `nodes:` and
 `edges:`. The smallest example for each shape is the best reference —
 they're all under `starters/`.
+
+### Optional spec blocks (v0.2.0)
+
+v0.2.0 added several **optional** cross-cutting blocks. Every one is
+additive and opt-in: a spec that omits them parses and compiles
+byte-identically to before. Declare only what you want; each block is
+`.strict()`, so a typo'd sub-key fails the build rather than being
+silently ignored. The blocks are carried on the interactive shapes that
+consume them (mostly `cli`, `channel`, `managed`); the schema is the
+source of truth for which shape carries which block.
+
+#### Model, cost, and budget blocks (v0.2.0)
+
+Three ways to make model choice and spend resilient. Model fields stay
+outside the optimizer's reach, so these are declarations *you* make, not
+knobs the flywheel touches.
+
+```yaml
+agent:
+  model: claude-sonnet-4-6
+  instructions: …
+  # Provider failover chain — ordered models tried when the primary's
+  # circuit breaker is open. Same model-string grammar as agent.model.
+  # A fallback with a missing credential warns at boot and is skipped
+  # when tried (never hard-fails the run).
+  model_fallbacks:
+    - openai/gpt-4o
+    - bedrock/us.anthropic.claude-sonnet-4-6
+  # Tune the per-candidate breakers (all optional; package defaults are
+  # 5 failures / 60s window / 30s cooldown). circuit_breaker WITHOUT
+  # model_fallbacks is valid — it just breaker-wraps the primary.
+  circuit_breaker:
+    failureThreshold: 5
+    windowMs: 60000
+    cooldownMs: 30000
+  # Opt-in two-tier turn router: cheap `fast` model for easy turns, the
+  # `default` model for hard ones. A failed fast-tier turn re-runs on
+  # `default`. Omitted entirely → single-model behaviour.
+  model_tiers:
+    fast: claude-haiku-4-5
+    default: claude-sonnet-4-6
+    routing:                        # all optional — sensible defaults apply
+      contextTokenThreshold: 20000
+      toolsToDefault: true
+```
+
+```yaml
+# Top-level run-level spend cap with a degradation ladder. The check is
+# pre-turn, so an in-flight turn always completes. `crewhaus run
+# --budget-usd N` overrides the ceiling from the CLI.
+budget:
+  usd: 5.00
+  on_exceed:
+    action: degrade                 # stop (default) | degrade
+    model: claude-haiku-4-5         # required when action: degrade
+```
+
+`switch-model` is also a recovery action for a `failure_taxonomy:`
+entry — it re-issues the same turn onto the next `model_fallbacks`
+candidate (a no-op when no chain is declared).
+
+#### Memory and feedback blocks (v0.2.0)
+
+The `memory:` block's mere presence wires the Remember/Recall tools into
+the harness. `feedback:` declares that the harness collects human ratings
+that `crewhaus distill` turns into eval datasets + graders.
+
+```yaml
+# Cross-session memory. Its presence registers the memory tools; the
+# auto-* switches layer on top.
+memory:
+  enabled: true
+  autoCapture: true                 # summarize durable outcomes at run teardown
+  autoCaptureThreshold: 3
+  autoRecall: true                  # inject top-recallK memories at session start
+  recallK: 5                        # 1–50
+
+# Response feedback. `autoDistill` turns accumulated ratings into
+# versioned `<name>-ratings` registry datasets at run teardown;
+# `exitPrompt` gates the one-keystroke REPL exit rating prompt (default
+# on when the block is present); `channelReactions` gates Slack 👍/👎.
+feedback:
+  modality: binary                  # binary (default) | stars | scale | comment
+  autoDistill: true
+  exitPrompt: true
+  channelReactions: true            # channel shape only
+```
+
+#### Observability and SLO block (v0.2.0)
+
+Declare production Service-Level Objectives and the mitigation ladder the
+runtime walks on a **sustained** breach. Every target is optional (declare
+only what you care about) but at least one threshold is required. Higher
+mitigation rungs touch traffic and deploys, so they are opt-in.
+
+```yaml
+observability:
+  slo:
+    error_rate: 0.05                # unrecovered errors / model calls
+    p95_latency_ms: 8000            # p95 per-turn latency ceiling
+    ttft_ms: 2000                   # p95 time-to-first-token ceiling
+    cost_per_hour_usd: 10           # USD/hour of wall-clock
+    egress_block_rate: 0.1          # egress-blocked / external calls
+    window_seconds: 300             # a breach must persist this long (default 300)
+    mitigation:                     # walked in order; defaults to [alert]
+      - alert                       # webhook/hook — always safe
+      - pause-intake                # 429 the intake path (opt-in)
+      - rollback                    # auto-rollback the env pin (opt-in)
+```
+
+`doctor --slo` / `--ttft` probes recent p95 TTFT against
+`observability.slo.ttft_ms` and names faster candidates on a breach.
+
+#### The `version:` field (v0.2.0)
+
+An optional non-negative integer schema-version stamp. It exists so the
+`crewhaus upgrade` migration chain has somewhere to record which schema
+version a spec targets. Absent means "current/unversioned" (fully
+back-compat); you rarely write it by hand — migrations stamp it.
+
+```yaml
+version: 1
+name: my-agent
+target: cli
+# …
+```
 
 The full Zod schema lives in
 [`packages/spec/src/index.ts`](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts) — when
@@ -1071,31 +1207,37 @@ Day to day you invoke it from inside a harness directory as
 <subcommand>` if you installed it globally). The subcommand table below
 applies the same way regardless of how you launched the CLI.
 
+> **The complete command surface — [CLI-REFERENCE.md](CLI-REFERENCE.md).**
+> v0.2.0 grew the CLI from a handful of build/run/eval verbs into a full
+> lifecycle surface (the eval flywheel, the observer/advisor, model & cost
+> automation, self-healing ops, fleet, and more). The table below is the
+> everyday subset; the reference documents every subcommand and its flags,
+> grouped by task. `crewhaus <subcommand> --help` is always authoritative.
+
 | Subcommand                                   | Purpose                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `compile <spec> -o <out-dir>`                | Parse → IR → emit bundle to `<out-dir>`.                                                |
+| `compile <spec> -o <out-dir>`                | Parse → IR → emit bundle to `<out-dir>` (the FR-002 external-sink scope gate runs by default). |
 | `compile <spec> --emit-ir [-o <out-dir>]`    | Print the lowered IR as JSON (or write `<out-dir>/ir.json`); skip codegen. See [Debugging the compiler](#debugging-the-compiler). |
 | `run <spec> [--model …] [--resume <id>]`     | Compile in-memory and execute (CLI shape only).                                         |
-| `init [name]`                                | Scaffold a fresh `crewhaus.yaml`.                                                       |
-| `doctor`                                     | Check Bun version, credentials, working spec, Docker availability for sandboxed tools.  |
-| `eval <spec> --dataset <d> --graders <g>`    | Run an eval bundle, write per-sample results + an HTML report.                          |
-| `eval-report diff <prevRun> <newRun>`        | Highlight pass/fail flips between two eval runs.                                        |
-| `optimize <spec> --dataset <d> --graders <g>` | Search prompt mutations against the eval score and emit a reviewable spec patch (`--write-back` applies it — see [Scenario 2](#scenario-2--an-eval-failed-and-the-optimizer-wants-to-patch-your-prompt)). `--ratings <session>\|all` distills user ratings into the training set instead of (or on top of) a file dataset. |
+| `init [name] [--interactive]`                | Scaffold a fresh `crewhaus.yaml` (`--interactive` interviews you for it).               |
+| `lint [spec] [--fix]`                        | Check-only parse + IR passes + scope audit, without emitting.                           |
+| `doctor [--detect] [--fix]`                  | Check environment health; `--detect` inventories reachable providers/models/MCP, `--fix` applies mechanical remediations. |
+| `eval <spec> --dataset <d> --graders <g>`    | Run an eval bundle, write per-sample results + an HTML report (`--gate` fails on regression). |
+| `flywheel run [spec]`                        | The nightly self-improvement loop, one command: compile-gate → eval → optimize → gate → write-back. |
+| `advise [--session <id> \| --all]`           | Mine session logs into eval-validated spec suggestions; feed to `optimize --from-advice`. |
+| `optimize <spec> --dataset <d> --graders <g>`| Active eval-driven optimization (`--write-back` to apply a gated win). `--ratings <session>\|all` distills user ratings into the training set instead of (or on top of) a file dataset. |
 | `rate --session <id> [--turn N]`             | Rate an assistant turn — `--thumbs up\|down`, `--stars 1-5`, or `--score 0-1` — recorded as a `user_feedback` event in the session JSONL. |
 | `feedback --session <id> --text <msg>`       | Attach a comment, or a `--correction` (the answer it *should* have given), to a turn.   |
 | `distill (--session <id> \| --all-sessions) -o <ds.jsonl>` | Turn ratings into an eval dataset + a synthesized `graders.yaml` (`--graders-out`; `--min-score`, default 0.7; `--judge [--judge-model <m>]` for an LLM-judge grader seeded from the comments). |
 | `cost-summary --session <id>`                | Aggregate `cost_accrual` events from a session into total USD spend.                    |
 | `secrets {doctor,rotate <name>}`             | List + rotate file/vault-backed secrets.                                                |
-| `spec {put,list,get,pin,alias} …`            | Versioned spec storage and environment pinning.                                         |
-| `deploy {promote,rollback} …`                | Re-pin a spec across environments, with audit log entries.                              |
-| `migrate-all --from N --to N`                | Batch-migrate every spec in a registry to a newer IR version.                           |
-| `build-image <target> --tag <tag>`           | Build a per-target Docker image.                                                        |
-| `cloud {deploy,teardown} --provider <p>`     | Deploy a managed cluster to AWS / GCP / Azure / LocalStack.                             |
-| `federation discover <deployment>`           | Resolve a federated peer endpoint via DNS SRV or `.well-known`.                         |
-| `sandbox doctor [--probe]`                   | List registered sandbox images and run their healthchecks.                              |
-| `compliance evidence --framework <id>`       | Collect SOC 2 / ISO 27001 / HIPAA evidence bundles from the audit log.                  |
+| `spec {put,list,get,pin,alias,log} …`        | Versioned spec storage, environment pinning, and per-spec changelog.                    |
+| `deploy {promote,rollback,canary} …`         | Re-pin a spec across environments (or ramp a canary with an eval gate), audit-logged.   |
+| `fleet {list,status,run} …`                  | Cross-harness inventory, health, and bulk read-ops.                                     |
 
-Day to day, you'll mostly use `compile`, `run`, `init`, and `doctor`.
+Day to day, you'll mostly use `compile`, `run`, `init`, and `doctor`. When
+you're ready to let a harness improve itself, reach for `flywheel` and
+`advise`. **See [CLI-REFERENCE.md](CLI-REFERENCE.md) for everything else.**
 
 > **Contributors — in-tree dev loop.** Inside a clone of the
 > [demos repo](https://github.com/crewhaus/demos), `demos/package.json`
