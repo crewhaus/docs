@@ -480,6 +480,32 @@ mcp_servers:
     args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
 ```
 
+One more cross-cutting block is worth knowing about early, because it
+closes the loop Pillar 2 is named for. The interactive shapes (`cli`,
+`channel`) accept an optional `feedback:` block declaring that the
+harness collects human ratings on its responses:
+
+```yaml
+feedback:
+  enabled: true              # declare the harness collects ratings
+  modality: binary           # binary | stars | scale | comment (default: binary)
+  scale: { min: 1, max: 10 } # integer bounds, for modality: scale
+  storage:
+    location: feedback       # capture-sink directory name (safe-name rules)
+  autoDistill: false         # forward-looking: continuous distillation flywheel
+  channelReactions: true     # channel shape only: Slack 👍/👎 on bot replies
+                             # become user_feedback events
+```
+
+Every sub-key is optional and the block is strict — a typo'd key fails
+the compile. It lowers to `ir.feedback`, and it is deliberately *not*
+optimizable: the optimizer can rewrite your prompt, never your
+feedback-collection policy. The ratings themselves come from
+`crewhaus rate` / `crewhaus feedback`, the web UI's rating bar, or
+Slack reactions, and `crewhaus distill` turns them into an eval
+dataset + grader — the full loop is
+[Recipe 56 — Response Ratings](https://github.com/crewhaus/demos/blob/main/walkthroughs/56-response-ratings.md).
+
 Different `target:` values unlock additional top-level fields. A
 `channel` spec adds `channels:` and `routing:`. A `crew` spec replaces
 `agent:` with `roles:` and `entry:`. A `graph` spec adds `nodes:` and
@@ -1199,7 +1225,10 @@ applies the same way regardless of how you launched the CLI.
 | `eval <spec> --dataset <d> --graders <g>`    | Run an eval bundle, write per-sample results + an HTML report (`--gate` fails on regression). |
 | `flywheel run [spec]`                        | The nightly self-improvement loop, one command: compile-gate → eval → optimize → gate → write-back. |
 | `advise [--session <id> \| --all]`           | Mine session logs into eval-validated spec suggestions; feed to `optimize --from-advice`. |
-| `optimize <spec> --dataset <d> --graders <g>`| Active eval-driven optimization (`--write-back` to apply a gated win).                  |
+| `optimize <spec> --dataset <d> --graders <g>`| Active eval-driven optimization (`--write-back` to apply a gated win). `--ratings <session>\|all` distills user ratings into the training set instead of (or on top of) a file dataset. |
+| `rate --session <id> [--turn N]`             | Rate an assistant turn — `--thumbs up\|down`, `--stars 1-5`, or `--score 0-1` — recorded as a `user_feedback` event in the session JSONL. |
+| `feedback --session <id> --text <msg>`       | Attach a comment, or a `--correction` (the answer it *should* have given), to a turn.   |
+| `distill (--session <id> \| --all-sessions) -o <ds.jsonl>` | Turn ratings into an eval dataset + a synthesized `graders.yaml` (`--graders-out`; `--min-score`, default 0.7; `--judge [--judge-model <m>]` for an LLM-judge grader seeded from the comments). |
 | `cost-summary --session <id>`                | Aggregate `cost_accrual` events from a session into total USD spend.                    |
 | `secrets {doctor,rotate <name>}`             | List + rotate file/vault-backed secrets.                                                |
 | `spec {put,list,get,pin,alias,log} …`        | Versioned spec storage, environment pinning, and per-spec changelog.                    |
