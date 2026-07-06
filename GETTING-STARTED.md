@@ -576,7 +576,9 @@ Since **v0.2.1**, `agent.model_pool` is the N-candidate, learning
 generalisation of `model_tiers`: declare a set of candidate models and a
 selection `policy`, and the runtime picks one per turn. It is mutually
 exclusive with `model_tiers` / `model_fallbacks` (it is their superset), so it
-gets its own block:
+gets its own block. It works on the `cli`, `channel`, `managed`, `pipeline`,
+`research`, `batch`, and `browser` shapes, and on both compiled bundles and the
+interpreted `crewhaus run` path:
 
 ```yaml
 agent:
@@ -589,7 +591,10 @@ agent:
       - { model: claude-sonnet-4-6, tags: [balanced] }
       - { model: claude-opus-4-1, tags: [strong] }
     objective: { quality: 0.7, cost: 0.2, latency: 0.1 }   # optional weights
-    learning: { minSamplesPerArm: 25 }                      # learned policy only
+    learning:                                               # learned policy only
+      minSamplesPerArm: 25
+      bandit: thompson           # epsilon-greedy (default) | thompson   (v0.2.2)
+      explorationRate: 0.05      # ε for epsilon-greedy; ignored by thompson
 ```
 
 `heuristic` (the default) routes hard turns to a `strong`-tagged candidate and
@@ -597,10 +602,18 @@ easy turns to a `cheap` one, using the same difficulty signals as `model_tiers`.
 `learned` picks the best model *per difficulty band* from a durable reward
 scoreboard (`.crewhaus/routing/arms.jsonl`) that accumulates across runs — so
 the choice improves the more the harness is used, folding each turn's success,
-latency, and cost back in. Every pick emits a `model_route` trace event; inspect
-or reset the accumulated scoreboard with `crewhaus route status` / `crewhaus
-route reset`. Like the blocks above, the candidate roster stays outside the
-optimizer's reach — learning only tunes selection *within* the set you declare.
+latency, and cost back in. Since **v0.2.2** a converged `learned` pool also
+**explores online** so it can notice model drift instead of hard-committing to
+the argmax: `bandit: epsilon-greedy` (default) tries a non-best arm
+`explorationRate` of the time, and `bandit: thompson` draws each arm from its
+reward posterior and self-balances (no ε to tune). Both are transcript-seeded,
+so exploration replays exactly and stays deterministic at `explorationRate: 0`.
+Every pick emits a `model_route` trace event; inspect the scoreboard, replay one
+run's decisions, or reset with `crewhaus route status` / `crewhaus route explain
+<session>` / `crewhaus route reset`. Like the blocks above, the candidate roster
+stays outside the optimizer's reach — learning only tunes selection *within* the
+set you declare (though `crewhaus advise` will mine the scoreboard and suggest
+*policy* tweaks, eval-gated through `optimize --from-advice`).
 
 #### Memory and feedback blocks (v0.2.0)
 
