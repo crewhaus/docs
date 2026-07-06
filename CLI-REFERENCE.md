@@ -180,14 +180,18 @@ comment-preserving CST edits, always human-initiated.
 | `pricing show` | Print the active pricing table. |
 | `cost-summary --session <id> [--tenant <t>] [--format <f>]` | Aggregate `cost_accrual` events into total USD spend, including per-session cache-hit ratio and realized cache savings. |
 | `route status [--dir <root>]` | Show the adaptive `agent.model_pool` reward scoreboard: per-difficulty-band arms with sample count, mean reward, mean latency/cost, best-per-band starred (what a `learned` policy exploits). |
+| `route explain <session> [--dir <root>]` | Replay one run's per-turn `model_pool` routing decisions from its persisted `model_route` events — turn, difficulty band, model, policy, explore/exploit, and reason. (v0.2.2) |
 | `route reset [--dir <root>]` | Wipe the `model_pool` reward scoreboard (kill switch). `--dir` points at the `.crewhaus` root (default `.crewhaus`). |
 
 Model automation is also declarative in the spec:
 `agent.model_fallbacks` + `agent.circuit_breaker` (failover chain),
-`agent.model_tiers` (two-tier turn router), `agent.model_pool` (v0.2.1 —
-N-candidate adaptive routing whose `learned` policy improves with usage;
-mutually exclusive with the previous two), and `budget:` (run-level spend
-cap). See the [spec reference](GETTING-STARTED.md#model-cost-and-budget-blocks-v020).
+`agent.model_tiers` (two-tier turn router), `agent.model_pool` (N-candidate
+adaptive routing whose `learned` policy improves with usage — since v0.2.2 it
+also **explores online** [ε-greedy or Thompson sampling] and works on the
+pipeline/research/batch/browser shapes as well as cli/channel/managed; mutually
+exclusive with the previous two), and `budget:` (run-level spend cap). Adaptive
+routing also applies to the interpreted `crewhaus run` path, not just compiled
+bundles. See the [spec reference](GETTING-STARTED.md#model-cost-and-budget-blocks-v020).
 
 ---
 
