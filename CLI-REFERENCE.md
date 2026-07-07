@@ -65,7 +65,7 @@ The everyday loop: scaffold a spec, compile it to a bundle, run it.
 | `lint [spec] [--fix] [--format text\|json]` | Check-only: `parseSpec` + compile with IR passes (the §47 chain / graph-crew well-formedness checks the CLI compile path skips) + scope audit, **without emitting**. `--fix` does nearest-match repairs for typo'd tool names / secret refs. `--format json` for editors and CI. |
 | `run <spec> [--model <m>]` | Compile in-memory and execute the agent (cli shape). |
 | `run <spec> --resume <id>` / `--continue` | Resume a specific session, or the most-recent one (cli targets). |
-| `run <spec> --prompt <text>` | Initial user prompt (browser targets; defaults to stdin). |
+| `run <spec> --prompt <text>` | Run a single turn and exit, printing the reply — no REPL (cli one-shot, for scripting/CI). For browser targets it is the single-turn input; other shapes fall back to stdin. |
 | `run <spec> --budget-usd <N>` | Run-level spend cap; sets/overrides the spec `budget.usd` ceiling and keeps its `on_exceed` ladder. |
 | `run <spec> --user <id>` | Identify the user so `.crewhaus/preferences/<user>.md` is injected at run start (alongside the auto-loaded `LESSONS.md`). |
 | `run <spec> --justification-judge rule-based\|claude` | Pillar 3 intent-gate judge for this run (FR-004); overrides `security.justification.judge`. |
