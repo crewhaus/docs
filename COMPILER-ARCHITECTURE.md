@@ -215,6 +215,31 @@ The lossy lower has predictable consequences when you inspect the IR with `crewh
 
 The corollary: when a runtime trace event names a tool (`toolName: "Write"`) or a rule pattern, the bridge back to your YAML is the **field name**, not the line number. [GETTING-STARTED.md § Tracing a request across YAML, IR, and trace](GETTING-STARTED.md#tracing-a-request-across-yaml-ir-and-trace) walks two concrete scenarios end-to-end.
 
+## Memory & continuity lowering (v0.3.0)
+
+The memory release threads four spec blocks through the pipeline — and deliberately collapses all of their codegen into **one composition-root call**, so the walk from YAML key to running store is short:
+
+```mermaid
+flowchart LR
+    Y["memory: / continuity: / thredz: / learning:"] --> L[lower]
+    L --> F["IR fragment (IrMemory + IrContinuity + IrThredz + IrLearning)"]
+    F --> E["emit&lt;Target&gt; — embeds ONE call"]
+    E --> W["wireMemory(fragment, deps)  · @crewhaus/memory-service"]
+    W --> S["stores + tools + skills + RunChatLoopOptions seams"]
+```
+
+**Spec** ([packages/spec/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts)): `memory:` (now with `backend`, `ttl`, `wiki:`, `dream:` sub-blocks), the top-level `continuity:` (boolean shorthand or strict object), `thredz:` (boolean / string / object shorthand — one knob), and `learning:`. All are carried on the five agent-loop shapes (cli, channel, managed, research, crew); workflow/batch/voice/browser carry `continuity:` with an ignored-note comment; the strict union rejects the blocks loudly everywhere else.
+
+**Lower** ([packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts)): `lower()` produces `IrMemory` (+`wiki`/`dream`/`ttlMs`), `IrContinuity`, `IrThredz`, and `IrLearning` on the matching IR variants ([packages/ir/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir/src/index.ts)). Three lowering rules worth knowing:
+
+- **Continuity is default-on**: an ABSENT `continuity:` key lowers to the enabled config on the agent-loop shapes — the release's one sanctioned behavior change. `continuity: false` lowers to nothing, and the emitted bundle is byte-identical to pre-0.3.0 (pinned by a byte-diff suite). Every other new block follows the usual absent-is-byte-identical discipline.
+- **`thredz:` synthesizes an `mcp_servers.thredz` entry** (stdio, `npx -y thredz-mcp@0.2.0`) with `THREDZ_API_KEY` as an `IrSecretRef` env value — riding the v0.3.0 MCP secret machinery in which `IrMcpStdioConfig.env` / `IrMcpSseConfig.headers` are `Record<string, IrSecretRef>` (the release's one breaking IR change). A user-declared `mcp_servers.thredz` wins over synthesis.
+- **`learning:` implies a wiki** (cross-field CompilerError without `memory.wiki` or `thredz:`) and stamps `memory.wiki.requireSources: true`, so `wiki_write` deterministically rejects uncited bodies.
+
+**Emit → memory-service**: every memory-carrying emitter (and the `crewhaus run` interpreter) makes the same single call — `wireMemory(IR_FRAGMENT, { catalog, cwd, … })` from [packages/memory-service](https://github.com/crewhaus/factory/tree/main/packages/memory-service). The composition root constructs the stores ([packages/memory-store](https://github.com/crewhaus/factory/tree/main/packages/memory-store), [packages/continuity-store](https://github.com/crewhaus/factory/tree/main/packages/continuity-store), [packages/wiki-store](https://github.com/crewhaus/factory/tree/main/packages/wiki-store) — or the Thredz backend over the connected McpHost client), registers the tools ([packages/tool-plan](https://github.com/crewhaus/factory/tree/main/packages/tool-plan), [packages/tool-wiki](https://github.com/crewhaus/factory/tree/main/packages/tool-wiki), [packages/tool-memory](https://github.com/crewhaus/factory/tree/main/packages/tool-memory)), merges the builtin skills/commands ([packages/default-skills](https://github.com/crewhaus/factory/tree/main/packages/default-skills)) at lowest precedence, and returns spread-ready `RunChatLoopOptions` seams. [packages/runtime-core](https://github.com/crewhaus/factory/tree/main/packages/runtime-core) stays store-free — it consumes the injected closures (`memory`, `continuity`) and owns only the runtime mechanics: the volatile tail block after the cache marker, `context_evicted` ledger externalization, and the teardown handoff hook. [packages/dream-engine](https://github.com/crewhaus/factory/tree/main/packages/dream-engine) consolidates the resulting stores on a schedule.
+
+This is Pillar 1 applied to memory: emitters stay dumb (typed IR in, one stable call out), and adding a memory feature means extending the fragment + the composition root — never re-templating N emitters. The tunable quality knobs the blocks introduce (`memory.recallK`, `memory.ttl`, `memory.wiki.recallK`, `memory.dream.budget_usd`, `continuity.focusMaxChars`, …) are registered in `OPTIMIZABLE_PATHS` (Pillar 2, field-preserving 1:1 through `lower()`); the behavioral switches (`memory.backend`, `continuity.proof`, `thredz.*`) deliberately are not.
+
 ## What lives where, summarised
 
 | Concern | Lives in |
@@ -227,6 +252,7 @@ The corollary: when a runtime trace event names a tool (`toolName: "Write"`) or 
 | Generated bundles import this at runtime | [packages/runtime-core](https://github.com/crewhaus/factory/tree/main/packages/runtime-core) |
 | Eval-driven *spec* mutation | [packages/spec-patch](https://github.com/crewhaus/factory/tree/main/packages/spec-patch) (Pillar 2) |
 | Trust-boundary classification | [packages/boundary-classifier](https://github.com/crewhaus/factory/tree/main/packages/boundary-classifier) (Pillar 3) |
+| Memory/continuity composition root (v0.3.0) | [packages/memory-service](https://github.com/crewhaus/factory/tree/main/packages/memory-service) — `wireMemory(fragment, deps)`, the one call every memory-carrying emitter embeds |
 
 If you're adding a feature and you can't find where it goes, the answer is almost always one of: (a) IR variant, (b) IR pass, (c) target emitter, (d) runtime-core utility consumed by emitted code. Cross-cutting concerns that span multiple targets belong in `packages/runtime-core/` or in a dedicated package referenced by every target's emitter.
 

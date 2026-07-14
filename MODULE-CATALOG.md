@@ -409,7 +409,9 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `tool-cron` | Cron-job CRUD tool. | CLI, CHN | T1, T3 | `tool-builder`, `scheduler-cron` |
 | ✅ `tool-task` | Spawn sub-agent in isolated context; child catalog filtered to allowed tools. | CLI, CHN, CRW, RES | T1, T3 | `tool-builder`, `sub-agent-spawner`, `sub-agent-permission-inheritance` |
 | ✅ `tool-message-channel` | `SendMessage(channel, text)` — destructive, fail-closed, requires explicit alwaysAllow. | CHN | T1, T2, T8 | `tool-builder`, `channel-adapter-base`, `permission-engine` |
-| ✅ `tool-memory` | Memory get / search tool. | CHN, CRW, GRPH, RES | T1, T5 | `tool-builder`, `memory-service` |
+| ✅ `tool-memory` | Remember / Recall / MemoryForget over the fact store (`MemoryForget` destructive + justification-gated, v0.3.0). | CLI, CHN, CRW, GRPH, RES | T1, T5 | `tool-builder`, `memory-store` |
+| ✅ `tool-plan` | v0.3.0 continuity tool surface — Focus*/Plan*/Goal* + `MemoryClear`; `PlanComplete` is the machine-checked proven transition (toolUseId evidence or an instructive rejection). Brief: 293. | CLI, CHN, MGD, CRW, RES | T1 | `tool-builder`, `continuity-store` |
+| ✅ `tool-wiki` | v0.3.0 thredz-identical wiki vocabulary (`wiki_*`, `log_knowledge_gap`); Sources-required writes under learning; recalled bodies classified at the `memory` TrustOrigin. Brief: 295. | CLI, CHN, MGD, CRW, RES | T1, T8 | `tool-builder`, `wiki-store`, `boundary-classifier` |
 | ✅ `tool-retrieve` | Embed query → vector-store query → top-k citations. | RAG, CRW, CHN, RES | T1, T8 | `tool-builder`, `embedder`, `vector-store` |
 | `tool-plan-mode` | Plan-mode entry/exit (read-only planning). | CLI, RES | T1, T3 | `tool-builder`, `autoplan-engine` |
 | `tool-worktree` | Git worktree management. | CLI | T1, T3 | `tool-builder`, `tool-bash` |
@@ -455,11 +457,14 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `compaction-curator` | Pillar 2 pre-compaction relevance + dedupe + top-K trim; lets `compaction-autocompact` skip the model call when curation alone brings tokens under the trigger threshold. §52. | CLI, CHN, CRW, GRPH, MGD, RES | T1, T5 | `embedder`, `token-budget` |
 | 🟡 `bootstrap-files` | Workspace-file injection (CLAUDE.md / AGENTS.md / …), budget, caching. | CLI, CHN, RES | T1, T3, T9 | `context-engine`, `token-budget`, `tool-fs` |
 | 🟡 `system-prompt-builder` | Composable sections with per-section token budgets. | All | T1, T9 | `context-engine`, `token-budget` |
-| 🔴 `memory-service` | Long-term memory (key-value, vector, episodic, declarative). | CHN, CRW, GRPH, RES | T1, T3, T5 | `vector-store`, `embedder`, `session-store` |
+| ✅ `memory-service` | v0.3.0 composition root — `wireMemory(fragment, deps)` constructs the fact/wiki/continuity stores (file or Thredz-via-McpHost), registers the memory tool families, merges builtin skills/commands, and returns the `RunChatLoopOptions` seams; one stable call per emitter. Closes catalog critical-path #2. Brief: 296. | CLI, CHN, MGD, CRW, RES | T1, T3, T5 | `memory-store`, `continuity-store`, `wiki-store`, `tool-plan`, `tool-wiki`, `default-skills` |
 | 🟡 `memory-extraction` | Auto-extract memories from conversations. | CHN, CLI, RES | T1, T5, T8 | `memory-service`, `model-adapter`, `pii-redactor` |
 | 🟡 `personalization-store` | User preference + identity store. | CHN | T1, T8 | `secrets-manager`, `session-store` |
 | ✅ `vector-store` | Vector index (in-memory default; Lance / Qdrant / Pinecone / Weaviate backends). | RAG, CHN, CRW, RES | T1, T2, T7 | `embedder`, `secrets-manager` |
-| ✅ `memory-store` | Persistent cross-session memory store — file-backed JSONL with BM25-style text search; per-spec scoped. | CLI, CHN, CRW, GRPH, RES | T1, T3 | `infra-utils` |
+| ✅ `memory-store` | Persistent cross-session memory store — file-backed JSONL, per-spec scoped; v2 (v0.3.0) adds provenance/TTL/supersede lifecycle, `forget`/`sweep`/`compact`, and hybrid BM25+embedding recall. | CLI, CHN, CRW, GRPH, RES | T1, T3 | `infra-utils` |
+| ✅ `continuity-store` | v0.3.0 focus/plans/goals/handoff stores under `.crewhaus/state/<spec>/`; claimed→proven proof ladder verified against event logs (child sessions included); trash-with-undo; tenant fencing. Brief: 292. | CLI, CHN, MGD, CRW, RES | T1, T3 | `infra-utils`, `event-log` |
+| ✅ `wiki-store` | v0.3.0 update-in-place semantic tier — versioned markdown articles (supersede, never delete), optimistic concurrency matching the Thredz PATCH contract, hybrid BM25+embedding recall with one-hop link expansion. Brief: 294. | CLI, CHN, MGD, CRW, RES | T1, T3 | `infra-utils`, `embedder` |
+| ✅ `dream-engine` | v0.3.0 scheduled consolidation (`memory.dream`) — deterministic phase (TTL sweep, dedupe/supersede, staleness flags, proof-excerpt freezing) + ONE budget-capped model session; window-idempotent across janitor/cron/CLI triggers. Brief: 297. | CLI, CHN, MGD | T1, T3 | `memory-store`, `wiki-store`, `continuity-store`, `durable-execution`, `cost-tracker` |
 
 #### R7 — State, Sessions, Persistence
 
@@ -511,6 +516,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `skills-registry` | Lazy-loaded SKILL.md catalog; synthetic `Skill(name)` tool. | CLI, CHN, RES | T1, T3 | `tool-builder`, `infra-utils` |
 | `skills-serializer` | Render skills list into system prompt. | CLI, CHN, RES | T1, T9 | `skills-registry`, `system-prompt-builder` |
 | ✅ `slash-commands` | Markdown-templated user-input shortcuts; `pre-slash` hook integration. | CLI, CHN | T1, T9 | `infra-utils` |
+| ✅ `default-skills` | v0.3.0 shipped builtin skills (`continuity`, `learning-loop`, `dream`) + eleven builtin slash commands; compile-time-embeddable bodies, lowest-precedence merge, user/project overrides by name. Brief: 298. | CLI, CHN, MGD, CRW, RES | T1 | `errors` |
 | 🟡 `output-styles` | Output-style / persona overlays. | CLI, CHN, VOICE | T1, T5 | `system-prompt-builder`, `hooks-engine` |
 | 🟡 `autoreply-policy` | Should agent respond? (mention-gating, batch debounce, heartbeat suppression). | CHN | T1, T9 | `channel-adapter-base`, `scheduler-cron` |
 
@@ -598,6 +604,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `prompt-optimizer-claude` | Pillar 2 model-driven `MutationProvider` — asks Claude to rewrite the prompt given dev-set failures. Default for `crewhaus optimize --mutator claude`. | EVAL, CLI | T1, T3 | `prompt-optimizer`, `model-router` |
 | ✅ `eval-optimizer-orchestrator` | Pillar 2 orchestration — wires `eval-runner` (fitness) + `prompt-optimizer` (search) + `spec-patch` (mutation) into the `crewhaus optimize` active loop. | EVAL, CLI | T1, T3 | `eval-runner`, `prompt-optimizer`, `spec-patch` |
 | ✅ `grader-12-metric-rubric` | Pillar 2 canonical 12-metric rubric — named graders with industry-validated thresholds + `summarize12MetricRubric` p50/p95/p99 + threshold-breach roll-up. §53. | EVAL | T1, T5 | `grader-registry`, `eval-grader` |
+| ✅ `grader-continuity` | v0.3.0 memory-quality graders — five deterministic artifact graders (reAskRate, reqRetention, proofHonesty, pickupSuccess, costPerProvenOutcome) + rubric-shaped roll-ups; gates the default-on continuity flip. Brief: 299. | EVAL | T1, T5 | `grader-registry`, `eval-grader`, `event-log` |
 | ✅ Vendor exporters | `exporter-datadog` / `-honeycomb` / `-splunk` / `-newrelic` with credential-leak guards. | All | T1, T2, T8 | `otel-exporter` |
 | ✅ Production graders | `grader-nlg-metrics` / `-semantic-similarity` / `-safety-classifiers` / `-multimodal`. | EVAL | T1, T8, T9 | `grader-registry`, `embedder` |
 
@@ -686,7 +693,7 @@ For ergonomic spec authoring, the catalog exposes 18 grouped bundles. Each group
 | **RAG Stack** | document-store · embedder · retriever · ranker · reader-extractor · query-router · generator · document-loader · chunker · knowledge-graph · ingestion-pipeline · citation-tracker · vector-store · tool-retrieve | Retrieval-heavy harnesses |
 | **CLI Front-end Stack** | tui-runtime · tui-keybindings · repl-launcher · spec-cli · slash-commands · output-styles · skills-{registry,serializer} · hooks-engine | CLI coding agent |
 | **Channel Front-end Stack** | gateway-server · gateway-protocol · channel stack · daemon-process · node-host · web-ui · canvas-host · voice-runtime (optional) · notifications-service · pairing-flow | Channel assistant |
-| **Memory Stack** | memory-service · memory-extraction · personalization-store · bootstrap-files · system-prompt-builder · vector-store | Stateful long-horizon agents |
+| **Memory Stack** | memory-service · memory-store · continuity-store · wiki-store · dream-engine · tool-plan · tool-wiki · default-skills · memory-extraction · personalization-store · bootstrap-files · system-prompt-builder · vector-store | Stateful long-horizon agents (v0.3.0: continuity, wiki learning, dream) |
 | **Voice Stack** | voice-runtime · vad-engine · barge-in-controller · audio-stream · call-session · telephony-adapter · dtmf-handler · prosody-controller · tool-tts-stt | Voice/telephony harnesses |
 | **Computer-Use Stack** | computer-use-driver · browser-extension-bridge · tool-screen-capture · tool-mouse-keyboard · tool-vision-grounding · tool-dom-inspector · tool-browser | Browser/desktop driving harnesses |
 | **Research Stack** | planner · crawler · branch-explorer · evidence-store · report-writer · progress-streamer · research-checkpointer · source-quality-scorer · citation-tracker · autoplan-engine | Long-horizon research agents |
