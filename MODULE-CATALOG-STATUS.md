@@ -162,7 +162,7 @@ Deferral conditions: (1) Bun publishes a stable iOS embedding API, (2) Android N
 
 **R5 — MCP & Protocol Hosts** — 🟡 `mcp-server-host`, 🟡 `acp-protocol`, 🟡 `ag-ui-protocol`, 🟡 `webhook-host`, 🟡 `chain-adapter-solana`, 🟡 `chain-adapter-cosmos`, 🟡 `chain-adapter-bitcoin`
 
-**R6 — Context & Memory** — 🟡 `context-engine`, 🟡 `compaction-microcompact`, 🟡 `compaction-context-collapse`, 🟡 `compaction-reactive`, 🟡 `compaction-tool-result-budget`, 🟡 `compaction-session-memory`, 🟡 `bootstrap-files`, 🟡 `system-prompt-builder`, 🔴 `memory-service`, 🟡 `memory-extraction`, 🟡 `personalization-store`
+**R6 — Context & Memory** — 🟡 `context-engine`, 🟡 `compaction-microcompact`, 🟡 `compaction-context-collapse`, 🟡 `compaction-reactive`, 🟡 `compaction-tool-result-budget`, 🟡 `compaction-session-memory`, 🟡 `bootstrap-files`, 🟡 `system-prompt-builder`, 🟡 `memory-extraction`, 🟡 `personalization-store`
 
 **R7 — State / Sessions** — 🟡 `app-state-store`, `global-state-singleton`, 🟡 `artifact-store`, 🟡 `session-router`, 🟡 `session-binding`, 🟡 `replay-store`
 
@@ -205,12 +205,11 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 | # | Module | Layer | Candidate section | Why it matters | Direct downstream unblocked |
 |---|---|---|---|---|---|
 | 1 | 🔴 `workflow-engine` | R11 | future | Async-event workflow runtime; pub/sub event bus, step decorators. | `workflow-checkpointer`, `event-bus`, `checkpoint-encoder`, MGD long-runs |
-| 2 | 🔴 `memory-service` | R6 | future | Long-term memory across CHN / CRW / GRPH / RES. | `memory-extraction`, `tool-memory` deeper integration |
-| 3 | 🔴 `durability-mode` | R1 | future | Configurable durability: `exit` / `async` / `sync` checkpoint write. | GRPH/MGD/CHN production durability tiers |
-| 4 | 🔴 `audio-stream` | R16 | future | PCM/Opus I/O streaming; buffering. | `tool-tts-stt` end-to-end, voice production hardening |
-| 5 | 🔴 `branch-explorer` | R19 | future | Multi-branch research with prune. | RES production-grade depth |
-| 6 | 🔴 `tool-browser` | R4 | future | Stateful Playwright/Chromium automation; pairs with `target-browser-driver` for non-BROW shapes. | CLI / CHN / CRW / RES browser actions |
-| 7 | 🔴 `browser-extension-bridge` | R18 | future | Bridge between harness and a browser extension MCP. | Hybrid BROW deployments where the daemon doesn't own the page |
+| 2 | 🔴 `durability-mode` | R1 | future | Configurable durability: `exit` / `async` / `sync` checkpoint write. | GRPH/MGD/CHN production durability tiers |
+| 3 | 🔴 `audio-stream` | R16 | future | PCM/Opus I/O streaming; buffering. | `tool-tts-stt` end-to-end, voice production hardening |
+| 4 | 🔴 `branch-explorer` | R19 | future | Multi-branch research with prune. | RES production-grade depth |
+| 5 | 🔴 `tool-browser` | R4 | future | Stateful Playwright/Chromium automation; pairs with `target-browser-driver` for non-BROW shapes. | CLI / CHN / CRW / RES browser actions |
+| 6 | 🔴 `browser-extension-bridge` | R18 | future | Bridge between harness and a browser extension MCP. | Hybrid BROW deployments where the daemon doesn't own the page |
 
 ### Sequencing observations
 
@@ -232,11 +231,11 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 ## Module count
 
 - **Factory-level**: ~37 catalog rows across F1–F5.
-- **Runtime composable**: ~170 catalog rows across R1–R20 (including v0.2.x additions).
-- **Total**: ~205 catalog rows.
+- **Runtime composable**: ~177 catalog rows across R1–R20 (including v0.2.x and v0.3.0 memory-release additions).
+- **Total**: ~212 catalog rows.
 - **Grouped bundles**: 18 coarse aggregations (see [MODULE-CATALOG.md → Module groups](MODULE-CATALOG.md#module-groups)).
-- **Shipped (✅)**: ~152. **Unbuilt**: ~53 (excluding the deferred mobile targets).
-- The `factory/packages/` directory contains 184 workspace packages — slightly higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
+- **Shipped (✅)**: ~160 — including the eight v0.3.0 memory-release modules (`continuity-store`, `tool-plan`, `wiki-store`, `tool-wiki`, `memory-service`, `dream-engine`, `default-skills`, `grader-continuity`). **Unbuilt**: ~52 (excluding the deferred mobile targets).
+- The `factory/packages/` directory contains 208 workspace packages — higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
 
 ---
 

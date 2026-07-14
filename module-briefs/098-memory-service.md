@@ -1,6 +1,8 @@
 # memory-service
 
-Status: planned
+> **Superseded by [296-memory-service.md](296-memory-service.md)** — memory-service shipped in v0.3.0. This brief is retained for historical planning context only; see 296 for the shipped module.
+
+Status: Superseded by 296-memory-service.md (shipped v0.3.0)
 Dependency phase: 8 - Context & memory
 Catalog layer: R6 - Context & Memory
 Origin in ordering: named in Part G
