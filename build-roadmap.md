@@ -300,7 +300,7 @@ What v1.0 + v1.1 + v1.2 already deliver:
 
 *IR variant: every variant · Catalog layer: cross-cutting · Compiler stage: parse → lower → emit → runtime*
 
-> Status: ✅ shipped (0.4.0, 2026-07-18). The whole [AGENT-LOOPS-PLAN.md](../AGENT-LOOPS-PLAN.md) (94 audited gaps) landed on the `feat/loop-contract-0.4` train, merged to `main` as **crewhaus 0.4.0**. Sequenced as seven dependency-ordered build batches A–G plus the Studio Loop Builder (B0–B4). Every batch independently typecheck/lint/test-verified; the full ~10,290-test repo suite is green.
+> Status: ✅ shipped (0.4.0, 2026-07-18). The whole 0.4.0 agent-loops plan (94 audited gaps) landed on the `feat/loop-contract-0.4` train, merged to `main` as **crewhaus 0.4.0**. Sequenced as seven dependency-ordered build batches A–G plus the Studio Loop Builder (B0–B4). Every batch independently typecheck/lint/test-verified; the full ~10,290-test repo suite is green.
 
 > **Numbering note.** The `v1.x`/`§N` labels elsewhere in this file are the internal *build-milestone* numbering; `0.4.0` is the public **npm / Homebrew / Scoop / apt** release line (predecessor: 0.3.2). The plan originally sketched batches A–G as point releases 0.4.0→0.4.6; they landed together under a single **0.4.0** tag.
 
