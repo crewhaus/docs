@@ -1,6 +1,6 @@
 # Module Catalog
 
-> A navigation map for the ~290 modules that compose `factory` (catalogued below as ~205 layer-index rows, where some rows aggregate a family of related packages). This document is structured so **you don't read it cover-to-cover**. You pick a reading path that matches what you're trying to do, and the path tells you which 5–15 modules to focus on, which pillar to internalise, and which recipes and briefs to follow.
+> A navigation map for the ~293 modules that compose `factory` (catalogued below as ~208 layer-index rows, where some rows aggregate a family of related packages). This document is structured so **you don't read it cover-to-cover**. You pick a reading path that matches what you're trying to do, and the path tells you which 5–15 modules to focus on, which pillar to internalise, and which recipes and briefs to follow.
 
 ## How to use this document
 
@@ -332,7 +332,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | Module | Responsibility | Targets | Tests | Depends on |
 |---|---|---|---|---|
 | ✅ `plugin-sdk` (v1 in `utilities`; v2 shipped §41 via factory PR #121) | Public typed surface for third-party tools, channels, models, graders, target emitters. Ed25519 manifest signatures + capability declarations. | All | T1, T2 | `tool-catalog` |
-| ✅ `plugin-loader` (§41 — shipped 2026-05-26 via factory PR #122) | Runtime activation: path allow-list (realpath-checked), Ed25519 signature verification, capability gating. | All | T1, T3, T8 | `plugin-sdk` |
+| ✅ `plugin-loader` (§41 — shipped 2026-05-26 via factory PR #122; **wired v0.4.0**) | Runtime activation: path allow-list (realpath-checked), Ed25519 signature verification, capability gating. **v0.4.0 (Item 3 / G32)** closes the zero-caller gap — a `plugins:` list on cli / channel now calls `activatePlugins`, which re-verifies each manifest's signature + entrypoint digest against the trust anchors; `runChatLoop`'s `plugins: { tools }` option appends plugin-contributed tools through `buildTool` (first-party wins any name collision). | All | T1, T3, T8 | `plugin-sdk` |
 | ✅ `plugin-registry` (§42 — shipped 2026-05-26 via factory PR #123) | Discovery + version pinning + signature verification + capability declaration. File-backed JSON with secrets-manager-resolvable trust anchors. | All | T1, T2, T8 | `plugin-sdk`, `secrets-manager` |
 | ✅ `module-marketplace-client` (§42 — shipped 2026-05-26 via factory PR #124) | Remote registry client for sharing plugins. Search / install / uninstall / update / draftPublish over an abstract `ModuleRegistrySource`. | All | T1, T2 | `plugin-registry`, `plugin-sdk` |
 
@@ -345,6 +345,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | Module | Responsibility | Targets | Tests | Depends on |
 |---|---|---|---|---|
 | ✅ `runtime-orchestrator` | Main agent / run loop; state-machine inner loop with pre-turn compaction. | All | T1, T3, T4 | `model-adapter`, `turn-state-machine`, `recovery-engine`, `abort-controller`, `run-context`, `tool-executor` |
+| ✅ `worker-runtime` | Platform-neutral loop core (turn FSM, model-stream orchestration, tool dispatch + validation + permission-gating, budget / limit / loop-detection, trace) with every host capability injected via `WorkerPlatform`. Imports no `node:*` builtin and calls neither `Date.now()` nor `Math.random()`, so it runs on Cloudflare Workers. `runtime-orchestrator` consumes it for the shared core (wrapping it with the node-coupled event-log / session / compaction / recovery services); the `target-cf-worker-*` emitters call `runWorkerLoop` with a stateless platform. Edge v1 = tools + budget + limits + trace (context overflow ends the run rather than compacting). | All (edge) | T1, T3, T9 | `turn-state-machine`, `model-router`, `tool-executor` |
 | 🟡 `query-engine` | SDK/headless wrapper over orchestrator (`submitMessage()` async-gen). | All | T1, T3 | `runtime-orchestrator` |
 | ✅ `turn-state-machine` | Pure FSM: NeedModel / NeedTools / NeedCompaction / NeedRecovery / Done. | All | T1, T9 | — |
 | ✅ `recovery-engine` | Decision function `recover(error, state) → RecoveryAction` over Anthropic taxonomy. | CLI, CHN, CRW, GRPH, MGD, RES | T1, T4 | `error-types` |
@@ -363,6 +364,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `adapter-gemini` | Google Gemini adapter via `@google/genai` — Gemini API or Vertex AI (ADC) from the same adapter. | All | T1, T2 | `adapter-anthropic` |
 | ✅ `adapter-bedrock` | AWS Bedrock adapter — eleven model families behind cross-region inference-profile ids; Anthropic on native InvokeModel, every other family on ConverseStream. | All | T1, T2 | `adapter-anthropic` |
 | ✅ `model-router` | Parse `agent.model`, lazy-load matching adapter. Strict prefix grammar: `claude-*` / `openai/*` / `gemini/*` / `bedrock/*` / `local/*` / `azure/*` / `vertex/*` / eight named OpenAI-compatible hosts ([PROVIDERS.md](PROVIDERS.md)). | All | T1, T7 | `adapter-anthropic` |
+| ✅ `tool-schema-sanitizer` | Provider-neutral JSON-Schema sanitizer for tool `input_schema` — inlines every `$ref` / `$defs`, then projects onto each provider's documented subset: `sanitizeGeminiSchema` (Gemini's OpenAPI-3.0 `Schema` — `nullable`, `oneOf`→`anyOf`, `allOf` merged, unsupported `format`s dropped, `const`→`enum`) and `sanitizeBedrockSchema` (Converse deny-list strip), plus an OpenAI strict-mode upgrade. The Gemini / Bedrock adapters call it at translate time so MCP-emitted Draft-2020-12 schemas stop 400-ing. | All | T1, T2, T9 | — |
 | ✅ `token-budget` | `estimateTokens` + `TokenBudget` with `isApproachingLimit`. | All | T1, T9 | — |
 | ✅ `prompt-cache-manager` | Rotate Anthropic `cache_control` markers; skip for OpenAI auto / Bedrock non-Anthropic. | All | T1, T3, T9 | `model-adapter` |
 | 🟡 `response-format-coercion` | Force structured JSON output; schema validation; retry-on-malformed. | All | T1, T2, T9 | `model-adapter`, `recovery-engine` |
@@ -438,6 +440,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 |---|---|---|---|---|
 | ✅ `mcp-host` | MCP client manager: stdio + SSE, reconnect, server registry. | Most | T1, T2, T7, T8 | `error-types`, `infra-utils` |
 | 🟡 `mcp-server-host` | Expose harness's tools as an MCP server. | CHN, MGD | T1, T2, T8 | `tool-catalog`, `mcp-host`, `gateway-server` |
+| ✅ `mcp-server` | Project a compiled bundle's turn function as an MCP server — registers a `chat`/invoke tool (plus one tool per sub-agent under `tools: "per-subagent"`) that all delegate to an injected `invoke`, over stdio or Web-Standard SSE (mountable in any `fetch` pipeline). Backs `crewhaus serve --mcp <spec> [--sse]`; built on `@modelcontextprotocol/sdk`. | All (exposed) | T1, T2 | `error-types`, `infra-utils` |
 | ✅ `a2a-protocol` | In-crew agent-to-agent peer messaging; traceparent-propagating envelope. | CRW (MGD future) | T1, T2, T9 | `agent-context-isolation`, `tool-builder`, `trace-event-bus` |
 | 🟡 `acp-protocol` | Agent Control Plane protocol (session policy, approvals, spawning). | CHN, MGD | T1, T2 | `permission-engine`, `hooks-engine`, `gateway-server` |
 | 🟡 `ag-ui-protocol` | Agent-UI protocol streaming UI events. | CLI, CHN, MGD | T1, T2, T3 | `trace-event-bus`, `gateway-server` |

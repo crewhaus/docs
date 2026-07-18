@@ -231,11 +231,11 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 ## Module count
 
 - **Factory-level**: ~37 catalog rows across F1–F5.
-- **Runtime composable**: ~177 catalog rows across R1–R20 (including v0.2.x and v0.3.0 memory-release additions).
-- **Total**: ~212 catalog rows.
+- **Runtime composable**: ~180 catalog rows across R1–R20 (including v0.2.x, v0.3.0 memory-release, and v0.4.0 additions).
+- **Total**: ~215 catalog rows.
 - **Grouped bundles**: 18 coarse aggregations (see [MODULE-CATALOG.md → Module groups](MODULE-CATALOG.md#module-groups)).
-- **Shipped (✅)**: ~160 — including the eight v0.3.0 memory-release modules (`continuity-store`, `tool-plan`, `wiki-store`, `tool-wiki`, `memory-service`, `dream-engine`, `default-skills`, `grader-continuity`). **Unbuilt**: ~52 (excluding the deferred mobile targets).
-- The `factory/packages/` directory contains 208 workspace packages — higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
+- **Shipped (✅)**: ~163 — including the eight v0.3.0 memory-release modules (`continuity-store`, `tool-plan`, `wiki-store`, `tool-wiki`, `memory-service`, `dream-engine`, `default-skills`, `grader-continuity`) and the three v0.4.0 runtime packages (`worker-runtime`, `mcp-server`, `tool-schema-sanitizer`). **Unbuilt**: ~52 (excluding the deferred mobile targets).
+- The `factory/packages/` directory contains 211 workspace packages — higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
 
 ---
 
