@@ -27,11 +27,13 @@ Each stage corresponds to a function with a stable signature; nothing in the pip
 | Parse + Zod-validate YAML → typed `Spec` | `parseSpec(yaml: string)` | [packages/spec/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts) |
 | Lower `Spec` → `IrNode` (the variant matching `spec.target`) | `lower(spec)` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`export function lower`) |
 | Apply IR-level optimisation passes | `applyPasses(ir)` | [packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts) (`export function applyPasses`) |
-| Dispatch to target emitter | `emit(ir)` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`function emit`) |
-| Top-level convenience | `compile(yamlText, opts)` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`export function compile`) |
+| Dispatch to target emitter | `emit(ir, opts)` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`function emit`) |
+| Top-level convenience | `compile(yamlText, opts): CompileResult` | [packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts) (`export function compile`) |
 | CLI entry point | `runCompile(args)` | [apps/cli/src/index.ts](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts) |
 
 The CLI does not branch on `spec.target`. The discriminator lives in the YAML and is honoured polymorphically by `lower()` and `emit()`. Adding a new target therefore never touches the CLI.
+
+Two 0.4.0 refinements to this pipeline are covered in their own sections below: `compile()` now returns a `CompileResult` (a `Bundle` plus an additive `warnings` array — see [The `compile()` warnings framework](#the-compile-warnings-framework)), and the *validating* subset of the ir-passes now runs **unconditionally** between `lower()` and `emit()` rather than only under `applyIrPasses: true` (see [Validating passes run unconditionally](#validating-passes-run-unconditionally-v040)).
 
 ## The IR is a discriminated union
 
@@ -57,6 +59,8 @@ export type IrNode =
 Each variant is a separate Zod-validated type with a `target` discriminator. Variants only carry the fields they need: `IrPipelineV0` has `indexing` and `retrieve` blocks but no `tools` array; `IrGraphV0` has `nodes` and `edges` but no `agent`; `IrVoiceV0` has `vad` and `barge_in` settings that no other variant needs. There is no shared mega-shape that targets cherry-pick from.
 
 This is the meta-harness thesis incarnate: **the IR variant *is* the target's contract**. Anything not on the variant cannot be expressed in that target shape.
+
+**0.4.0 added no new variant** — the union is still the fourteen above. What the Loop-contract-0.4 batches did instead was *enrich existing variants with new optional fields*: `limits?: IrLimits`, `hooks?: readonly IrHook[]`, `agent.thinking?: IrThinking`, `agent.streaming?`, `agent.rateLimits?: IrRateLimits`, `evaluation?: IrEvaluation`, `knowledge?: IrKnowledge`, `expose?: IrExpose`, `plugins?`, and `schedule?: IrSchedule`, plus graph-only `when` / `parallel` / `messageSchemas`. Every one is optional and absent-by-default, so a spec that doesn't declare the corresponding key lowers byte-identically to pre-0.4.0. The [Loop-contract-0.4 field lowering](#loop-contract-04-field-lowering-v040) section below walks each field from its spec key to its IR home.
 
 ## IR variant ↔ lowering ↔ emit ↔ section ↔ recipe ↔ example
 
@@ -239,6 +243,156 @@ flowchart LR
 **Emit → memory-service**: every memory-carrying emitter (and the `crewhaus run` interpreter) makes the same single call — `wireMemory(IR_FRAGMENT, { catalog, cwd, … })` from [packages/memory-service](https://github.com/crewhaus/factory/tree/main/packages/memory-service). The composition root constructs the stores ([packages/memory-store](https://github.com/crewhaus/factory/tree/main/packages/memory-store), [packages/continuity-store](https://github.com/crewhaus/factory/tree/main/packages/continuity-store), [packages/wiki-store](https://github.com/crewhaus/factory/tree/main/packages/wiki-store) — or the Thredz backend over the connected McpHost client), registers the tools ([packages/tool-plan](https://github.com/crewhaus/factory/tree/main/packages/tool-plan), [packages/tool-wiki](https://github.com/crewhaus/factory/tree/main/packages/tool-wiki), [packages/tool-memory](https://github.com/crewhaus/factory/tree/main/packages/tool-memory)), merges the builtin skills/commands ([packages/default-skills](https://github.com/crewhaus/factory/tree/main/packages/default-skills)) at lowest precedence, and returns spread-ready `RunChatLoopOptions` seams. [packages/runtime-core](https://github.com/crewhaus/factory/tree/main/packages/runtime-core) stays store-free — it consumes the injected closures (`memory`, `continuity`) and owns only the runtime mechanics: the volatile tail block after the cache marker, `context_evicted` ledger externalization, and the teardown handoff hook. [packages/dream-engine](https://github.com/crewhaus/factory/tree/main/packages/dream-engine) consolidates the resulting stores on a schedule.
 
 This is Pillar 1 applied to memory: emitters stay dumb (typed IR in, one stable call out), and adding a memory feature means extending the fragment + the composition root — never re-templating N emitters. The tunable quality knobs the blocks introduce (`memory.recallK`, `memory.ttl`, `memory.wiki.recallK`, `memory.dream.budget_usd`, `continuity.focusMaxChars`, …) are registered in `OPTIMIZABLE_PATHS` (Pillar 2, field-preserving 1:1 through `lower()`); the behavioral switches (`memory.backend`, `continuity.proof`, `thredz.*`) deliberately are not.
+
+## The `compile()` warnings framework
+
+Through 0.3.x, `compile()` returned a bare `Bundle` (`{ files }`) — a spec either compiled or threw. 0.4.0 (Batch A, G45) adds a **non-fatal diagnostic channel**: `compile()` now returns a `CompileResult`, which is a `Bundle` *plus* an additive `warnings` array.
+
+```ts
+// packages/compiler/src/index.ts
+export type CompileWarning = {
+  readonly code: string;    // stable machine key — today only "accepted-but-unwired"
+  readonly path: string;    // the spec key it concerns (dot-joined)
+  readonly message: string; // the human explanation
+};
+
+export type CompileResult = Bundle & {
+  readonly warnings: ReadonlyArray<CompileWarning>;
+};
+```
+
+The `& Bundle` intersection is load-bearing: because `CompileResult` still has `files`, **every existing consumer typed against `Bundle` keeps compiling** — it just ignores the extra key. The change is purely additive.
+
+### What warns, and why
+
+A warning fires for the **accepted-but-unwired** case: a spec key that a shape's Zod schema *accepts* (so the user can legally declare it) but whose emitter currently *drops* — or merely prints the 0.2.3-convention ignored-note comment for. Declaring one of those is legal-but-inert config; the alternative (a strict-union rejection) is worse for forward compatibility, but shipping dead YAML that the author believes is live is worse still. The warning is the middle path.
+
+The catalogue lives in one table, `ACCEPTED_BUT_UNWIRED` ([packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts)), keyed by `spec.target`. It encodes the **post-Batch-A/E/F intended state**, so it is deliberately *sparse* — a key is listed only while its emitter still drops it:
+
+- `continuity` on `workflow` / `batch` / `voice` / `browser` (those emitters print the ignored-note comment).
+- `thredz` on `research` / `crew` (Batch E wired it on channel + managed, so their rows are gone).
+- `mcp_servers` / `tools` on `voice`, `mcp_servers` on `browser` / `onchain` / `onchain-game` (no MCP host or tool catalog is booted there).
+
+Anything a batch *wired* is intentionally absent from the table: `limits`/`thinking`/`hooks`, `evaluation`, `knowledge`, `expose`, and Batch F's `schedule:` (now wired on channel/managed/batch) carry no row on the shapes that honour them. The table's contract is "delete the row the moment the emitter wires the key," and the warnings tests pin the table so a row can't rot.
+
+### The meaningfulness gate
+
+`collectCompileWarnings(spec)` walks the target's rows and emits a warning only when `specDeclares(spec, path)` returns true. That helper treats a key as *meaningfully declared* only when it is present **and** not an explicit opt-out: `continuity: false`, `{ enabled: false }`, an empty `mcp_servers: {}`, or an empty array all return false. So `continuity: false` on a workflow is a live opt-out, not dead config, and never warns.
+
+The CLI surfaces these to stderr after a successful compile, and the compiler-worker returns them in its `/compile` payload — same list, one producer.
+
+### Two sibling gates share the tool-name walk
+
+Two `compile()`-adjacent gates reuse the same variant-agnostic `collectToolNames(ir)` walk (it gathers every string under any `tools` key, so it needs no per-variant coupling):
+
+- `assertToolScopesStrict(ir)` — the FR-002 offline scope audit; throws `CompilerError` on any outward-by-name sink (`mcp__*` or a definitionally-outward built-in) whose `scope: "external"` cannot be verified offline. It is the library-level equivalent of `crewhaus compile --strict`, and is *exported* so a consumer that drives `lower()` + an emitter directly (e.g. the compiler-worker's `cf-worker` branch) applies the identical rule instead of re-deriving it.
+- `assertCfWorkerToolsEdgeSafe(ir)` — the cf-worker edge-safety gate (see [The cf-worker emitters now run the real loop](#the-cf-worker-emitters-now-run-the-real-loop-on-crewhausworker-runtime) below). Returns `CompileWarning`s with `code: "edge-unsafe-tool"` for unverifiable custom tools and *throws* on host tools.
+
+## Validating passes run unconditionally (v0.4.0)
+
+The ir-passes now split into two families, and `compile()` treats them differently. From the pass header ([packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts)):
+
+- **VALIDATING** — `transactionPolicyEnforcement`, `wellFormednessCheck`, `memoryIntegrityPass`. Pure pass-throughs that **rewrite nothing** and `throw IrPassError` on a violation (dangling graph edge, unreachable node, a `when`/`parallel` reference to a node that doesn't exist, chain referential-integrity breakage, an out-of-bounds `memory.wiki.recallK`, session-scope continuity on a non-session shape, …).
+- **REWRITING** — `deadToolElimination`, `redundantMcpServerCollapse`, `permissionRuleCanonicalize`, `promptCachePrefixSort`. Structural optimisations that *do* change the IR.
+
+`compile()` runs the validating family **unconditionally**, between `lower()` and `emit()`:
+
+```ts
+// packages/compiler/src/index.ts — export function compile
+let ir = lower(spec);
+if (opts.strict === true) assertToolScopesStrict(ir);
+for (const pass of VALIDATING_PASSES) {   // ← unconditional in 0.4.0
+  ir = pass(ir);
+}
+if (opts.applyIrPasses === true) {
+  ir = applyIrPassesFn(ir);               // ← rewriting family stays opt-in
+}
+const bundle = emit(ir, { readme: opts.readme !== false });
+return { files: bundle.files, warnings: collectCompileWarnings(spec) };
+```
+
+The rationale is exactly the byte-drift argument that kept the passes opt-in before: rewriting passes *can* change bundle bytes, so they stay behind `applyIrPasses: true` for codegen consumers who have validated their outputs. But validating passes **cannot** drift bytes — they either return the IR untouched or throw — so there is no reason to gate them, and a spec that violates referential integrity should fail the *build* rather than emit a bundle that breaks at runtime. `VALIDATING_PASSES` is exported from ir-passes and is also spliced into `DEFAULT_PIPELINE` (in the same relative order: chain integrity → graph/crew well-formedness → memory/continuity integrity), so `applyPasses(ir)` remains a complete standalone audit and the double-run under `applyIrPasses: true` is free (pure pass-throughs on an already-valid IR).
+
+## Loop-contract-0.4 field lowering (v0.4.0)
+
+The Loop-contract-0.4 batches threaded a family of new spec blocks through `lower()` onto the *existing* variants. None of them add a target; each is an optional field that is absent from the IR when the spec omits the block, so absence is byte-identical to pre-0.4.0. The map from spec key to IR home:
+
+| Spec key | IR field | IR type ([packages/ir/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir/src/index.ts)) | Carried on (variants) | Batch |
+|---|---|---|---|---|
+| `limits:` | `limits?` | `IrLimits` (`maxToolIterations`, `deadlineMs`, `turnTimeoutMs`, `loopDetection`, crew-only `crew`) | cli, channel, managed, workflow, graph, crew, research, batch, browser | A |
+| `agent.thinking` / `steps[].thinking` / `nodes.<n>.thinking` | `agent.thinking?` / step / node `thinking?` | `IrThinking` (`{budgetTokens}` \| `{effort}`) | cli, channel, managed + workflow steps + graph nodes | A |
+| `agent.streaming` | `agent.streaming?` | `boolean` | cli | A |
+| `agent.rate_limits` | `agent.rateLimits?` | `IrRateLimits` (`Record<tool, {rpm, burst?}>`) | cli, channel, managed | A |
+| `hooks:` | `hooks?` | `readonly IrHook[]` (`event`, `matcher?`, `command`, `timeoutMs?`) | same as `IrLimits` | A |
+| graph `edges[].when` | `edge.when?` | `IrGraphEdgeWhen` (`key` + `equals?` \| `exists?`) | graph | A |
+| graph `parallel` | `parallel?` | `ReadonlyArray<ReadonlyArray<string>>` (barrier groups) | graph | A |
+| `evaluation:` | `evaluation?` | `IrEvaluation` (`grader`, `threshold?`, `onFail`, `maxRetries`) | cli, channel, managed | B |
+| `kind: "judge"` step / node | `step.judge?` / `node.judge?` | `IrJudge` (gate over prior output) | workflow steps, graph nodes | B |
+| `knowledge:` | `knowledge?` | `IrKnowledge` (RAG: `vectorBackend`, `defaultK`, `chunkSize`, `sources`) | cli, channel, managed | E |
+| `observability:` | `observability?` | `IrObservability` (`trace`/`metrics`/`cost`/`alerts`/`incidents`/`otel` + `slo`) | cli, channel, managed, crew | C |
+| `permissions.ask_mode` | `permissions.askMode?` | `"pause"` (default) \| … | every permission-carrying shape | C |
+| `schedule:` | `schedule?` | `IrSchedule` (`cron` \| `interval`, durations normalized to ms) | channel, managed, batch | F |
+| `expose:` | `expose?` | `IrExpose` (`mcp?: {transport, tools}`) | cli, channel, managed | G |
+| `plugins:` | `plugins?` | `readonly string[]` (load order) | cli, channel | G |
+
+Three lowering conventions worth internalising, all consistent with the rest of `lower()`:
+
+- **Resolve-at-lower-time.** Wherever a field has a default, `lower()` fills it so emitters and the `crewhaus run` interpreter read *one deterministic shape*. `IrEvaluation.onFail`/`maxRetries` resolve to `"retry"`/`1`; `IrEvaluation.threshold` is present *iff* `grader.type === "llm_judge"` (default `0.7`) because deterministic graders are pass/fail. A judge step/node's model is `judge.model ?? <shape>.model`, so every step reads one model slot. `IrSchedule` durations (`every`, `jitter`) normalize to milliseconds while `cron` is carried verbatim for the daemon's parser.
+- **Absent ≠ off for observability.** `IrObservability` carries *only what the spec declares*; the emitter/runtime applies the default per sub-block (`cost` absent ⇒ cost-tracker ON, `trace` absent ⇒ ring buffer ON with no printer, `metrics`/`alerts`/`incidents` absent ⇒ OFF). An explicit `trace: { level: "off" }` reaches the IR verbatim and wins.
+- **Safety controls stay off the optimizer surface.** `evaluation.threshold` and `evaluation.max_retries` join `OPTIMIZABLE_PATHS` (field-preserving 1:1 through `lower()`), but the grader itself, `permissions.ask_mode`, and `knowledge` sources are deliberately excluded — same rule the [lossy-lower section](#the-lossy-lower-and-how-crewhaus-optimize-writes-back) applies to permission rules and secrets.
+
+The graph additions (`when` / `parallel` / `messageSchemas`) are the reason the validating `wellFormednessCheck` pass matters more in 0.4.0: it re-verifies that every `when.key` names a declared node, that reachability holds *through* parallel barriers (a group whose first member is reachable makes all its members reachable), and that named edge schemas resolve — throwing `IrPassError` rather than emitting a graph that deadlocks at runtime.
+
+## `projectLoop()` and `compile --emit-loop`
+
+0.4.0 (Batch B, G42) adds a read-only *view* of a lowered IR: `projectLoop(ir)` ([packages/ir/src/loop.ts](https://github.com/crewhaus/factory/blob/main/packages/ir/src/loop.ts)) projects an `IrNode` into its canonical **agent-loop phase graph** — a plain, JSON-serializable `LoopProjection` with no functions or classes:
+
+```ts
+// packages/ir/src/loop.ts
+export type LoopProjection = {
+  readonly kind: "ring" | "canvas";
+  readonly target: string;
+  readonly ring?: LoopRing;      // single-agent shapes
+  readonly canvas?: LoopCanvas;  // step/node/role shapes
+  readonly warnings: readonly string[];
+};
+export function projectLoop(ir: IrNode): LoopProjection;
+```
+
+Two projection kinds:
+
+- **`ring`** — single-agent shapes (`cli` / `channel` / `managed`, `RING_TARGETS`): the seven loop components (`perceive` / `reason` / `act` / `evaluate` / `update` / `stop` / `safety`, in `SEGMENT_ORDER`) as ring segments. Each `LoopSegment` is `active` iff the *resolved* IR configures it, carries the spec-dotted `keys` that lit it, and a one-line operator summary.
+- **`canvas`** — step/node/role shapes (`workflow` / `graph` / `crew` / `pipeline` / `research` / `batch`, `CANVAS_TARGETS`): steps/nodes/roles as canvas nodes (`kind: step|node|role|doc`), edges/handoffs as arrows, HITL and judge gates surfaced, each node carrying its own mini seven-segment summary.
+
+The remaining shapes (`voice` / `browser` / `eval` / `onchain` / `onchain-game`) fall back to the generic ring **with an honest warning** — "say so rather than shrink."
+
+The mapping source of truth is the IR's **resolved** fields, not the raw spec. This is deliberate: continuity is default-on in 0.3+, so `update` lights up unless the spec opted out — the projection reports what the loop *actually does*. Per-step/node models are resolved at lower time, so node minis always show the resolved model. `Stop` stays defaults-honest: with neither `budget` nor `limits` in the IR the segment is inactive and `NO_BUDGET_WARNING` is emitted. `keys` entries remain spec-dotted paths (`"agent.model_pool"`, `"channels.slack"`) so an operator can jump from a segment back to the YAML that (would) configure it.
+
+**Why this lives in `@crewhaus/ir`, not the CLI:** the `LoopProjection` shape is a **wire contract** shared with the studio's client-side projection (`studio-pwa/src/lib/loop-model.ts`), and the compiler-worker's `POST /loop` endpoint returns exactly `projectLoop(lower(parseSpec(yaml)))`. `projectLoop` is a pure function of the IR (no I/O, no imports beyond the IR types), so all three consumers — the CLI, the worker, and the studio `/builder` page — render the same projection; the canvas node kinds are pinned to the studio's `step|node|role|doc` union so factory can't emit a kind the renderer doesn't know.
+
+`crewhaus compile --emit-loop` ([apps/cli/src/index.ts](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts)) is the CLI surface. It is a print mode like `--emit-ir` (mutually exclusive with it — each owns stdout), does `parse → lower → projectLoop`, and prints a rendered view (`formatLoopProjection`), or the raw `LoopProjection` JSON under `--json`, or writes `<out-dir>/loop.json` with `-o`. Notably it runs **before** the FR-002 scope gate: the projection is a read-only view producing no artifact, so it must return exactly what the worker's ungated `POST /loop` returns for the same YAML — *including* specs the scope gate would refuse — so an operator can see the loop before fixing scopes.
+
+## The cf-worker emitters now run the real loop on `@crewhaus/worker-runtime`
+
+Through 0.3.x the three `target-cf-worker-*` emitters (`cli` / `workflow` / `graph`) inlined a bespoke Anthropic SSE client and **rejected any tool at compile time** ("cf-worker does not yet support tools"). 0.4.0 (Batch F, G12/G83) replaces both: the deployed Worker now imports **`@crewhaus/worker-runtime`** and runs the *shared* `runWorkerLoop` over a stateless `WorkerPlatform`, so the edge path executes the same turn FSM as every other target instead of a divergent hand-rolled loop.
+
+The generated `worker.js` imports the runtime directly ([packages/target-cf-worker-cli/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/target-cf-worker-cli/src/index.ts)):
+
+```ts
+import { runWorkerLoop, createEdgeAnthropicAdapter } from "@crewhaus/worker-runtime";
+// …
+const result = await runWorkerLoop({ /* platform, limits, tools, … */ });
+```
+
+and the emitted `package.json` declares `@crewhaus/worker-runtime` (plus the edge-safe tool packages) as its only runtime deps.
+
+Because tools now *run* on the edge, the blanket rejection is replaced by a **partition gate** with a single source of truth. `partitionEdgeTools` lives in `@crewhaus/worker-runtime/tool-policy` — imported by the compiler (`assertCfWorkerToolsEdgeSafe`, see the [warnings framework](#the-compile-warnings-framework) above) *and* by each cf-worker emitter, so the edge-safety rule has one home and cannot drift per emitter. It splits a lowered IR's tool names into three buckets:
+
+- **rejected** — HOST tools (bash / filesystem / code-execution / device): these need a process/filesystem/sandbox the edge does not provide, so the emitter (and `assertCfWorkerToolsEdgeSafe`) **throws `CompilerError`** — a clear compile error beats a bundle that 500s at runtime.
+- **warned** — unrecognised CUSTOM tools whose edge-safety the compiler can't verify offline: permitted, but surfaced as a `CompileWarning` (`code: "edge-unsafe-tool"`) so a host-reaching custom tool is never shipped silently.
+- **allowed** — verified edge-safe built-ins, emitted into the Worker's tool catalog.
+
+This is the same Pillar-3 shape as `assertToolScopesStrict`: an exported policy function over a lowered IR's tool names, shared by the library gate and the emitter so the offline rule has exactly one implementation.
 
 ## What lives where, summarised
 
