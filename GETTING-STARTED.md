@@ -504,7 +504,11 @@ feedback-collection policy. The ratings themselves come from
 `crewhaus rate` / `crewhaus feedback`, the web UI's rating bar, or
 Slack reactions, and `crewhaus distill` turns them into an eval
 dataset + grader — the full loop is
-[Recipe 56 — Response Ratings](https://github.com/crewhaus/demos/blob/main/walkthroughs/56-response-ratings.md).
+[Recipe 62 — Response Ratings](https://github.com/crewhaus/demos/blob/main/walkthroughs/62-response-ratings.md).
+The block also parses on `target: managed`, where the daemon serves a
+`feedback.submit` JSON-RPC method instead of a REPL prompt or a reaction
+handler (`exitPrompt` and `channelReactions` there emit a compile warning
+rather than being silently honoured).
 
 Different `target:` values unlock additional top-level fields. A
 `channel` spec adds `channels:` and `routing:`. A `crew` spec replaces
@@ -1253,9 +1257,12 @@ applies the same way regardless of how you launched the CLI.
 > **The complete command surface — [CLI-REFERENCE.md](CLI-REFERENCE.md).**
 > v0.2.0 grew the CLI from a handful of build/run/eval verbs into a full
 > lifecycle surface (the eval flywheel, the observer/advisor, model & cost
-> automation, self-healing ops, fleet, and more). The table below is the
-> everyday subset; the reference documents every subcommand and its flags,
-> grouped by task. `crewhaus <subcommand> --help` is always authoritative.
+> automation, self-healing ops, fleet, and more), and v0.4.x grew the eval
+> half again (suite tiering, red-teaming, dataset lifecycle and lint, grader
+> meta-eval, a human-review queue, trend and export reporting). The table
+> below is the everyday subset; the reference documents every subcommand and
+> its flags, grouped by task. `crewhaus <subcommand> --help` is always
+> authoritative.
 
 | Subcommand                                   | Purpose                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -1265,13 +1272,19 @@ applies the same way regardless of how you launched the CLI.
 | `init [name] [--interactive]`                | Scaffold a fresh `crewhaus.yaml` (`--interactive` interviews you for it).               |
 | `lint [spec] [--fix]`                        | Check-only parse + IR passes + scope audit, without emitting.                           |
 | `doctor [--detect] [--fix]`                  | Check environment health; `--detect` inventories reachable providers/models/MCP, `--fix` applies mechanical remediations. |
-| `eval <spec> --dataset <d> --graders <g>`    | Run an eval bundle, write per-sample results + an HTML report (`--gate` fails on regression). |
+| `eval <spec> --dataset <d> --graders <g>`    | Run an eval bundle, write per-sample results + an HTML report (`--gate` fails on regression). `target: cli` only — bridge the other shapes with `compile --with-eval-harness`. |
+| `eval suite <suite.yaml> [--tier fast\|nightly\|release]` | Run one named CI tier of a suite manifest — several `(dataset, graders, thresholds)` entries through the same eval path, aggregated into a single tier verdict. |
+| `eval-report {diff,history,trends,export,baseline} …` | Read the run history: compare two runs (with paired significance testing), list runs, chart pass rate / mean score / cost over time, flatten runs to CSV/JSONL, or inspect and pin baselines. |
 | `flywheel run [spec]`                        | The nightly self-improvement loop, one command: compile-gate → eval → optimize → gate → write-back. |
 | `advise [--session <id> \| --all]`           | Mine session logs into eval-validated spec suggestions; feed to `optimize --from-advice`. |
-| `optimize <spec> --dataset <d> --graders <g>`| Active eval-driven optimization (`--write-back` to apply a gated win). `--ratings <session>\|all` distills user ratings into the training set instead of (or on top of) a file dataset. |
-| `rate --session <id> [--turn N]`             | Rate an assistant turn — `--thumbs up\|down`, `--stars 1-5`, or `--score 0-1` — recorded as a `user_feedback` event in the session JSONL. |
+| `optimize <spec> --dataset <d> --graders <g>`| Active eval-driven optimization (`--write-back` to apply a gated win). `--ratings <session>\|all` distills user ratings into the training set instead of (or on top of) a file dataset. `--stage <name>` optimizes one step/node/role of a multi-stage `workflow`/`graph`/`crew`/`pipeline` spec. |
+| `datasets {list,get,put,verify,status,release,card} …` | The versioned dataset registry: import versions, verify their stored sample hashes, check freshness and saturation, spend the locked `#test` holdout deliberately, and render a datasheet. |
+| `dataset {mine,synthesize,refresh-goldens,audit,lint} …` | Grow and police a dataset: mine hard cases from real sessions, synthesize stress variants, reconcile golds, PII-scan, and lint for duplicate ids / grader mismatches / canary leaks. |
+| `graders {suggest,test,card} …`              | Draft grader suites from failure rationale, meta-eval the graders themselves against labeled golden verdicts (agreement + Cohen's kappa), and render a graders file as its rubric card. |
+| `review {list,next,resolve} …`               | The human-review queue: judge abstentions, split judge panels, rater disagreements, and mined quarantine candidates, in one durable place. |
+| `rate --session <id> [--turn N]`             | Rate an assistant turn — `--thumbs up\|down`, `--stars 1-5`, or `--score 0-1` — recorded as a `user_feedback` event in the session JSONL. `--adjudicate` settles a multi-rater disagreement. |
 | `feedback --session <id> --text <msg>`       | Attach a comment, or a `--correction` (the answer it *should* have given), to a turn.   |
-| `distill (--session <id> \| --all-sessions) -o <ds.jsonl>` | Turn ratings into an eval dataset + a synthesized `graders.yaml` (`--graders-out`; `--min-score`, default 0.7; `--judge [--judge-model <m>]` for an LLM-judge grader seeded from the comments). |
+| `distill (--session <id> \| --all-sessions) -o <ds.jsonl>` | Turn ratings into an eval dataset + a synthesized `graders.yaml` (`--graders-out`; `--min-score`, default 0.7; `--judge [--judge-model <m>]` for an LLM-judge grader seeded from the comments; `--register <name>` also promotes a registry version). Sample text is PII/secret-redacted by default (`--no-redact` opts out); multi-rater turns resolve by majority (thumbs) or mean (stars/scale) unless an `--adjudicate` record settles them, and a corpus with ≥ 2 raters on any turn also reports Cohen's kappa. |
 | `cost-summary --session <id>`                | Aggregate `cost_accrual` events from a session into total USD spend.                    |
 | `secrets {doctor,rotate <name>}`             | List + rotate file/vault-backed secrets.                                                |
 | `spec {put,list,get,pin,alias,log} …`        | Versioned spec storage, environment pinning, and per-spec changelog.                    |
@@ -1313,6 +1326,10 @@ the system's audit trail and the source of truth for resuming sessions.
 ├── specs/<name>/<version>.yaml # spec-registry storage (apps/cli `spec put`)
 ├── compliance/                 # SOC 2 / ISO 27001 / HIPAA evidence bundles
 ├── evals/<runId>/              # per-sample transcripts + graded results
+├── evals/index.jsonl           # append-only run history (eval-report history|trends|export)
+├── evals/baselines.json        # pinned (spec, dataset) baselines the --gate compares against
+├── review/queue.jsonl          # append-only human-review queue (`crewhaus review`)
+├── experiments/<name>.jsonl    # append-only per-version outcome ledger (`crewhaus experiment`)
 ├── graphs/<graphRunId>/        # graph checkpoints (one JSONL per checkpoint)
 ├── research/<runId>/           # research citations.jsonl + fetches.jsonl + content cache
 ├── studio-specs/               # specs created via Studio's Wizard

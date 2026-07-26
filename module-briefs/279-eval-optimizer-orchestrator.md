@@ -25,6 +25,11 @@ export type OptimizeSpecOptions = {
   readonly writeBack?: boolean;
   readonly runId?: string;
   readonly seed?: number;
+  readonly budgetUsd?: number;
+  /** D43 — numeric dials the search may step alongside the rewrite. */
+  readonly knobs?: ReadonlyArray<KnobDial>;
+  /** D36 — the ONE stage path the search rewrites (multi-stage specs). */
+  readonly promptPath?: ReadonlyArray<string>;
 };
 
 export type OptimizeSpecResult = {
@@ -34,6 +39,8 @@ export type OptimizeSpecResult = {
   readonly improvement: number;
   readonly applied: boolean;
   readonly patch: SpecPatch;
+  /** The prompt patch, then one patch per moved knob dial. */
+  readonly patches: ReadonlyArray<SpecPatch>;
   readonly patchedYaml: string;
   readonly writtenTo?: string;
   readonly outDir: string;
@@ -41,6 +48,19 @@ export type OptimizeSpecResult = {
 };
 
 export async function optimizeSpec(opts: OptimizeSpecOptions): Promise<OptimizeSpecResult>;
+
+// Multi-stage enumeration (D36) — every path returned is already whitelisted.
+export {
+  MULTI_PROMPT_TARGETS,
+  findStage,
+  formatStageNames,
+  listOptimizableStages,
+  stagePathIsWhitelisted,
+} from "./stages";
+
+// Budget metering + the failure arbiter
+export { BudgetMeter, actualCallMicros, estimateCallMicros } from "./budget-gate";
+export { aggregate, arbitrate } from "./failure-arbiter";
 
 // Re-exports for caller convenience
 export { applySpecPatch, validatePatch } from "@crewhaus/spec-patch";
@@ -50,19 +70,21 @@ export type { SpecPatch } from "@crewhaus/spec-patch";
 ## Behaviour
 
 1. Reads the source `crewhaus.yaml`.
-2. Locates the agent's current `instructions` block via `extractCurrentPrompt(spec)` — supports every single-agent target shape (`cli`, `channel`, `managed`, `pipeline`, `research`, `batch`, `voice`, `browser`, `eval`).
-3. Drives `prompt-optimizer.optimize()` with the caller-supplied fitness function.
-4. Converts the winning prompt into a `SpecPatch` against `["agent", "instructions"]`.
-5. Validates the patch via `validatePatch` (cross-target + `OPTIMIZABLE_PATHS` check).
-6. Applies the patch via `applySpecPatch` (CST round-trip — comments preserved).
-7. Persists `patch.json`, `report.json`, `trajectory.json`, `best.json` under `outDir`.
-8. Optionally writes the patched YAML back to disk with a leading header comment when `writeBack: true` and `improvement >= improvementThreshold`.
+2. Resolves the prompt to rewrite. Without `promptPath` this is `extractCurrentPrompt(spec)` targeting `["agent","instructions"]` — the historical behaviour, byte-identical down to `report.json`. With `promptPath` it reads one named stage: a workflow step (`["steps","0","instructions"]`), a graph node (`["nodes","plan","instructions"]`) or a crew role (`["roles","writer","instructions"]`). A path that does not name a *string* instructions block is refused before any spend, pointing at `listOptimizableStages(spec)`.
+3. Validates any declared `knobs` against this target's `OPTIMIZABLE_PATHS` before anything is spent, and refuses a knob-blind `fitness` (a single-parameter fitness cannot apply the dials it is being asked to measure).
+4. Drives `prompt-optimizer.optimize()` with the caller-supplied fitness function, metering model spend through `BudgetMeter` when `budgetUsd` is set.
+5. Converts the winning prompt into a `SpecPatch` against the resolved path, plus one patch per moved knob dial.
+6. Validates every patch via `validatePatch` (cross-target + `OPTIMIZABLE_PATHS` check).
+7. Applies them via `applySpecPatch` (CST round-trip — comments preserved).
+8. Persists `patch.json`, `patches.json`, `report.json`, `trajectory.json` and `best.json` under `outDir`.
+9. Optionally writes the patched YAML back to disk with a leading header comment when `writeBack: true` and `improvement >= improvementThreshold`.
 
-## v0 limitations
+## Boundaries and stated limits
 
-- Only `agent.instructions` is mutated. Workflow / crew / graph shapes (with nested prompts) raise `OptimizeSpecError` pointing at a follow-up for `--path <step.instructions>` support.
-- The fitness function is the caller's responsibility. The CLI's `crewhaus optimize` wraps `eval-runner.runEval()` to provide one; the package itself stays decoupled so test harnesses can supply synthetic fitness.
-- No budget cap on Claude-driven runs (the CLI flag is reserved as `--budget-usd N`; the wiring through `cost-tracker` is a follow-up).
+- **Multi-stage specs are supported.** The old "only `agent.instructions` is mutated" limit is gone: `workflow` / `graph` / `crew` / `pipeline` specs optimise per stage. A multi-stage spec with no stage named raises `OptimizeSpecError` listing the spec's **actual** stages and pointing at `crewhaus optimize --stage <name>` (or `promptPath` on this seam) — it no longer points at a `--path` flag, which `OPTIMIZE_SCHEMA` never defined. `kind: judge` steps and nodes run no agent turn and are never mutated.
+- **Knob search is library-only.** `knobs` reaches the bounded coordinate-ascent `knob-step` mutation in `prompt-optimizer`, gated by the same fitness accept loop. There is **no `--knobs` CLI flag**, so a `crewhaus optimize` or `flywheel run` invocation proposes no knob changes today.
+- The fitness function stays the caller's responsibility. The CLI wraps `eval-runner.runEval()` — and, for a bridged multi-stage candidate, the same eval-entry emission `compile --with-eval-harness` performs, driven through the shared bridge invoker — so the package itself stays decoupled and test harnesses can supply synthetic fitness.
+- The CLI's sample projection into the search is **narrower** than the eval gate's: `expected_tools` and `metadata` are stripped during the search, and `history`-carrying samples are refused up front on bridged non-chat-capable shapes. Regression pinning still pins the original un-stripped records, so `crewhaus eval` grades them in full at the gate.
 
 ## Depends on
 
@@ -74,17 +96,18 @@ export type { SpecPatch } from "@crewhaus/spec-patch";
 
 ## Unblocks
 
-- `crewhaus optimize` CLI subcommand
+- `crewhaus optimize` CLI subcommand, including `--stage` and `--mutator meta-harness`
+- `crewhaus flywheel run` (which composes it behind the acceptance gate)
 - Future Studio panel for "Optimise this spec"
 - Plugin-extensible optimisation paths (different `MutationProvider`s)
 
 ## Tests
 
-- `end-to-end.test.ts` — synthetic fitness function, verifies score delta + patch shape + persistence
-- `write-back.test.ts` — confirms YAML CST round-trip preserves comments under `writeBack: true`
-- `applied-threshold.test.ts` — confirms `applied: false` when improvement is below threshold
-- `target-restriction.test.ts` — confirms workflow/graph/crew targets raise the v0 error
+- `index.test.ts` — synthetic fitness, score delta, patch shape, persistence, write-back CST round-trip, sub-threshold `applied: false`
+- `stages.test.ts` — per-stage enumeration, whitelist membership of every returned path, the named-stages error message
+- `budget-gate.test.ts` — the spend meter and its stop reasons
+- `failure-arbiter.test.ts` — failure aggregation/arbitration
 
 ## Risk markers
 
-🟡 (medium risk) — depends on prompt-optimizer's search loop semantics. If the search loop changes shape (e.g. introduces parallel candidates), the orchestrator's `result.improvement` arithmetic needs to be re-derived. The trajectory test asserts the current contract.
+🟡 (medium risk) — depends on prompt-optimizer's search loop semantics. If the search loop changes shape (e.g. introduces parallel candidates), the orchestrator's `result.improvement` arithmetic needs to be re-derived. The trajectory test asserts the current contract. Multi-stage runs add a second contract worth pinning: stages compose **sequentially and are gated independently**, so a losing stage must leave the working spec untouched for the next stage to start from.
