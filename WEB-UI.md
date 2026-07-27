@@ -195,7 +195,7 @@ Those files are not just telemetry: `crewhaus distill` reads
 into an eval dataset + grader, which `crewhaus optimize --ratings` feeds back
 into the spec. Rate a few answers in the browser, then close the loop from the
 terminal — the walkthrough is
-[Recipe 56 — Response Ratings](https://github.com/crewhaus/demos/blob/main/walkthroughs/56-response-ratings.md).
+[Recipe 62 — Response Ratings](https://github.com/crewhaus/demos/blob/main/walkthroughs/62-response-ratings.md).
 
 ## Requirements
 

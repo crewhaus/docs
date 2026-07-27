@@ -50,7 +50,7 @@ To see which task-oriented walkthrough exercises each catalog layer (i.e. "is mo
 | 31 | [`target-managed`](031-target-managed.md) | planned | F2 - Compiler & Codegen | inferred from catalog layer F2 |
 | 32 | [`target-cli-bundle`](032-target-cli-bundle.md) | implemented and tested | F2 - Compiler & Codegen | inferred from catalog layer F2 |
 | 33 | [`target-channel-bot`](033-target-channel-bot.md) | planned | F2 - Compiler & Codegen | inferred from catalog layer F2 |
-| 34 | [`target-eval-bundle`](034-target-eval-bundle.md) | planned | F2 - Compiler & Codegen | inferred from catalog layer F2 |
+| 34 | [`target-eval-bundle`](034-target-eval-bundle.md) | implemented and tested | F2 - Compiler & Codegen | inferred from catalog layer F2 |
 | 35 | [`target-research-bundle`](035-target-research-bundle.md) | planned | F2 - Compiler & Codegen | inferred from catalog layer F2 |
 | 36 | [`target-voice`](036-target-voice.md) | planned | F2 - Compiler & Codegen | inferred from catalog layer F2 |
 | 37 | [`target-browser-driver`](037-target-browser-driver.md) | planned | F2 - Compiler & Codegen | inferred from catalog layer F2 |
@@ -161,8 +161,8 @@ To see which task-oriented walkthrough exercises each catalog layer (i.e. "is mo
 | 107 | [`replay-engine`](107-replay-engine.md) | planned | R15 - Telemetry, Tracing, Eval | named in Part G |
 | 108 | [`cost-tracker`](108-cost-tracker.md) | planned | R2 - Model Layer | named in Part G |
 | 109 | [`eval-service`](109-eval-service.md) | planned | R15 - Telemetry, Tracing, Eval | named in Part G |
-| 110 | [`dataset-registry`](110-dataset-registry.md) | planned | R15 - Telemetry, Tracing, Eval | named in Part G |
-| 111 | [`grader-registry`](111-grader-registry.md) | planned | R15 - Telemetry, Tracing, Eval | named in Part G |
+| 110 | [`dataset-registry`](110-dataset-registry.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | named in Part G |
+| 111 | [`grader-registry`](111-grader-registry.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | named in Part G |
 | 112 | [`benchmark-runner`](112-benchmark-runner.md) | planned | R15 - Telemetry, Tracing, Eval | named in Part G |
 | 113 | [`trajectory-grading`](113-trajectory-grading.md) | planned | R15 - Telemetry, Tracing, Eval | named in Part G |
 | 114 | [`prompt-optimizer`](114-prompt-optimizer.md) | planned | R15 - Telemetry, Tracing, Eval | named in Part G |
