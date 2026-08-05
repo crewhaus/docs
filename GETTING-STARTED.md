@@ -1290,10 +1290,19 @@ applies the same way regardless of how you launched the CLI.
 | `spec {put,list,get,pin,alias,log} …`        | Versioned spec storage, environment pinning, and per-spec changelog.                    |
 | `deploy {promote,rollback,canary} …`         | Re-pin a spec across environments (or ramp a canary with an eval gate), audit-logged.   |
 | `fleet {list,status,run} …`                  | Cross-harness inventory, health, and bulk read-ops.                                     |
+| `hangar [status\|open]`                      | Boot the local Hangar console over every harness registered on this machine (`127.0.0.1:4200`). |
+| `harness {list,show,add,scan,preflight} …`   | The machine-wide harness registry that backs the console. `run`/`compile`/`eval`/`dev` register themselves, so it fills itself. |
+| `daemon {start,stop,restart,status,logs,wake,drain} …` | Supervise one harness from the terminal — the same supervisor the console drives, with no console running. |
 
 Day to day, you'll mostly use `compile`, `run`, `init`, and `doctor`. When
 you're ready to let a harness improve itself, reach for `flywheel` and
 `advise`. **See [CLI-REFERENCE.md](CLI-REFERENCE.md) for everything else.**
+
+> **Running more than one harness — [HANGAR.md](HANGAR.md).** `crewhaus
+> hangar` opens a local web console over every harness on the machine, and
+> `crewhaus daemon` does the same supervision from a shell script. Both
+> drive the same state, which lives inside each harness under
+> `.crewhaus/run/`, so a daemon either one starts is picked up by the other.
 
 > **Contributors — in-tree dev loop.** Inside a clone of the
 > [demos repo](https://github.com/crewhaus/demos), `demos/package.json`

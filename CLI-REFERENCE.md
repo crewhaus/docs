@@ -42,6 +42,15 @@ from the current working directory). Install it however you like; see
 > accepted by `eval` and `deploy canary` alone); and `distill` /
 > `dataset mine` now PII-redact sample text by default (`--no-redact` opts
 > out; the unattended `autoDistill` teardown always redacts).
+>
+> **v0.5.0** adds the harness manager — [`hangar`](#the-hangar),
+> [`harness`](#crewhaus-harness), and [`daemon`](#crewhaus-daemon) — plus
+> the `crewhaus.control.v1` surface compiled daemon bundles now serve. It is
+> additive in the same way: `crewhaus fleet` is kept indefinitely and
+> unchanged, existing specs compile byte-identically, and a bundle that sets
+> no control env vars binds no control listener and mints no token file —
+> on the two shapes that bind a public port (`channel`, `managed`) it gains
+> exactly one new route, `/healthz`. See [HANGAR.md](HANGAR.md).
 
 ## Table of contents
 
@@ -62,10 +71,13 @@ from the current working directory). Install it however you like; see
 8. [Self-healing operations](#self-healing-operations)
 9. [Deploy, promote, and govern](#deploy-promote-and-govern)
 10. [Fleet, lifecycle, and marketplace](#fleet-lifecycle-and-marketplace)
-11. [Safety that learns](#safety-that-learns)
-12. [Compliance, audit, and retention](#compliance-audit-and-retention)
-13. [Registry, secrets, and state](#registry-secrets-and-state)
-14. [Distribution and infrastructure](#distribution-and-infrastructure)
+11. [The hangar](#the-hangar)
+    — [`hangar`](#crewhaus-hangar) · [`harness`](#crewhaus-harness) ·
+    [`daemon`](#crewhaus-daemon)
+12. [Safety that learns](#safety-that-learns)
+13. [Compliance, audit, and retention](#compliance-audit-and-retention)
+14. [Registry, secrets, and state](#registry-secrets-and-state)
+15. [Distribution and infrastructure](#distribution-and-infrastructure)
 
 Flag conventions in this document: `<required>` positional or value,
 `[--optional]`, `a|b|c` an enum of choices, `-o` / `--out` a short alias.
@@ -520,12 +532,111 @@ cleanly.
 
 | Command | Purpose |
 | --- | --- |
-| `fleet list [--root <dir>]` | Cross-harness inventory (any directory carrying a `crewhaus.yaml`; discovery skips `.crewhaus/`, `node_modules/`, `.git/`, `dist/`). |
+| `fleet list [--root <dir>]` | Cross-harness inventory (any directory carrying a `crewhaus.yaml`; discovery skips `.crewhaus/`, `node_modules/`, `.git/`, `dist/`, `.worktrees/`). |
 | `fleet status [--root <dir>]` | Per-harness health rollup. |
 | `fleet run <sub> [--filter <glob>] [--root <dir>] [--allow-mutating] [--yes]` | Bulk-run a subcommand across the filtered fleet. Read-only bulk subcommands (`eval`, `doctor`, `security digest`, `audit verify`) run freely; a mutating subcommand requires `--allow-mutating` and per-harness confirmation. |
 | `retire <spec> [--archive <dir>] [--dry-run] [--force] [--push-knowledge [--shared <dir>]]` | Audited harness decommissioning: archive sessions/feedback/memories, retention-purge, rotate-then-revoke secrets, tombstone registry entries, emit a final compliance bundle. `--force` retires despite an active pin; `--dry-run` prints the plan. |
 | `plugins list\|search\|install\|uninstall\|outdated\|publish …` | Marketplace plugins CLI. `search -q <text>`, `install <name> [--version <v>]`, `publish --manifest <plugin.json>` (opens a publish PR). Flags: `--registry <dir\|url>`, `--plugins-dir`, `--allow-unsigned` (dev only), `--dry-run`. |
 | `templates list\|search\|use …` | Marketplace templates CLI. `search -q <text> [--target <t>]`, `use <name> [--into <dir>] [--subdir <s>]` scaffolds a template into a workspace. A manifest may now declare `kind: grader-template` plus an `evalAssets` block (a `graders.yaml`, reviewer notes, and an optional seed dataset); `templates list` marks such a manifest **`[eval-template]`**. Both fields were appended to the canonical signing payload **append-only**, so a manifest declaring neither serializes byte-identically and existing signatures keep verifying. **Not yet wired for consumption:** `templates use` refuses an eval-asset template, and `scaffold-evals --template` resolves only the CLI's embedded first-party families — it performs no registry fetch and never reads `CREWHAUS_TEMPLATE_REGISTRY`. |
+
+---
+
+## The hangar
+
+The harness manager: a local web console over every harness registered on
+this machine (`hangar`), the registry that backs it (`harness`), and the
+terminal twin that supervises one harness with no console running
+(`daemon`). Full reference — the security model, the on-disk layout,
+`crewhaus.control.v1`, and troubleshooting — in [HANGAR.md](HANGAR.md).
+
+One property explains the shape of all three: **supervision state is
+harness-local**, under `<harness>/.crewhaus/run/`. Nothing about a running
+daemon lives in a central manager directory, so `crewhaus daemon` needs no
+server, and a daemon either head starts is adopted by the other.
+
+`--help` / `-h` works at the **verb** position only in all three families
+(`crewhaus daemon start --help` is an unknown-flag error). Bare
+`crewhaus harness` and `crewhaus daemon` print usage; **bare
+`crewhaus hangar` boots a server.**
+
+### `crewhaus hangar`
+
+| Command | Purpose |
+| --- | --- |
+| `hangar [serve]` | Boot the manager console over the machine-wide registry and open it in the browser. Bare `crewhaus hangar` — and any invocation whose first argument starts with `--` — is `hangar serve`. |
+| `hangar serve --port <n>` | TCP port; default `4200`, `0` for an OS-assigned one. Must be an integer 0..65535 in canonical spelling (`007` and `80.0` are refused). |
+| `hangar serve --host <h>` | Bind interface; default `127.0.0.1`. Implies auth **and** requires `CREWHAUS_HANGAR_ALLOW_REMOTE=1` for any non-loopback value. Loopback is `localhost`, all of `127.0.0.0/8`, and `::1` in any spelling; `0.0.0.0` and `::` are wildcards, **not** loopback. Hostnames are never resolved — an unrecognised host fails closed. |
+| `hangar serve --no-auth` | Disable the bearer token. Loopback-dev only; refused together with `--host` or `--smoke`. |
+| `hangar serve --no-open` | Do not spawn the browser. |
+| `hangar serve --read-only` | Boot with every mutating route refused (403). The screen-share posture; it can still be lifted from the UI. Not persisted — a normal restart gives a writable console back. |
+| `hangar serve --read-only-locked` | As above, and the mode cannot be lifted over the wire — only by restarting without the flag. **Implies `--read-only`.** |
+| `hangar serve --smoke` | Boot on an ephemeral port, run four self-checks (healthz, the embedded UI shell, `/api/harnesses` with a token → 200, without → 401), then exit. The release workflow's compiled-binary smoke entry. Refused with `--port` or `--no-auth`. |
+| `hangar status [--json]` | Lock / port / registry / token report. Reads the lock file, not the socket, so it works with no server running. **Always exits 0.** |
+| `hangar open` | Trade the token file for a fresh single-use boot ticket and open the running console. Takes no flags. **Exits 1** when nothing is running. |
+
+The console binds `127.0.0.1:4200` by default and hands its bearer token to
+the browser as a URL `#fragment` via a single-use `/boot/<nonce>` path — the
+token is never a command-line argument. One instance per hangar root, held
+by `<hangarRoot>/hangar.lock`; a stale lock from a dead pid is replaced
+automatically with a note. Ctrl-C stops attached runs, **leaves daemons up**
+(they are adopted by the next boot), and releases the lock.
+
+### `crewhaus harness`
+
+The registry verb family — machine-wide, wherever the directories live.
+`run`, `compile`, `eval` and `dev` self-register the harness they touch
+(origin `run-hook`), so the list fills itself from normal use.
+
+| Command | Purpose |
+| --- | --- |
+| `harness list [--group <name>] [--json]` | Every registered harness, joined with the on-disk inventory. Missing directories are flagged, never auto-pruned. |
+| `harness show <dir\|hrn_id> [--json]` | One harness: registry entry + inventory row + health rollup. |
+| `harness add <dir>` | Register a directory (origin `manual`). Warns rather than fails when there is no readable `crewhaus.yaml`. |
+| `harness remove <dir\|hrn_id>` | Drop the registry row only — the directory itself is untouched. |
+| `harness relocate <hrn_id> <newDir>` | Point an entry at a moved directory, keeping its id. Throws when the new directory already belongs to another entry. |
+| `harness group <name> [--add <dir\|id>] [--remove <dir\|id>] [--color <c>] [--order <n>]` | Bare form creates the group; `--add`/`--remove` manage membership and are mutually exclusive. `--order` must be a positive integer. |
+| `harness tag <dir\|id> (--add <tag> \| --remove <tag>)` | Exactly one of the two is required. |
+| `harness pin <dir\|id> [--off]` | Pinned entries survive prune prompts. |
+| `harness scan [--root <dir>]` | Discover harnesses (directories carrying a `crewhaus.yaml`) under the given root — or all configured scan roots — and upsert each (origin `scan`). An explicit `--root` is **remembered** as a scan root. Scan never prunes vanished rows; it counts them. |
+| `harness preflight <dir\|id> [--json]` | Typed will-it-boot checks across seven areas (spec, credentials, channels, mcp, ports, bundle, durability). **Exits 1 on any blocking finding.** Works against an unregistered directory. |
+
+The registry is one JSON file, `<registryRoot>/harnesses.json` (format v2),
+under `CREWHAUS_REGISTRY_ROOT` (default `~/.crewhaus`). Ids are `hrn_` +
+16 hex and stay stable across renames; the absolute directory is the upsert
+identity key. `CREWHAUS_NO_REGISTRY=1` turns every write into a no-op —
+each mutating verb then says so on its last line.
+
+`harness` is **registry-centric**; [`fleet`](#fleet-lifecycle-and-marketplace)
+is the **filesystem-centric** twin that walks a `--root` and needs no
+registration. Both are supported indefinitely; neither replaces the other.
+The one place they meet is `fleet --group <name>`, which reads membership
+from the machine registry.
+
+### `crewhaus daemon`
+
+Supervise one harness from the terminal, driving `@crewhaus/harness-supervisor`
+directly — no console required. Every verb takes an optional first
+positional `[<dir|hrn_id>]`; with none, the harness is the current directory.
+
+| Command | Purpose |
+| --- | --- |
+| `daemon start [<dir\|hrn_id>] [--force] [--ack <id,id>] [--no-preflight]` | Preflight, then spawn. `--force` waves through every **forceable** blocking item; `--ack` waves specific ones through by stable id. Missing channel secrets can **never** be forced — the compiled daemon exits 2 on exactly that set. Preflight runs against the merged spawn env (the harness `.env` chain under `process.env`), not `process.env` alone. Exits 1 when already running, when preflight refuses, or when the spawn plan cannot be built. |
+| `daemon restart [<dir\|hrn_id>] [--force] [--ack <ids>] [--no-preflight]` | Stop, then start. The spawn plan is rebuilt, so a recompile between the two is picked up. |
+| `daemon stop [<dir\|hrn_id>] [--grace <ms>]` | SIGTERM, then SIGKILL after the grace (default `15000`). Exits 1 only when a live daemon holds the runfile but was not adopted, so nothing was signalled. |
+| `daemon status [<dir\|hrn_id>] [--json]` | Runfile / liveness / control port / last 5 runs, plus `would run: <plan>` — the paste-able shell equivalent (the env is omitted, because it carries the control token). Always exits 0. |
+| `daemon logs [<dir\|hrn_id>] [--tail <n>] [--follow] [--run <run_id>]` | The **scrubbed** capture of a run, never the raw `logs/<runId>.log`. `--tail` defaults to 40 and may reach back at most 512 KiB; `--follow` polls every 500 ms and exits when the pid dies, reading once more afterwards so a crash's last lines are not dropped. An unknown `--run` exits 1. |
+| `daemon wake [<dir\|hrn_id>] --lane heartbeat\|schedule [--reason <r>]` | One synthetic tick down the daemon's OWN timer path, via `crewhaus.control.v1` — the same code the schedule fires. `--lane` is required. |
+| `daemon drain [<dir\|hrn_id>]` | Stop intake, finish in-flight work, exit 0. Falls back to SIGTERM when the control plane is unreachable. Takes no flags. |
+
+`wake` and `drain` refusals that are **facts about the bundle** —
+`no_control_port`, `lane_not_armed`, `draining` — exit **0**, not 1: a spec
+that declares no schedule lane is an answer, not an error. `tick_in_flight`
+is the only retryable code.
+
+Exit codes 20 (spec), 21 (config), 30 (auth), 31 (billing) and 33
+(crewhaus_budget) are **terminal** and never auto-restarted; 36 is *parked*,
+waiting on `approvals grant`. Everything else backs off 500 ms → 30 s with a
+cap of 5 restarts per rolling 10 minutes, then `crash-looping`.
 
 ---
 
@@ -592,6 +703,9 @@ Scheduled evidence collection, tamper verification, and GDPR/TTL enforcement.
 - [GETTING-STARTED.md](GETTING-STARTED.md) — the guided tour, the spec
   reference (including the v0.2.0 spec blocks), the runtime directory, and
   the permission model.
+- [HANGAR.md](HANGAR.md) — the harness manager in full: the console, the
+  registry, the supervisor's on-disk contract, `crewhaus.control.v1`, the
+  security model, and troubleshooting.
 - [PROVIDERS.md](PROVIDERS.md) — the model-string grammar every `--model`
   flag and `model:` field accepts.
 - [COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md) — what `compile`
