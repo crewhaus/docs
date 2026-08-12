@@ -244,7 +244,7 @@ usage.
 | `add` | `<dir>` | — |
 | `remove` | `<dir\|hrn_id>` | — |
 | `relocate` | `<hrn_id> <newDir>` | — |
-| `group` | `<name>` | `--add <dir\|id>`, `--remove <dir\|id>`, `--color <c>`, `--order <n>` |
+| `group` | `<name>` | `--add <dir\|id>`, `--remove <dir\|id>`, `--color <c>`, `--order <n>`, `--member-order <n>`, `--list` |
 | `tag` | `<dir\|id>` | exactly one of `--add <tag>` / `--remove <tag>` |
 | `pin` | `<dir\|id>` | `--off` |
 | `scan` | — | `--root <dir>` |
@@ -262,6 +262,11 @@ Behaviour worth knowing:
   rows; it counts them: `scan: <a> added, <r> refreshed, <m> missing (<n> root(s))`.
 - `preflight` works against an unregistered directory, and is the only verb
   here that can exit non-zero — **1 on any blocking finding**.
+- `group --order <n>` orders the **group** among groups; `group --add <dir>
+  --member-order <n>` orders **one member inside** it (the boot order
+  `daemon start --group` walks). `--member-order` requires `--add`, and
+  `--add` on an existing member is how an order is changed. `--list` prints
+  the resulting walk.
 
 Every mutating verb appends, when writes are disabled:
 `note: CREWHAUS_NO_REGISTRY is set — registry writes are disabled, nothing was persisted`.
@@ -274,10 +279,24 @@ non-info items, and a footer of either
 `<n> check(s), no blocking findings — the harness should boot` or
 `<n> check(s), <b> blocking — fix the ✗ items before spawning`.
 
-Checks run in composition order over seven areas: **spec** → **credentials**
-→ **channels** → **mcp** → **ports** → **bundle** → **durability**. Each
-item carries a stable `id`, so a manager can acknowledge or deep-link an
-individual finding.
+Checks run in composition order over nine areas: **spec** → **env** →
+**credentials** → **channels** → **mcp** → **ports** → **bundle** →
+**durability** → **hooks**. Each item carries a stable `id`, so a manager
+can acknowledge or deep-link an individual finding.
+
+- **env** names every file the merged spawn env was built from — shared
+  fleet files (`manager.envFiles`) with the absolute path they resolved to,
+  then the harness-local `.env` / `.env.local`. A *declared but absent*
+  shared file is a **warn**, never blocking: its keys may already be in
+  `process.env`, and the credentials area is what refuses a genuinely
+  missing one.
+- **hooks** discloses the operator commands a start will run
+  (`manager.hooks`), and warns when one failed on its last run — or when a
+  declared hook has never run on a harness that *has* runs, which is the
+  shape of a fleet whose prep never actually fired.
+
+The verb checks the **merged spawn env**, the same record a spawn from that
+directory receives — not `process.env` alone.
 
 ### `harness` vs `fleet`
 
@@ -305,9 +324,10 @@ directory. Bare `crewhaus daemon` prints usage.
 
 | Verb | Flags | Notes |
 |---|---|---|
-| `start` | `--force`, `--ack <id,id>`, `--no-preflight` | Preflight, then spawn. |
-| `restart` | same three | `stop` then `start`; the spawn plan is rebuilt, so a recompile in between is picked up. |
-| `stop` | `--grace <ms>` (default `15000`) | SIGTERM, then SIGKILL after the grace. |
+| `start` | `--force`, `--ack <id,id>`, `--no-preflight`, `--compile`, `--no-compile`, `--group <name>`, `--parallel` | Prep, preflight, then spawn. |
+| `submit` | `--brief-file <path>` (required), plus `start`'s gate/compile flags | One run with a **brief on stdin** — the supervised path for `crew`. Tracked as a job; never restarted. |
+| `restart` | same as `start` | `stop` then `start`; the spawn plan is rebuilt, so a recompile in between is picked up. |
+| `stop` | `--grace <ms>` (default `15000`), `--group <name>`, `--parallel` | SIGTERM, then SIGKILL after the grace. |
 | `status` | `--json` | Runfile / liveness / control port / recent runs. |
 | `logs` | `--tail <n>` (default `40`), `--follow`, `--run <run_id>` | The **scrubbed** capture. |
 | `wake` | `--lane heartbeat\|schedule` (required), `--reason <r>` | One synthetic tick through `crewhaus.control.v1`. |
@@ -349,6 +369,126 @@ preflight refused the spawn:
   re-run with --force to wave through the forceable items,
   or --ack <id,id> to wave specific ones through by id.
 ```
+
+### Per-harness prep: `--compile` and hooks
+
+By default the manager never mutates your bundle. Two opt-ins, declared in
+the harness's own `.crewhaus/settings.json`, put a deterministic step
+between "decide to start" and "spawn":
+
+```json
+{
+  "manager": {
+    "autoCompile": true,
+    "hooks": {
+      "postCompile": "./patch-schemas.ts",
+      "preSpawn": ["bun", "run", "prep.ts"],
+      "timeoutMs": 120000
+    }
+  }
+}
+```
+
+The order is fixed:
+
+```
+plan → claim the start slot → [compile if stale] → [postCompile] → preflight → [preSpawn] → spawn
+```
+
+- **`--compile` / `--no-compile`** on `start`, `restart` and `submit`
+  recompile *only when the spec is newer than the bundle* — the same
+  spec-hash verdict the fleet views show — then run `bun install --cwd
+  <bundle>`. It compiles into the directory the current bundle lives in, so
+  a harness that compiles to `build/` is not given a second bundle in
+  `dist/`. An *approximate* or *unstamped* verdict never triggers a
+  recompile. With neither flag, `manager.autoCompile` decides, which is what
+  gives the console's Restart button the same behaviour.
+- **`postCompile`** runs after any manager-initiated compile — including the
+  console's compile job, which used to replace the bundle and silently
+  discard whatever you had patched into it. It also runs on every prepared
+  start, because a bundle replaced behind your back needs the patch just as
+  much as one this start produced.
+- **`preSpawn`** runs after preflight, immediately before the spawn.
+
+A hook that exits non-zero, or times out, **refuses the start** exactly like
+a blocking preflight finding, and the refusal carries the step's own output.
+Prep runs inside the start slot, so two managers cannot recompile the same
+bundle at once.
+
+A hook declaration that is a **string** is one command and is *not*
+word-split; an **array** is an argv vector. Nothing goes through a shell.
+Paths beginning `./` or `../` resolve against the harness root; a bare name
+is resolved on `PATH`.
+
+Hooks run operator-authored code with the merged spawn env — what a
+`run.sh` wrapper beside the spec already gets, and the harness directory is
+already the supervision trust boundary. Captured output is **scrubbed at the
+capture**, like the run log. (These are distinct from `@crewhaus/hooks-engine`
+runtime hooks, which fire on model-driven moments and get a restricted env.)
+`--read-only` needs no special handling: that mode refuses every mutating
+request, so no start and no compile job reaches this path.
+
+`daemon status` reports what is configured and when each hook last ran;
+`harness show` names the hooks; preflight discloses them.
+
+### `daemon submit` — briefs as payloads
+
+`crew` is the one shape whose *input is a document*: its compiled bundle
+reads a brief on stdin and exits 2 without one. It is therefore a **job**,
+not a daemon:
+
+```bash
+crewhaus daemon submit ./content-pipeline --brief-file brief.md
+```
+
+One run, tracked in the same run ledger with the same scrubbed capture,
+never restarted. The brief travels as a **path**: the kernel feeds the
+child's stdin from the file, so it never appears in argv and a detached run
+keeps reading after the manager exits.
+
+`daemon start` on a crew harness refuses at plan time rather than spawning a
+process guaranteed to die:
+
+```
+a crew bundle reads its brief on stdin — start it with `crewhaus daemon submit <dir> --brief-file <file>`
+```
+
+`submit` on a shape whose input is *not* a brief names the verb that harness
+does take.
+
+### `--group` — the whole fleet, in dependency order
+
+`start`, `stop` and `restart` accept `--group <name>` instead of a harness.
+Members walk the **boot order** you declared with `harness group <name>
+--add <dir> --member-order <n>`; `stop` walks it **reversed**, because
+stopping the secretary while the specs that mount its door are still live
+turns a clean shutdown into a fistful of connection errors.
+
+```bash
+crewhaus harness group crew --add ./secretary --member-order 1
+crewhaus harness group crew --add ./archivist --member-order 2
+crewhaus harness group crew --add ./chief     --member-order 3
+crewhaus harness group crew --list
+
+crewhaus daemon start --group crew
+crewhaus daemon stop  --group crew          # chief → archivist → secretary
+crewhaus daemon start --group crew --parallel
+```
+
+- Members with no declared order come **after** the declared ones, each tier
+  by spec name, so the walk is reproducible on every machine.
+- The walk **keeps going past a member that refuses** and exits non-zero if
+  any member failed, with a per-member summary.
+- Interactive and one-shot members (a `cli` scratch harness, a crew) are
+  **skipped with a note**, never silently dropped. So is a member whose
+  directory has vanished.
+- `--parallel` is opt-in, for groups where order genuinely does not matter.
+
+The console has the same thing on the Runs board's **Groups** strip: a verb
+button renders the planned walk — in order, with every skip named — and only
+a second click runs it. Over HTTP that is
+`GET /api/registry/groups/:name/proc/:verb` for the plan and `POST` on the
+same path to run it (**207** when some members failed, 200 when none did).
 
 ### Output and exit codes
 
@@ -409,6 +549,9 @@ when the runfile's pid is no longer alive — with the last read happening
 | `runfile` | object \| null |
 | `controlPort` | number \| null |
 | `recentRuns` | array — the last 5 ledger entries, newest first |
+| `envFiles` | array — the resolved env chain, lowest precedence first: `{declaredAs, path, scope: "shared"\|"harness", present}` |
+| `bundle` | object — the spec-vs-bundle freshness verdict |
+| `prep` | object — `{autoCompile, hooks: {<name>: {declaredAs, lastRun}}}` |
 | `plan` | string \| null — the equivalent shell command |
 | `planError` | string \| null |
 
@@ -424,9 +567,9 @@ supervised at all:
 | Class | Targets | Launch |
 |---|---|---|
 | `interactive` | `cli`, `browser` | `crewhaus run <spec>` when a `crewhaus` bin resolves (harness `node_modules/.bin` first, then PATH), else `bun dist/agent.ts`; attached, piped stdio |
-| `daemon` | `channel`, `managed`, `crew`, `voice` | `bun dist/daemon.ts`, detached, stdio to the log file |
+| `daemon` | `channel`, `managed`, `voice` | `bun dist/daemon.ts`, detached, stdio to the log file |
 | `worker` | `batch` | `bun dist/agent.ts` with daemon-class supervision |
-| `one-shot` | `workflow`, `graph`, `pipeline`, `research`, `eval`, `onchain`, `onchain-game` | `bun dist/agent.ts`; tracked as jobs, never restarted. A stale bundle is *reported* (exactly when the bundle carries a spec-hash stamp, approximately from mtimes when it does not) — nothing recompiles for you |
+| `one-shot` | `workflow`, `graph`, `pipeline`, `research`, `eval`, `onchain`, `onchain-game`, `crew` | `bun dist/agent.ts`; tracked as jobs, never restarted. `crew` runs `dist/daemon.ts` with a **brief on stdin** — see [`daemon submit`](#daemon-submit). A stale bundle is *reported* by default (exactly when the bundle carries a spec-hash stamp, approximately from mtimes when it does not); `--compile` / `manager.autoCompile` opt in to recompiling it |
 | `mcp-server` | `expose:` / cli-shape projections | `crewhaus serve --mcp <spec> [--sse --port N]` |
 | `serverless` | cf-worker emits | not a process — the plan refuses: `<target> does not run as a process — it is a deployment artifact` |
 | `export` | claude-plugin emits | not a process — `… — it is a export artifact` |
@@ -537,10 +680,40 @@ overrides, so fleet aggregators fold the resolved root rather than the
 default: `CREWHAUS_SESSION_DIR`, `CREWHAUS_DATASETS_DIR`,
 `CREWHAUS_WATCHME_ROOT`, `CREWHAUS_SHARED_DIR`.
 
-Spawn-env precedence is: the harness `.env` chain, **overwritten by**
-`process.env`, then `CREWHAUS_TRACE=json` and `CREWHAUS_COST_TRACKING=1`,
-then the caller's extras (ports, the control port). An exported shell
-variable always beats a `.env` file.
+Spawn-env precedence is: **shared env files**, then the harness `.env` chain,
+**overwritten by** `process.env`, then `CREWHAUS_TRACE=json` and
+`CREWHAUS_COST_TRACKING=1`, then the caller's extras (ports, the control
+port). An exported shell variable always beats a `.env` file.
+
+### Shared env files for a fleet
+
+Sibling harnesses that share one provider key, one search provider and a set
+of opt-ins can keep **one** env file, declared in the harness's own
+`.crewhaus/settings.json`:
+
+```json
+{ "manager": { "envFiles": ["../.env"] } }
+```
+
+Declared files load **under** the harness-local `.env` / `.env.local`, so
+precedence is unchanged: `shared < harness-local < process.env < caller
+extras`. Relative entries resolve against the harness root; absolute ones
+are taken verbatim. There is no `~` expansion and no shell — the string is a
+path, not a command.
+
+The declaration lives in the harness rather than the registry because all
+harness state is cwd-local: an **unregistered** harness — the
+standalone-harness convention, and what `crewhaus daemon start` in a fresh
+directory is — behaves identically, and the declaration travels when the
+directory is copied.
+
+This replaces the `.env → ../.env` symlink the pattern used to require. The
+symlink worked but was invisible convention: `harness show` and preflight
+reported the chain as if it were local, a copied harness silently carried a
+dangling symlink, and Windows symlinks are their own adventure. A
+declaration is reported everywhere the chain is — preflight's `env` area,
+`daemon status`, `harness show` (files only, never a value) — and a declared
+file that is *absent* is reported as absent rather than silently skipped.
 
 ## `crewhaus.control.v1`
 
@@ -863,6 +1036,11 @@ An honest list, all verified against the shipped code.
 - **⌘K proposes, never acts.** `GET /api/search` executes nothing, and only
   four verbs are executable from the omnibox — start, stop, restart, drain.
   Anything else toasts `This build cannot run “<route>” from the omnibox`.
+  Group lifecycle is on the Runs board's Groups strip, not the omnibox.
+- **The console cannot submit a crew brief.** `daemon submit --brief-file`
+  is terminal-only: the brief is a file, and the manager has no
+  file-transfer surface. The console's Start on a crew harness refuses with
+  the `submit-brief` remedy rather than spawning a doomed process.
 - **Plugins: two extension points, and "wired" is narrower than it sounds.**
   `panes` is genuinely wired — a plugin's pane document is served capped at
   256 KiB and rendered in an iframe with `sandbox="allow-scripts"` and *no*
