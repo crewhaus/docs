@@ -594,11 +594,11 @@ The registry verb family — machine-wide, wherever the directories live.
 | `harness add <dir>` | Register a directory (origin `manual`). Warns rather than fails when there is no readable `crewhaus.yaml`. |
 | `harness remove <dir\|hrn_id>` | Drop the registry row only — the directory itself is untouched. |
 | `harness relocate <hrn_id> <newDir>` | Point an entry at a moved directory, keeping its id. Throws when the new directory already belongs to another entry. |
-| `harness group <name> [--add <dir\|id>] [--remove <dir\|id>] [--color <c>] [--order <n>]` | Bare form creates the group; `--add`/`--remove` manage membership and are mutually exclusive. `--order` must be a positive integer. |
+| `harness group <name> [--add <dir\|id>] [--remove <dir\|id>] [--color <c>] [--order <n>] [--member-order <n>] [--list]` | Bare form creates the group; `--add`/`--remove` manage membership and are mutually exclusive. `--order` orders the **group** among groups; `--member-order` (which requires `--add`) orders **one member inside** it — the boot order `daemon start --group` walks. Both must be positive integers. `--list` prints the resulting walk. |
 | `harness tag <dir\|id> (--add <tag> \| --remove <tag>)` | Exactly one of the two is required. |
 | `harness pin <dir\|id> [--off]` | Pinned entries survive prune prompts. |
 | `harness scan [--root <dir>]` | Discover harnesses (directories carrying a `crewhaus.yaml`) under the given root — or all configured scan roots — and upsert each (origin `scan`). An explicit `--root` is **remembered** as a scan root. Scan never prunes vanished rows; it counts them. |
-| `harness preflight <dir\|id> [--json]` | Typed will-it-boot checks across seven areas (spec, credentials, channels, mcp, ports, bundle, durability). **Exits 1 on any blocking finding.** Works against an unregistered directory. |
+| `harness preflight <dir\|id> [--json]` | Typed will-it-boot checks across nine areas (spec, env, credentials, channels, mcp, ports, bundle, durability, hooks). Runs against the **merged spawn env**, so a credential the daemon reads from `.env` is not reported missing. **Exits 1 on any blocking finding.** Works against an unregistered directory. |
 
 The registry is one JSON file, `<registryRoot>/harnesses.json` (format v2),
 under `CREWHAUS_REGISTRY_ROOT` (default `~/.crewhaus`). Ids are `hrn_` +
@@ -620,9 +620,10 @@ positional `[<dir|hrn_id>]`; with none, the harness is the current directory.
 
 | Command | Purpose |
 | --- | --- |
-| `daemon start [<dir\|hrn_id>] [--force] [--ack <id,id>] [--no-preflight]` | Preflight, then spawn. `--force` waves through every **forceable** blocking item; `--ack` waves specific ones through by stable id. Missing channel secrets can **never** be forced — the compiled daemon exits 2 on exactly that set. Preflight runs against the merged spawn env (the harness `.env` chain under `process.env`), not `process.env` alone. Exits 1 when already running, when preflight refuses, or when the spawn plan cannot be built. |
-| `daemon restart [<dir\|hrn_id>] [--force] [--ack <ids>] [--no-preflight]` | Stop, then start. The spawn plan is rebuilt, so a recompile between the two is picked up. |
-| `daemon stop [<dir\|hrn_id>] [--grace <ms>]` | SIGTERM, then SIGKILL after the grace (default `15000`). Exits 1 only when a live daemon holds the runfile but was not adopted, so nothing was signalled. |
+| `daemon start [<dir\|hrn_id>] [--force] [--ack <id,id>] [--no-preflight] [--compile\|--no-compile] [--group <name>] [--parallel]` | Prep, preflight, then spawn. `--force` waves through every **forceable** blocking item; `--ack` waves specific ones through by stable id. Missing channel secrets can **never** be forced — the compiled daemon exits 2 on exactly that set. Preflight runs against the merged spawn env (shared env files, then the harness `.env` chain, under `process.env`), not `process.env` alone. `--compile` recompiles **only when the spec is newer than the bundle**, then runs `bun install --cwd <bundle>`; with neither flag the harness's `manager.autoCompile` decides. Exits 1 when already running, when preflight or an operator hook refuses, or when the spawn plan cannot be built. |
+| `daemon submit [<dir\|hrn_id>] --brief-file <path> [--force] [--ack <ids>] [--no-preflight] [--compile]` | Run ONE pipeline with a brief on stdin — the supervised path for `crew`, whose input is a document. Tracked in the run ledger as a job and **never restarted**. The brief travels as a path (kernel-fed stdin), never in argv. A missing or empty brief, or a shape whose input is not a brief, is refused up front. |
+| `daemon restart [<dir\|hrn_id>] [--force] [--ack <ids>] [--no-preflight] [--compile\|--no-compile] [--group <name>] [--parallel]` | Stop, then start. The spawn plan is rebuilt, so a recompile between the two is picked up. |
+| `daemon stop [<dir\|hrn_id>] [--grace <ms>] [--group <name>] [--parallel]` | SIGTERM, then SIGKILL after the grace (default `15000`). Exits 1 only when a live daemon holds the runfile but was not adopted, so nothing was signalled. |
 | `daemon status [<dir\|hrn_id>] [--json]` | Runfile / liveness / control port / last 5 runs, plus `would run: <plan>` — the paste-able shell equivalent (the env is omitted, because it carries the control token). Always exits 0. |
 | `daemon logs [<dir\|hrn_id>] [--tail <n>] [--follow] [--run <run_id>]` | The **scrubbed** capture of a run, never the raw `logs/<runId>.log`. `--tail` defaults to 40 and may reach back at most 512 KiB; `--follow` polls every 500 ms and exits when the pid dies, reading once more afterwards so a crash's last lines are not dropped. An unknown `--run` exits 1. |
 | `daemon wake [<dir\|hrn_id>] --lane heartbeat\|schedule [--reason <r>]` | One synthetic tick down the daemon's OWN timer path, via `crewhaus.control.v1` — the same code the schedule fires. `--lane` is required. |
@@ -632,6 +633,20 @@ positional `[<dir|hrn_id>]`; with none, the harness is the current directory.
 `no_control_port`, `lane_not_armed`, `draining` — exit **0**, not 1: a spec
 that declares no schedule lane is an answer, not an error. `tick_in_flight`
 is the only retryable code.
+
+`--group <name>` on `start`, `restart` and `stop` walks every member of a
+registry group in its declared boot order (**reversed** for `stop`), keeps
+going past a member that refuses, skips shapes with no daemon *with a note*,
+prints a per-member summary, and exits non-zero if any member failed.
+`--parallel` opts out of the ordering where it does not matter.
+
+Per-harness prep lives in the harness's own `.crewhaus/settings.json` under
+`manager`: `envFiles` (shared fleet env files, merged **under** the local
+`.env` chain), `autoCompile`, and `hooks.postCompile` / `hooks.preSpawn` —
+operator commands run between compile and spawn, whose non-zero exit refuses
+the start exactly like a blocking preflight finding. A string declaration is
+one command and is not word-split; an array is an argv vector. Nothing goes
+through a shell. See [HANGAR.md](HANGAR.md#per-harness-prep-compile-and-hooks).
 
 Exit codes 20 (spec), 21 (config), 30 (auth), 31 (billing) and 33
 (crewhaus_budget) are **terminal** and never auto-restarted; 36 is *parked*,
