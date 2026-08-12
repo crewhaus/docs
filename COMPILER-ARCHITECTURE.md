@@ -332,7 +332,7 @@ The Loop-contract-0.4 batches threaded a family of new spec blocks through `lowe
 | `observability:` | `observability?` | `IrObservability` (`trace`/`metrics`/`cost`/`alerts`/`incidents`/`otel` + `slo`) | cli, channel, managed, crew | C |
 | `permissions.ask_mode` | `permissions.askMode?` | `"pause"` (default) \| … | every permission-carrying shape | C |
 | `schedule:` | `schedule?` | `IrSchedule` (`cron` \| `interval`, durations normalized to ms) | channel, managed, batch | F |
-| `expose:` | `expose?` | `IrExpose` (`mcp?: {transport, tools}`) | cli, channel, managed | G |
+| `expose:` | `expose?` | `IrExpose` (`mcp?: {transport, tools}`) | cli, channel (managed: carried, **not wired** — compile warns) | G |
 | `plugins:` | `plugins?` | `readonly string[]` (load order) | cli, channel | G |
 
 Three lowering conventions worth internalising, all consistent with the rest of `lower()`:
