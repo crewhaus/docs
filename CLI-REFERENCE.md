@@ -132,9 +132,9 @@ The everyday loop: scaffold a spec, compile it to a bundle, run it.
 | `run <spec> --egress-matcher substring\|semantic [--egress-embedder <m>]` | Pillar 3 sink-side matcher for this run (FR-006); overrides `security.egressMatcher`. |
 | `run <spec> --no-mcp-quarantine` | Register even the tools of servers `mcp doctor` marked chronically failing (default: withdraw them + inject a notice). |
 | `dev <spec> [--once] [--debounce <ms>] [--plugins <a,b>]` | The authoring dev-loop: compile the spec in memory, run the emitted bundle as a **supervised child** (`CREWHAUS_TRACE=pretty` by default — turns stream live), and recompile + relaunch it on every spec / `.crewhaus/commands` / skills change. A broken edit keeps the running child; a crashed daemon shape restarts (bounded); each completed turn prints a `[dev]` summary. `--once` launches one run to completion and exits with its code (a credential-free CI boot check); `--debounce` sets the change-coalescing window in ms (default 150). |
-| `serve --mcp <spec> [--sse] [--port <n>] [--plugins <a,b>]` | Project the spec's cli agent as an **MCP server** so it becomes a tool inside Claude Code / an IDE / another CrewHaus runtime. `--mcp` is the only projection kind today. Default transport is stdio; `--sse` serves over HTTP+SSE (a `fetch` server, default port 8000 or `CREWHAUS_MCP_PORT`), overriding the spec's `expose.mcp.transport`. |
+| `serve --mcp <spec> [--sse] [--port <n>] [--plugins <a,b>]` | Project the spec's **cli** agent as an **MCP server** so it becomes a tool inside Claude Code / an IDE / another CrewHaus runtime. `--mcp` is the only projection kind today. Default transport is stdio; `--sse` serves over HTTP (a `fetch` server, default port 8000 or `CREWHAUS_MCP_PORT`), overriding the spec's `expose.mcp.transport`. A **channel** spec does not use this verb — it self-exposes from its own compiled daemon; see [`expose.mcp`](#exposemcp--a-bundle-as-an-mcp-server). |
 | `runs resume <session> [--spec <path>] [--prompt <text>]` | Re-drive a persisted cli session — e.g. one PARKED on a pending approval (resolved via `approvals grant`). Resolves the backing spec from `--spec` or `cwd/crewhaus.yaml`; the run flags a resumed continuation honours (`--model`, `--budget-usd`, `--trace`, `--streaming`, `--justification-judge`, `--egress-matcher`, `--user`, …) are threaded verbatim. `runs` is the run-lifecycle namespace; `resume` is its only CLI verb today. |
-| `approvals list\|show\|grant\|deny <id> [--dir <root>] [--by <who>] [--json]` | Resolve tool-permission approvals a headless run parked under `permissions.ask_mode: pause`: `list`/`show` the pending queue, `grant`/`deny <id>` a decision (recorded with the deciding identity from `--by` / `CREWHAUS_USER`, default `cli`). `grant --once` applies to the next matching tool call only (the default; the runtime consumes a grant on use). After granting, resume the parked run with `runs resume <session>`. |
+| `approvals list\|show\|grant\|deny <id> [--dir <root>] [--by <who>] [--json]` | Resolve tool-permission approvals a headless run parked under `permissions.ask_mode: pause`: `list`/`show` the pending queue, `grant`/`deny <id>` a decision (recorded with the deciding identity from `--by` / `CREWHAUS_USER`, default `cli`). `grant --once` applies to the next matching tool call only (the default; the runtime consumes a grant on use). After granting, resume the parked run with `runs resume <session>`. A grant is bound to the input the operator SAW: if the resumed run's model regenerates the call with different wording, the runtime executes **the approved input**, not the regenerated one, consumes the grant, and tells the model it did so. That is what makes a one-shot grant able to complete a model-driven tool call at all — before 0.5.4 any re-worded argument re-parked the run under a new id, and only `--always` (a standing allow) got a call through. |
 | `export claude-plugin <spec> [--out <dir>] [--force] [--author <name>] [--author-email <e>] [--description <d>]` | Emit an Anthropic-compatible **Claude Code plugin** directory from any target shape. Output defaults to `<cwd>/<pluginName>` and refuses to overwrite a non-empty dir without `--force`. `--author` (default `CrewHaus`) is stamped into `.claude-plugin/plugin.json` (Anthropic's schema requires a non-empty author). |
 | `upgrade [spec] [--write]` | Detect the spec's `version:` drift vs the current CLI and run the migration chain (validated). Dry-run diff by default; `--write` applies. |
 | `migrate-all --from <N> --to <N> [--dry-run]` | Batch-migrate every spec in the registry to a newer IR version. |
@@ -143,6 +143,76 @@ The everyday loop: scaffold a spec, compile it to a bundle, run it.
 `init` scaffold flags (`--ci`, `--with-evals`, `--sentinel`, `--suite`) are
 composable with each other and with an existing harness; `--force`
 overwrites a previously scaffolded workflow or eval assets (never the spec).
+
+### `expose.mcp` — a bundle as an MCP server
+
+Two ways a CrewHaus agent becomes a tool for something else, and they are not
+interchangeable:
+
+| Shape | How | Transport |
+|---|---|---|
+| `cli` | `crewhaus serve --mcp <spec>` — the CLI hosts it | `stdio` (default) or `--sse` |
+| `channel` | the compiled daemon self-exposes | `sse`, on its own public port |
+| `managed` | **not wired** — compile warns | — |
+
+A channel spec opts in and recompiles:
+
+```yaml
+expose:
+  mcp:
+    transport: sse       # `stdio` mounts nothing on a daemon — that is `serve --mcp`
+```
+
+The daemon then serves MCP at **`/mcp`** on its public port (`PORT`, default
+3000) and prints the URL at boot. The projected `chat` tool runs one turn
+through the same loop a channel message drives — same memory fabric, same
+boundary classifier, same permissions.
+
+**It is authenticated**, unlike the rest of that port. The adapter routes are
+signature-verified per platform and `/healthz` is deliberately public, but MCP
+drives whole agent turns with the bundle's tools and credentials. The bearer is
+`CREWHAUS_MCP_TOKEN`, or a 32-byte token minted `0600` into
+`.crewhaus/run/mcp-token` at every boot (a token left by a dead daemon must not
+authenticate against its replacement). Boot prints which is in use.
+
+```
+Authorization: Bearer <token>
+```
+
+Each MCP session gets its own harness session, so two IDEs driving one daemon
+do not share a transcript.
+
+`tools: per-subagent` projects as `chat` on channel and compile says so: the
+channel turn function takes no routing argument, so per-sub-agent tools would
+all drive the same undirected turn. Sub-agents still run *inside* the turn.
+
+**Consuming one.** `mcp_servers: { peer: { transport: sse, url: … } }` reaches
+either HTTP MCP revision — the client tries Streamable HTTP (the 2025-03-26
+revision, which our own `expose.mcp` serves) and falls back to the legacy
+HTTP+SSE transport, remembering which one worked. Before 0.5.4 it spoke only
+the legacy transport, so a CrewHaus peer could never consume a CrewHaus
+`expose.mcp` endpoint — the symptom was `SSE error: Invalid content type`.
+
+### `thredz.messaging` — agent-to-agent messaging
+
+`thredz:` is the MEMORY knob and stays that way: turning it on aliases the 18
+wiki/goal/space tools and nothing outward. The nine A2A messaging tools
+(`agent_register`, `agent_update`, `agent_list`, `message_send`, `inbox_poll`,
+`message_ack`, `thread_get`, `agent_block`, `agent_unblock`) register only when
+the spec asks:
+
+```yaml
+thredz:
+  api_key: $THREDZ_API_KEY
+  messaging: true      # the nine A2A tools — default off
+  agents: true         # register this agent's handle at boot, named from the spec
+```
+
+Reads are read-only; directory and mailbox mutations are destructive; and
+`message_send` alone carries the justification gate — it puts text in front of
+another agent, which is the visible-side-effect class the gate exists for.
+Against a pre-0.3.0 thredz-mcp the messaging tools simply come back as
+unadvertised and the boot warns, never fails.
 
 ---
 
