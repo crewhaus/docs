@@ -193,6 +193,52 @@ HTTP+SSE transport, remembering which one worked. Before 0.5.4 it spoke only
 the legacy transport, so a CrewHaus peer could never consume a CrewHaus
 `expose.mcp` endpoint — the symptom was `SSE error: Invalid content type`.
 
+### Optional MCP peers — `required: false`
+
+```yaml
+mcp_servers:
+  peer:
+    transport: sse
+    url: https://peer.internal/mcp
+    required: false   # default: required — a failed boot stops the run
+```
+
+By default a server that cannot connect at boot fails the run: an agent whose
+instructions assume a tool behaves worse when it silently vanishes than when
+it refuses to start. `required: false` flips that for peers whose absence is a
+normal state — the classic case is two channel daemons that mount each other
+over `expose.mcp`, which otherwise cannot both start first and end up
+`crash-looping` under a supervisor.
+
+An optional server that fails at boot — unreachable, or an `$ENV` secret
+unset — warns and the run continues without its tools. What happens next
+depends on the shape:
+
+- **Channel daemons, batch workers, research runs** keep retrying in the
+  background (the reconnect backoff ladder) and register the peer's tools
+  when it arrives. These shapes re-read their tool catalog per message / job /
+  branch, so the tools reach the model without a restart.
+- **cli, crew, and workflow runs** are one-shot: the tool list is frozen at
+  boot, so there is no retry — the tools are simply absent for that run.
+
+Preflight (`crewhaus doctor`) names each optional server, and an unset secret
+on one is a warning instead of a blocker.
+
+### `ListTools` — what tools does the agent have right now?
+
+Every tool-carrying run also advertises a built-in, read-only `ListTools`
+tool. Calling it lists the tools bound to the **current** request — name,
+flags (read-only / destructive / gated), one-line description. That is
+runtime truth: any enumeration earlier in the transcript can be stale,
+because tools arrive mid-session (an optional MCP peer connecting, a skill
+activating) and vanish (`mcp doctor` quarantine). `ListTools` is auto-allowed
+in every permission mode, so a headless run never parks on it.
+
+The runtime also notices for the model: when a resumed session's toolset
+differs from what the previous turn advertised, a one-line system marker in
+the transcript names what was added and removed — and suggests calling
+`ListTools` to verify.
+
 ### `thredz.messaging` — agent-to-agent messaging
 
 `thredz:` is the MEMORY knob and stays that way: turning it on aliases the 18
