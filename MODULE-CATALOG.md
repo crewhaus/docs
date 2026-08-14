@@ -407,7 +407,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `tool-code-execution` | Sandboxed Python / JavaScript / Shell REPL tools. | CLI, MGD, EVAL, RES, BATCH | T1, T3, T7, T8 | `tool-builder`, `sandbox` |
 | ✅ `tool-web` | Combined `WebFetch(url, prompt?)` (cheerio + turndown markdown rendering with SSRF-guarded allow-list) and `WebSearch(query, …)` (Brave / Tavily providers via env). | CLI, CHN, CRW, RAG, RES | T1, T2, T8 | `tool-builder`, `secrets-manager` |
 | 🔴 `tool-browser` | Stateful browser automation (Playwright/Chromium). | CLI, CHN, CRW, RES, BROW | T1, T3, T7, T8 | `tool-builder`, `sandbox`, `computer-use-driver` |
-| ✅ `tool-mcp` | Wrapper presenting external MCP tools as native tools. | CLI, CHN, MGD, RES, BROW | T1, T2, T3 | `mcp-host`, `tool-builder`, `tool-catalog` |
+| ✅ `tool-mcp` | Wrapper presenting external MCP tools as native tools. Optional peers (`mcp_servers.<name>.required: false`) degrade at boot and register their tools when the server arrives. | CLI, CHN, MGD, RES, BROW | T1, T2, T3 | `mcp-host`, `tool-builder`, `tool-catalog` |
 | ✅ `tool-image` | Read image inputs and present as Anthropic content blocks. Magic-byte sniff. | CLI, CHN, CRW | T1, T8 | `tool-builder` |
 | ✅ `tool-fetch` | Generic HTTP escape hatch with fail-closed allow-list + SSRF guard. | CLI, CHN, CRW, MGD | T1, T8 | `tool-builder` |
 | 🔴 `tool-tts-stt` | TTS + speech-to-text tools. | CHN, VOICE | T1, T2, T7 | `tool-builder`, `voice-runtime`, `audio-stream` |
