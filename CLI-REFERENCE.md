@@ -225,8 +225,10 @@ depends on the shape:
   and the connection is torn down rather than left reconnecting behind a
   finished run.
 
-Preflight (`crewhaus doctor`) names each optional server, and an unset secret
-on one is a warning instead of a blocker.
+The Hangar's pre-spawn preflight (the gate behind `crewhaus hangar`, and
+`GET /api/h/:id/preflight`) names each optional server, and an unset secret on
+one is reported as a warning instead of a blocker — it degrades the peer, it
+does not stop the harness.
 
 ### `ListTools` — what tools does the agent have right now?
 
