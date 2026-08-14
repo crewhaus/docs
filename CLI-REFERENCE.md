@@ -214,12 +214,16 @@ An optional server that fails at boot — unreachable, or an `$ENV` secret
 unset — warns and the run continues without its tools. What happens next
 depends on the shape:
 
-- **Channel daemons, batch workers, research runs** keep retrying in the
-  background (the reconnect backoff ladder) and register the peer's tools
-  when it arrives. These shapes re-read their tool catalog per message / job /
-  branch, so the tools reach the model without a restart.
-- **cli, crew, and workflow runs** are one-shot: the tool list is frozen at
-  boot, so there is no retry — the tools are simply absent for that run.
+- **Channel daemons, batch workers, research runs** keep reconnecting in the
+  background and register the peer's tools when it arrives. These shapes
+  re-read their tool catalog per message / job / branch, so the tools reach
+  the model without a restart. Boot does not wait for the attempt — an
+  unreachable peer answers slowly, and blocking startup on it is the failure
+  this setting exists to remove.
+- **cli, crew, workflow, and eval runs** are one-shot: the tool list is frozen
+  at boot, so there is no retry — the tools are simply absent for that run,
+  and the connection is torn down rather than left reconnecting behind a
+  finished run.
 
 Preflight (`crewhaus doctor`) names each optional server, and an unset secret
 on one is a warning instead of a blocker.
