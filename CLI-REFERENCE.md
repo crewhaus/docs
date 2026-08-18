@@ -466,10 +466,16 @@ does enforce one hard invariant, though: a `synthetic` sample carrying an
 provider default, ~1.0). `llm_judge` verdicts — and therefore
 `(spec, dataset)`-keyed baselines — may shift on the first run after
 upgrading. Override per grader with a rubric-level `temperature:`. The
-adapters that have a native control all map it: Anthropic and
-Anthropic-on-Bedrock (dropped when extended thinking is enabled, per the API
-constraint), OpenAI (dropped for o-series/gpt-5 reasoning models, which
-reject a non-default temperature), Gemini, and Bedrock Converse.
+adapters that have a native control all map it, and each omits the pin
+where its API rejects an explicit temperature: Anthropic and
+Anthropic-on-Bedrock (dropped when extended thinking is enabled, and for
+Claude Opus 4.7+ and all Claude 5-family models — Sonnet 5, Opus 5,
+Fable 5 — which reject the parameter outright), OpenAI (dropped for
+o-series/gpt-5 reasoning models, which reject a non-default temperature),
+Gemini, and Bedrock Converse. If a provider the adapters don't know
+rejects the pin anyway, the judge retries that call once without it. Net:
+the pin holds wherever the model accepts it, and judging works everywhere
+else instead of failing the run.
 
 The `graders.yaml` grammar itself grew — a top-level
 `combine: all|any|weighted` with `passing_threshold`, per-grader `weight`, a
