@@ -607,9 +607,10 @@ is a *directory* — `CREWHAUS_REGISTRY_ROOT`, default `~/.crewhaus`.
 
 Each entry carries `id`, `dir`, `specName`, `target`, `origin`
 (`scan | manual | run-hook | import`), `originDetail`, `registeredAt`,
-`lastSeen`, `groups`, `tags`, `pinned`, `notes`, `kind` (`local | remote`),
-`watchme`, `remotes`, and `missingSince`. The document also holds the
-configured `scanRoots` and the flat, ordered `groups` list.
+`lastSeen`, `groups`, `tags`, `pinned`, `hidden`, `notes`, `kind`
+(`local | remote`), `watchme`, `remotes`, and `missingSince`. The
+document also holds the configured `scanRoots` and the flat, ordered
+`groups` list.
 
 **Ids are stable.** `hrn_` plus 16 hex characters, minted once on first
 registration and kept across renames — `harness relocate` keeps the id and
@@ -618,9 +619,10 @@ moves only `dir`.
 **The upsert identity key is the absolute directory.** Registering the same
 directory twice refreshes the row rather than creating a second one; a
 refresh preserves `id`, `registeredAt`, `origin` and every user-managed
-field (`groups`, `tags`, `pinned`, `notes`) while refreshing `specName`,
-`target` and friends. `findEntry` accepts either an `hrn_` id or a
-directory, discriminating on the id shape.
+field (`groups`, `tags`, `pinned`, `hidden`, `notes`) while refreshing
+`specName`, `target` and friends — so a scan that re-finds a hidden
+harness refreshes the row without unhiding it. `findEntry` accepts
+either an `hrn_` id or a directory, discriminating on the id shape.
 
 **Vanished directories are never silently pruned.** A `list()` that finds
 `dir` gone stamps `missingSince` with the current time; a `list()` that
@@ -946,6 +948,20 @@ stored groups and client-computed smart groups (Failing evals, Unbudgeted,
 Has Thredz, Recently active, Ungrouped, Missing). Missing directories get a
 card with relocate/remove — never a silent prune.
 
+**The Library is curated, not exhaustive.** Every harness row carries a
+`hidden` flag — the row editor's **Visibility** checkbox, over
+`PUT /api/h/:id/visibility {"hidden": true|false}`. Hiding is curation,
+not removal: the entry stays registered with its state, groups and
+history, and it folds out of every view except an explicit **Hidden**
+rail bucket, which lists it until you bring it back. The other half of
+curation is discovery without registration: the **Find harnesses…**
+panel walks the configured scan roots over `GET /api/registry/discover`
+and lists the harnesses *not* yet registered, each with its own Add
+button — you pick which candidates join the Library, so a big checkout
+does not flood it the way a blanket scan would. Scan itself (which
+registers everything it finds) stays available as the labeled bulk
+fallback.
+
 **The driving surfaces**: a Runs & daemons board (`#/runs`) with row actions
 Start / Stop / Restart / Drain, each disabled *with its reason*; a live run
 console per run, fed by SSE that opens with the durable replay and always
@@ -955,8 +971,8 @@ same code path; a four-lane scheduler timeline (heartbeat / schedule / dream
 own process can report; and cross-harness Approvals and Review inboxes that
 settle work through the same stores the CLI writes through.
 
-**The detail surface** adds eight harness tabs and three fleet screens over
-a frozen 178-route contract, across six areas:
+**The detail surface** adds nine harness tabs and four fleet screens over
+a frozen 189-route contract, across seven areas:
 
 1. **the spec's write side** — trust-tier table, diff interstitial, version
    pin/rollback, and the template / grader / dataset / MCP-connector builders;
@@ -970,18 +986,84 @@ a frozen 178-route contract, across six areas:
    verification, egress / PII / compliance / on-chain / retention;
 5. **Thredz**, proxied server-side so the workspace key never reaches the
    browser;
-6. **the raw store inspectors**.
+6. **the raw store inspectors**;
+7. **the Advisor** — the derived alert/suggestion feed and its loops:
+   decisions, trend, reports, and the issue inbox (below).
 
-("Six areas" is the prose grouping. The machine-readable grouping the route
-table and the left rail actually key on is eleven: `spec`, `memory`,
+("Seven areas" is the prose grouping. The machine-readable grouping the route
+table and the left rail actually key on is twelve: `spec`, `memory`,
 `evals`, `data`, `feedback`, `creds`, `channels`, `security`, `thredz`,
-`inspect`, `runtime`.)
+`inspect`, `runtime`, `advisor`.)
+
+**The Advisor** is the triage surface: a per-harness tab
+(`#/h/<id>/advisor`, right after Overview — the strip order is the
+triage order) and a fleet board (`#/advisor`) of every harness's rollup,
+worst first, each row deep-linking its tab. The route surface:
+
+```
+GET  /api/advisor                          GET  /api/h/:id/advisor
+POST /api/h/:id/advisor/:itemId/{act,dismiss,reopen}
+GET  /api/h/:id/advisor/trend
+GET|POST /api/h/:id/advisor/reports        GET /api/h/:id/advisor/reports/:reportId
+GET|POST /api/h/:id/advisor/issues
+```
+
+Three rules bound it.
+
+**Nothing is invented.** Every feed item is derived from a signal another
+panel already reads — preflight, the spec lint, eval health against the
+pinned baseline, the cost fold against the declared budget, incidents,
+parked approvals, overdue dreams, the advice feed — and ranked
+`critical` (the harness cannot do its job), `warn` (degraded or at
+risk), `suggestion` (fine, could be better); within a tier the order is
+the operator's own triage order — can it start, is it healthy, is it
+spending safely, could it be better. A signal the server could not read
+produces no item: an unknown is not an alert. Every item carries a hover
+tooltip (text only, so the injection ban holds) explaining why it
+matters, the fact it was derived from, and what to do. Zero open items
+renders as a first-class "running optimally" state, never an empty
+screen — the empty feed *is* the goal state.
+
+**A suggestion is never an application.** An item's quick action either
+deep-links the tab that owns the fix or queues a CLI verb through the
+job queue — the CLI twin shown beside the button — with argv from a
+closed vocabulary (`doctor`, `compile`, `eval`, `dream-run`, `optimize`,
+`advise`); no request body ever contributes an argv element, and the
+item is re-derived server-side on act, so a stale button cannot run a
+job the current state no longer proposes. Spec writes stay on the spec
+write path. The issue inbox is the same covenant pointed the other way:
+describe a problem, pick a kind (tooltipped per kind), and it queues
+`optimize` — the eval→patch loop whose artifact is a reviewable spec
+patch, and the default — or `eval` / `doctor` / `compile` / `advise`, or
+records a `note`; the issue text never reaches a command line.
+
+**A decision is a record, not a deletion.** Acting opens an inline
+confirm where a comment can be attached, recorded next to the queued
+job's id; dismissing **requires** a reason — the server refuses without
+one, because "why was this alert ignored" must have an answer in the
+ledger, not in somebody's memory. Both append to the harness's own
+`.crewhaus/advisor/decisions.jsonl`; reopen appends a superseding
+record, never an edit, and dismissed items keep their recorded reasoning
+in a collapsible fold until then. Reports — `model-usage`, `costs`,
+`usefulness`, `optimization`, each generate button tooltipped with what
+it measures — persist under `.crewhaus/advisor/reports/` and are listed
+and re-readable in place; issues land in
+`.crewhaus/advisor/issues.jsonl`. All of it is harness-local,
+append-only and torn-line tolerant, so it travels with the directory
+like the run ledger does — and the feed GET derives without writing.
+
+**The trend** answers "is it improving?": the eval pass-rate series, the
+spend series, the decision counts and a one-line verdict, folded from
+durable sources only — the eval index, the cost ledger, the decisions
+ledger. A read persists no snapshot.
 
 Two conventions hold that surface together.
 
 **Every action shows the CLI command it runs.** The console is a front end
-over verbs you can type; the one gap today is the session retention pin,
-which has no CLI verb yet and says so.
+over verbs you can type; the gaps today are the session retention pin
+(which has no CLI verb yet and says so) and the Library's Visibility
+toggle, whose `hidden` flag is settable only over
+`PUT /api/h/:id/visibility`.
 
 **Every read answers `{present, note, verb}`** alongside its payload:
 
@@ -991,7 +1073,7 @@ which has no CLI verb yet and says so.
 - `verb` — the CLI verb that creates it.
 
 So an empty panel tells you *why* it is empty and *which command fills it*,
-rather than rendering a blank card. All 95 of the detail surface's GET
+rather than rendering a blank card. All 101 of the detail surface's GET
 routes go through that base; a contract test asserts the server's route
 table and the browser's are the same set — key, method and path — and then
 drives every route against a live fixture server.
@@ -1016,7 +1098,9 @@ An honest list, all verified against the shipped code.
 - **There is no manager-side action ledger.** `jobs.jsonl` records queued
   work and control.v1 calls append to the harness's own audit log, but a
   spec edit, an `env` set/unset, a session pin or an eval baseline re-pin
-  leaves no manager-side trace.
+  leaves no manager-side trace. Advisor decisions *are* recorded, but
+  harness-side — `.crewhaus/advisor/decisions.jsonl` — not in any manager
+  file.
 - **`GET /api/h/:id/deployments` is read-only and empty today.** Nothing
   writes the file it reads; the empty state names it.
 - **The dataset builder is not bundled.** `GET /api/h/:id/builders/dataset`
@@ -1061,7 +1145,9 @@ An honest list, all verified against the shipped code.
   `eval`, `dream-run`. A body naming anything else gets
   `missing "kind" — one of: doctor, compile, eval, dream-run`. The console's
   other long-running actions submit internal jobs, which are not reachable
-  from that route.
+  from that route. The Advisor's act and issue routes queue from their
+  own closed vocabulary — `optimize` and `advise` included — without
+  widening this one.
 - **Every read is capped, and truncation is always reported.** Notably:
   5 000 JSONL lines or 8 MiB per file, 1 000 raw lines, 256 KiB of plain
   text, 500 memory items, 200 ledger rows, 500 audit records, 500 inspector

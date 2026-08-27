@@ -10,7 +10,7 @@ Test layers: T1, T3
 
 ## Purpose
 
-The machine-wide harness registry: one JSON file, `<registryRoot>/harnesses.json` (format **v2**), listing every registered harness on this machine with a stable `hrn_` id, user-managed groups/tags/pins/notes, configured scan roots, and flat ordered group definitions. It is what makes `crewhaus harness list` and the Hangar console possible without a daemon, a database, or a network.
+The machine-wide harness registry: one JSON file, `<registryRoot>/harnesses.json` (format **v2**), listing every registered harness on this machine with a stable `hrn_` id, user-managed groups/tags/pins/notes, a first-class `hidden` visibility flag (hidden entries stay registered — their state, groups and history survive — but the manager's Library omits them from the default view; never clobbered by an upsert refresh), configured scan roots, and flat ordered group definitions. It is what makes `crewhaus harness list` and the Hangar console possible without a daemon, a database, or a network.
 
 The registry root is a **directory** — `CREWHAUS_REGISTRY_ROOT`, default `~/.crewhaus` — and `CREWHAUS_NO_REGISTRY=1|true` turns every write into a no-op while reads keep working.
 
@@ -30,7 +30,7 @@ Does not own: on-disk harness inspection (`harness-inventory`), process state (`
 
 ## Inputs and Outputs
 
-Inputs: an optional root override, an injected env, and upsert/relocate/remove/group/tag/pin/scan-root mutations.
+Inputs: an optional root override, an injected env, and upsert/relocate/remove/group/tag/pin/visibility (`setHidden`)/scan-root mutations.
 
 Outputs: `HangarHarnessEntry[]` sorted by directory, the document's `scanRoots` and `groups`, and a `disabled` flag that drives the CLI's `note: CREWHAUS_NO_REGISTRY is set …` line.
 

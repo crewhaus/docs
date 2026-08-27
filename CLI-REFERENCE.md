@@ -11,10 +11,17 @@ generated from the CLI at
 You invoke the CLI from inside a harness directory (the standalone-harness
 convention — spec, `.crewhaus/` state, datasets, and MCP config all resolve
 from the current working directory). Install it however you like; see
-[GETTING-STARTED](GETTING-STARTED.md) for the install matrix.
+[GETTING-STARTED](GETTING-STARTED.md) for the install matrix. To keep
+several CrewHaus versions side by side and switch which one `crewhaus`
+runs — the way nvm switches Node — use
+[chvm](https://github.com/StudioMaxIO/chvm), the CrewHaus version manager
+(a git-clone install; chvm itself is not published on npm):
+`chvm use <version>|latest|system|local` points the shim at a pinned npm
+install, the system `crewhaus` on your PATH, or a factory checkout run
+from source, and a switch applies immediately in every open shell.
 
-> **Everything here is additive and opt-in.** As of v0.2.0 the CLI grew from
-> a handful of build/run/eval verbs into a full lifecycle surface — but
+> **Everything here is additive and opt-in.** The CLI is a full lifecycle
+> surface, well beyond a handful of build/run/eval verbs — but
 > existing specs compile byte-identically and every automation is a default,
 > an opt-out flag, or a propose-then-confirm flow over controls that still
 > work by hand. Nothing in this reference removes control; the optimizer's
@@ -494,7 +501,12 @@ and
 ## The observer/advisor
 
 Suggestions that reach beyond the prompt — mined from durable session
-telemetry, validated against the eval gate before anything is applied.
+telemetry, validated against the eval gate before anything is applied. The
+advice feed also has a console surface: the Hangar's
+[Advisor](#the-hangar) folds it — alongside preflight, spec-lint,
+eval-health, cost, incident and parked-approval signals — into one
+severity-ranked feed whose quick actions queue CLI verbs from a closed
+vocabulary, each shown with its CLI twin.
 
 | Command | Purpose |
 | --- | --- |
@@ -531,7 +543,7 @@ also **explores online** [ε-greedy or Thompson sampling] and works on the
 pipeline/research/batch/browser shapes as well as cli/channel/managed; mutually
 exclusive with the previous two), and `budget:` (run-level spend cap). Adaptive
 routing also applies to the interpreted `crewhaus run` path, not just compiled
-bundles. See the [spec reference](GETTING-STARTED.md#model-cost-and-budget-blocks-v020).
+bundles. See the [spec reference](GETTING-STARTED.md#model-cost-and-budget-blocks).
 
 ---
 
@@ -592,7 +604,7 @@ clock — a daemon never reaches a `crewhaus run` teardown — with the same
 (no REPL to exit) and `channelReactions` (the channel shape's own inbound
 gate) parse there for schema uniformity and emit a compile warning rather
 than being silently honoured. See the
-[spec reference](GETTING-STARTED.md#memory-and-feedback-blocks-v020).
+[spec reference](GETTING-STARTED.md#memory-and-feedback-blocks).
 
 ---
 
@@ -614,7 +626,7 @@ testing — the operational safety net for a running harness.
 
 The `observability.slo:` spec block declares production SLOs and the
 mitigation ladder the runtime walks on a sustained breach; see the
-[spec reference](GETTING-STARTED.md#observability-and-slo-block-v020).
+[spec reference](GETTING-STARTED.md#observability-and-slo-block).
 
 ---
 
@@ -676,6 +688,22 @@ this machine (`hangar`), the registry that backs it (`harness`), and the
 terminal twin that supervises one harness with no console running
 (`daemon`). Full reference — the security model, the on-disk layout,
 `crewhaus.control.v1`, and troubleshooting — in [HANGAR.md](HANGAR.md).
+
+The console's screens include the **Advisor**: a per-harness tab and a
+fleet board (`#/advisor`) folding every alert, suggestion and optimization
+signal the manager can derive into one severity-ranked feed
+(`critical | warn | suggestion`), plus a trend view, generated reports
+(model-usage / costs / usefulness / optimization), and an issue inbox that
+turns a described problem into queued CLI work (`optimize` by default) or a
+recorded note. Nothing in the feed is invented, and a suggestion is never
+an application — a quick action queues a CLI verb from a closed vocabulary,
+its CLI twin shown beside the button, or deep-links the screen that owns
+the fix. A decision is a record, not a deletion: acting takes an optional
+comment, dismissing requires a reason, both append to
+`<harness>/.crewhaus/advisor/decisions.jsonl`, and every dismissal can be
+reopened; zero open items renders as "running optimally", not an empty
+screen. The verbs the quick actions queue are the CLI's own — see
+[the observer/advisor](#the-observeradvisor).
 
 One property explains the shape of all three: **supervision state is
 harness-local**, under `<harness>/.crewhaus/run/`. Nothing about a running
