@@ -10,7 +10,7 @@ The standalone documentation repository for [CrewHaus Factory](https://github.co
 - [HANGAR.md](HANGAR.md) — the harness manager: the `crewhaus hangar` console, the Advisor (alerts, suggestions, reports, and the issue inbox — per harness and fleet-wide), library curation, the machine-wide registry, `crewhaus daemon`, `crewhaus.control.v1`, and the security model
 - [PROVIDERS.md](PROVIDERS.md) — the canonical model-provider reference: the model-string grammar, per-provider setup, capabilities, and troubleshooting
 - [WEB-UI.md](WEB-UI.md) — [`@crewhaus/ui`](https://github.com/crewhaus/ui): drop-in, shape-aware web UIs for a compiled harness — quick start, CLI, programmatic API, and how it streams `TraceEvent`s
-- [chvm](https://github.com/StudioMaxIO/chvm) — the CrewHaus version manager: pinned side-by-side `crewhaus` installs, instant shim-based switching (`chvm use`), plus `system` and factory-checkout (`local`) targets; installed from source with Bun
+- [chvm](https://github.com/StudioMaxIO/chvm) — the CrewHaus version manager, and **the recommended way to install `crewhaus`**: pinned side-by-side installs, instant shim-based switching (`chvm use`), plus `system` and factory-checkout (`local`) targets. Needs Bun, on macOS or Linux; Homebrew, Scoop, winget, apt, and npm remain supported alternatives
 - [SKILLS-FORMAT.md](SKILLS-FORMAT.md) — the `SKILL.md` file format, discovery roots, and precedence
 - [COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md) — the meta-harness compiler reference
 - [AI-Harness-Systems.md](AI-Harness-Systems.md) — a survey of production agent harnesses, and the meta-harness argument the factory is built on
