@@ -5,40 +5,33 @@
 >
 > If you only have five minutes, jump to **[Your first agent in 60 seconds](#your-first-agent-in-60-seconds)**.
 >
-> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the bare, unscoped `crewhaus` package. Install it however you like — a self-contained binary needs no runtime:
+> The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the bare, unscoped `crewhaus` package.
 >
-> ```bash
-> brew tap crewhaus/tap && brew install crewhaus          # macOS / Linux (Homebrew)
-> scoop install crewhaus                       # Windows (Scoop)
-> winget install CrewHaus.CLI                   # Windows (winget)
-> # Debian / Ubuntu: signed apt repo at https://crewhaus.github.io/apt
-> npm install -g crewhaus                       # npm/Bun (needs Bun >= 1.2)
-> ```
->
-> Then use `crewhaus ...` throughout (if you added it as a dev dependency with `bun add -d crewhaus`, prefix commands with `bun x`). bun may report blocked postinstalls from transitive dependencies during an npm/Bun install — that's expected and safe to ignore: the skipped scripts are no-ops, the CLI works fully without them, and no `bun pm trust` step is needed.
->
-> Working across `crewhaus` versions — or running a
-> [factory](https://github.com/crewhaus/factory) checkout from source?
-> [chvm](https://github.com/StudioMaxIO/chvm) is the CrewHaus version
-> manager: it switches which `crewhaus` your shell runs, the way nvm
-> switches Node. It isn't published on npm — with [Bun](https://bun.sh)
-> on macOS or Linux:
+> **Install it with [chvm](https://github.com/StudioMaxIO/chvm)**, the CrewHaus version manager — the path we recommend and support. It puts `crewhaus` on your PATH and switches which version your shell runs, the way nvm switches Node. It needs [Bun](https://bun.sh), on macOS or Linux:
 >
 > ```bash
 > git clone https://github.com/StudioMaxIO/chvm
 > cd chvm && bun install && bun src/index.ts setup
+> chvm use latest
 > ```
 >
-> `setup` puts a `crewhaus` shim on your PATH (one line in your shell
-> profile). From there, `chvm use <version>` pins a published release
-> (partial versions resolve — `chvm use 0.5` picks the newest 0.5.x),
-> `chvm use latest` installs the newest release on npm, `chvm use system` steps back to whatever
-> brew or `npm -g` installed, and — the factory-contributor path —
-> `chvm use local [path]` runs a checkout straight from source
-> (`apps/cli/src/index.ts`; the path is remembered). Switches apply
-> immediately in every open shell, because the shim re-reads
-> `~/.chvm/version` on every run; `chvm ls`, `ls-remote`, `current`, and
-> `which` round out the surface.
+> `setup` adds one line to your shell profile and writes a `crewhaus` shim; `chvm use latest` installs the newest release from npm. Confirm with `crewhaus --version`.
+>
+> The extra step buys things a package manager cannot: `chvm use 0.5.4` pins a project to the release it was built against, `chvm use local [path]` runs a [factory](https://github.com/crewhaus/factory) checkout straight from source, and a switch takes effect immediately in every open shell — the shim re-reads `~/.chvm/version` on each run, so nothing needs re-sourcing. Versions can be partial (`chvm use 0.5` picks the newest 0.5.x), and `chvm ls`, `ls-remote`, `current`, and `which` round out the surface.
+>
+> **The other channels are still supported and still current.** Reach for one on Windows, which chvm does not cover, or when you want a self-contained binary on a box with no Bun:
+>
+> ```bash
+> brew tap crewhaus/tap && brew install crewhaus   # macOS / Linux (Homebrew)
+> scoop install crewhaus                           # Windows (Scoop)
+> winget install CrewHaus.CLI                      # Windows (winget)
+> # Debian / Ubuntu: signed apt repo at https://crewhaus.github.io/apt
+> npm install -g crewhaus                          # npm/Bun (needs Bun >= 1.2)
+> ```
+>
+> The two coexist: `chvm use system` hands control back to whichever of those you have installed, and `chvm use latest` takes it again.
+>
+> Then use `crewhaus ...` throughout (if you added it as a dev dependency with `bun add -d crewhaus`, prefix commands with `bun x`). bun may report blocked postinstalls from transitive dependencies during an npm/Bun install — that's expected and safe to ignore: the skipped scripts are no-ops, the CLI works fully without them, and no `bun pm trust` step is needed.
 >
 > If you'd prefer to develop directly against the [crewhaus/factory](https://github.com/crewhaus/factory) workspace, clone it as a sibling and the `compile:*` scripts in demos will fall back to `../factory/apps/cli/src/index.ts`. The packaged-CLI install path is what this guide assumes.
 >
