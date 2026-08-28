@@ -11,15 +11,15 @@ generated from the CLI at
 You invoke the CLI from inside a harness directory (the standalone-harness
 convention — spec, `.crewhaus/` state, datasets, and MCP config all resolve
 from the current working directory). Install it with
-[chvm](https://github.com/StudioMaxIO/chvm), the CrewHaus version manager
-and the recommended path — a git-clone install needing Bun on macOS or
-Linux; chvm itself is not published on npm. `chvm use
+[chvm](https://github.com/crewhaus/chvm), the CrewHaus version manager and
+the recommended path — a git-clone install needing Bun, on macOS, Linux, or
+Windows. chvm is not published on npm, and that name there belongs to an
+unrelated package, so clone it rather than `npm i -g`. `chvm use
 <version>|latest|system|local` points the shim at a pinned npm install, the
 system `crewhaus` on your PATH, or a factory checkout run from source, and a
 switch applies immediately in every open shell. Homebrew, Scoop, winget,
-apt, and npm all still ship the CLI — take one of those on Windows, which
-chvm does not cover. See [GETTING-STARTED](GETTING-STARTED.md) for every
-channel.
+apt, and npm all still ship the CLI. See
+[GETTING-STARTED](GETTING-STARTED.md) for every channel.
 
 > **Everything here is additive and opt-in.** The CLI is a full lifecycle
 > surface, well beyond a handful of build/run/eval verbs — but

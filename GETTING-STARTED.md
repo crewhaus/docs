@@ -7,19 +7,21 @@
 >
 > The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the bare, unscoped `crewhaus` package.
 >
-> **Install it with [chvm](https://github.com/StudioMaxIO/chvm)**, the CrewHaus version manager — the path we recommend and support. It puts `crewhaus` on your PATH and switches which version your shell runs, the way nvm switches Node. It needs [Bun](https://bun.sh), on macOS or Linux:
+> **Install it with [chvm](https://github.com/crewhaus/chvm)**, the CrewHaus version manager — the path we recommend and support. It puts `crewhaus` on your PATH and switches which version your shell runs, the way nvm switches Node. It needs [Bun](https://bun.sh), on macOS, Linux, or Windows:
 >
-> ```bash
-> git clone https://github.com/StudioMaxIO/chvm
+> ```sh
+> git clone https://github.com/crewhaus/chvm
 > cd chvm && bun install && bun src/index.ts setup
 > chvm use latest
 > ```
 >
-> `setup` adds one line to your shell profile and writes a `crewhaus` shim; `chvm use latest` installs the newest release from npm. Confirm with `crewhaus --version`.
+> Those three lines run as written in bash, zsh, and PowerShell. `setup` writes a `crewhaus` shim and puts it on your PATH — one line in your shell profile on macOS and Linux, your user PATH on Windows; `chvm use latest` installs the newest release from npm. Confirm with `crewhaus --version`.
+>
+> Clone it, don't `npm i -g chvm` — chvm is not published on npm, and that name there belongs to an unrelated package.
 >
 > The extra step buys things a package manager cannot: `chvm use 0.5.4` pins a project to the release it was built against, `chvm use local [path]` runs a [factory](https://github.com/crewhaus/factory) checkout straight from source, and a switch takes effect immediately in every open shell — the shim re-reads `~/.chvm/version` on each run, so nothing needs re-sourcing. Versions can be partial (`chvm use 0.5` picks the newest 0.5.x), and `chvm ls`, `ls-remote`, `current`, and `which` round out the surface.
 >
-> **The other channels are still supported and still current.** Reach for one on Windows, which chvm does not cover, or when you want a self-contained binary on a box with no Bun:
+> **The other channels are still supported and still current.** Reach for one when you want a self-contained binary on a box with no Bun:
 >
 > ```bash
 > brew tap crewhaus/tap && brew install crewhaus   # macOS / Linux (Homebrew)
