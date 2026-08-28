@@ -17,19 +17,42 @@
 >
 > Then use `crewhaus ...` throughout (if you added it as a dev dependency with `bun add -d crewhaus`, prefix commands with `bun x`). bun may report blocked postinstalls from transitive dependencies during an npm/Bun install — that's expected and safe to ignore: the skipped scripts are no-ops, the CLI works fully without them, and no `bun pm trust` step is needed.
 >
+> Working across `crewhaus` versions — or running a
+> [factory](https://github.com/crewhaus/factory) checkout from source?
+> [chvm](https://github.com/StudioMaxIO/chvm) is the CrewHaus version
+> manager: it switches which `crewhaus` your shell runs, the way nvm
+> switches Node. It isn't published on npm — with [Bun](https://bun.sh)
+> on macOS or Linux:
+>
+> ```bash
+> git clone https://github.com/StudioMaxIO/chvm
+> cd chvm && bun install && bun src/index.ts setup
+> ```
+>
+> `setup` puts a `crewhaus` shim on your PATH (one line in your shell
+> profile). From there, `chvm use <version>` pins a published release
+> (partial versions resolve — `chvm use 0.5` picks the newest 0.5.x),
+> `chvm use latest` installs the newest release on npm, `chvm use system` steps back to whatever
+> brew or `npm -g` installed, and — the factory-contributor path —
+> `chvm use local [path]` runs a checkout straight from source
+> (`apps/cli/src/index.ts`; the path is remembered). Switches apply
+> immediately in every open shell, because the shim re-reads
+> `~/.chvm/version` on every run; `chvm ls`, `ls-remote`, `current`, and
+> `which` round out the surface.
+>
 > If you'd prefer to develop directly against the [crewhaus/factory](https://github.com/crewhaus/factory) workspace, clone it as a sibling and the `compile:*` scripts in demos will fall back to `../factory/apps/cli/src/index.ts`. The packaged-CLI install path is what this guide assumes.
 >
 > **Status:** `crewhaus` and the supporting `@crewhaus/*` libraries are public on npm — no scope access needed. (The earlier `@crewhaus/cli` package name is deprecated and points at `crewhaus`.)
 
-> **New in v0.2.0 — the automation release.** Harnesses can now build their
-> own evals, tune themselves from real usage, and heal their own operations,
-> with manual control preserved everywhere. Two flagship commands anchor it:
+> **The automation layer.** Harnesses build their own evals, tune
+> themselves from real usage, and heal their own operations, with manual
+> control preserved everywhere. Two flagship commands anchor it:
 > **`crewhaus flywheel run`** runs the nightly self-improvement loop (compile
 > → eval → optimize → gate → write-back) as one command, and **`crewhaus
 > advise`** mines your session logs into eval-validated spec suggestions.
-> Every addition is additive and opt-in — existing specs compile
-> byte-identically. See the [full CLI reference](CLI-REFERENCE.md) and the
-> [optional v0.2.0 spec blocks](#optional-spec-blocks-v020).
+> The whole layer is additive and opt-in — a spec that never engages it
+> compiles byte-identically. See the [full CLI reference](CLI-REFERENCE.md)
+> and the [optional spec blocks](#optional-spec-blocks).
 
 ---
 
@@ -340,8 +363,8 @@ agent:
 >   max_tokens: 32000   # optional, cli-only; omit it for the 8,192 default
 > ```
 >
-> It's optional and `cli`-only. A turn that hits the cap mid-tool-call no
-> longer wedges the session — the runtime drops the truncated call and
+> It's optional and `cli`-only. A turn that hits the cap mid-tool-call
+> doesn't wedge the session — the runtime drops the truncated call and
 > asks the model to continue.
 
 Once the agent has any tools, the next thing the spec should declare
@@ -516,17 +539,17 @@ Different `target:` values unlock additional top-level fields. A
 `edges:`. The smallest example for each shape is the best reference —
 they're all under `starters/`.
 
-### Optional spec blocks (v0.2.0)
+### Optional spec blocks
 
-v0.2.0 added several **optional** cross-cutting blocks. Every one is
-additive and opt-in: a spec that omits them parses and compiles
-byte-identically to before. Declare only what you want; each block is
-`.strict()`, so a typo'd sub-key fails the build rather than being
-silently ignored. The blocks are carried on the interactive shapes that
-consume them (mostly `cli`, `channel`, `managed`); the schema is the
-source of truth for which shape carries which block.
+The spec surface includes several **optional** cross-cutting blocks.
+Every one is additive and opt-in: a spec that omits them compiles
+exactly as if the blocks didn't exist. Declare only what you want;
+each block is `.strict()`, so a typo'd sub-key fails the build rather
+than being silently ignored. The blocks are carried on the interactive
+shapes that consume them (mostly `cli`, `channel`, `managed`); the
+schema is the source of truth for which shape carries which block.
 
-#### Model, cost, and budget blocks (v0.2.0)
+#### Model, cost, and budget blocks
 
 Three ways to make model choice and spend resilient. Model fields stay
 outside the optimizer's reach, so these are declarations *you* make, not
@@ -576,9 +599,9 @@ budget:
 entry — it re-issues the same turn onto the next `model_fallbacks`
 candidate (a no-op when no chain is declared).
 
-Since **v0.2.1**, `agent.model_pool` is the N-candidate, learning
-generalisation of `model_tiers`: declare a set of candidate models and a
-selection `policy`, and the runtime picks one per turn. It is mutually
+`agent.model_pool` is the N-candidate, learning generalisation of
+`model_tiers`: declare a set of candidate models and a selection
+`policy`, and the runtime picks one per turn. It is mutually
 exclusive with `model_tiers` / `model_fallbacks` (it is their superset), so it
 gets its own block. It works on the `cli`, `channel`, `managed`, `pipeline`,
 `research`, `batch`, and `browser` shapes, and on both compiled bundles and the
@@ -597,7 +620,7 @@ agent:
     objective: { quality: 0.7, cost: 0.2, latency: 0.1 }   # optional weights
     learning:                                               # learned policy only
       minSamplesPerArm: 25
-      bandit: thompson           # epsilon-greedy (default) | thompson   (v0.2.2)
+      bandit: thompson           # epsilon-greedy (default) | thompson
       explorationRate: 0.05      # ε for epsilon-greedy; ignored by thompson
 ```
 
@@ -606,7 +629,7 @@ easy turns to a `cheap` one, using the same difficulty signals as `model_tiers`.
 `learned` picks the best model *per difficulty band* from a durable reward
 scoreboard (`.crewhaus/routing/arms.jsonl`) that accumulates across runs — so
 the choice improves the more the harness is used, folding each turn's success,
-latency, and cost back in. Since **v0.2.2** a converged `learned` pool also
+latency, and cost back in. A converged `learned` pool also
 **explores online** so it can notice model drift instead of hard-committing to
 the argmax: `bandit: epsilon-greedy` (default) tries a non-best arm
 `explorationRate` of the time, and `bandit: thompson` draws each arm from its
@@ -619,7 +642,7 @@ stays outside the optimizer's reach — learning only tunes selection *within* t
 set you declare (though `crewhaus advise` will mine the scoreboard and suggest
 *policy* tweaks, eval-gated through `optimize --from-advice`).
 
-#### Memory and feedback blocks (v0.2.0)
+#### Memory and feedback blocks
 
 The `memory:` block's mere presence wires the Remember/Recall tools into
 the harness. `feedback:` declares that the harness collects human ratings
@@ -646,7 +669,7 @@ feedback:
   channelReactions: true            # channel shape only
 ```
 
-#### Observability and SLO block (v0.2.0)
+#### Observability and SLO block
 
 Declare production Service-Level Objectives and the mitigation ladder the
 runtime walks on a **sustained** breach. Every target is optional (declare
@@ -671,7 +694,7 @@ observability:
 `doctor --slo` / `--ttft` probes recent p95 TTFT against
 `observability.slo.ttft_ms` and names faster candidates on a breach.
 
-#### The `version:` field (v0.2.0)
+#### The `version:` field
 
 An optional non-negative integer schema-version stamp. It exists so the
 `crewhaus upgrade` migration chain has somewhere to record which schema
@@ -1255,14 +1278,13 @@ Day to day you invoke it from inside a harness directory as
 applies the same way regardless of how you launched the CLI.
 
 > **The complete command surface — [CLI-REFERENCE.md](CLI-REFERENCE.md).**
-> v0.2.0 grew the CLI from a handful of build/run/eval verbs into a full
-> lifecycle surface (the eval flywheel, the observer/advisor, model & cost
-> automation, self-healing ops, fleet, and more), and v0.4.x grew the eval
-> half again (suite tiering, red-teaming, dataset lifecycle and lint, grader
-> meta-eval, a human-review queue, trend and export reporting). The table
-> below is the everyday subset; the reference documents every subcommand and
-> its flags, grouped by task. `crewhaus <subcommand> --help` is always
-> authoritative.
+> The CLI is a full lifecycle surface, not just a handful of build/run/eval
+> verbs: the eval flywheel, the observer/advisor, model & cost automation,
+> self-healing ops, fleet, and a deep eval toolchain (suite tiering,
+> red-teaming, dataset lifecycle and lint, grader meta-eval, a human-review
+> queue, trend and export reporting). The table below is the everyday
+> subset; the reference documents every subcommand and its flags, grouped
+> by task. `crewhaus <subcommand> --help` is always authoritative.
 
 | Subcommand                                   | Purpose                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -1303,6 +1325,14 @@ you're ready to let a harness improve itself, reach for `flywheel` and
 > `crewhaus daemon` does the same supervision from a shell script. Both
 > drive the same state, which lives inside each harness under
 > `.crewhaus/run/`, so a daemon either one starts is picked up by the other.
+> The console is more than supervision: every harness carries an **Advisor**
+> tab — one severity-ranked feed of every alert and optimization suggestion
+> the manager can derive from what its other panels already read, each item
+> carrying a hover tooltip and, where a fix exists, a quick action that
+> queues the matching CLI verb (with the CLI twin named beside it) or
+> deep-links the tab that owns the fix — plus a fleet-wide board at `#/advisor`. Acting and
+> dismissing are recorded decisions, not deletions; [HANGAR.md](HANGAR.md)
+> walks the tab in full.
 
 > **Contributors — in-tree dev loop.** Inside a clone of the
 > [demos repo](https://github.com/crewhaus/demos), `demos/package.json`

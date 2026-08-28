@@ -7,9 +7,10 @@ The standalone documentation repository for [CrewHaus Factory](https://github.co
 - [Whitepaper — *CrewHaus: A Meta-Harness Compiler for AI Agents*](whitepaper/crewhaus-meta-harness-compiler.pdf) — the positioning + architecture paper (PDF; [Markdown source](whitepaper/crewhaus-meta-harness-compiler.md))
 - [GETTING-STARTED.md](GETTING-STARTED.md) — guided tour for new users, from first principles to a runnable agent
 - [CLI-REFERENCE.md](CLI-REFERENCE.md) — the complete `crewhaus` command surface, grouped by task (build/run, the eval flywheel, the observer/advisor, model & cost automation, self-healing ops, deploy/govern, fleet, safety, compliance)
-- [HANGAR.md](HANGAR.md) — the harness manager: the `crewhaus hangar` console, the machine-wide registry, `crewhaus daemon`, `crewhaus.control.v1`, and the security model
+- [HANGAR.md](HANGAR.md) — the harness manager: the `crewhaus hangar` console, the Advisor (alerts, suggestions, reports, and the issue inbox — per harness and fleet-wide), library curation, the machine-wide registry, `crewhaus daemon`, `crewhaus.control.v1`, and the security model
 - [PROVIDERS.md](PROVIDERS.md) — the canonical model-provider reference: the model-string grammar, per-provider setup, capabilities, and troubleshooting
 - [WEB-UI.md](WEB-UI.md) — [`@crewhaus/ui`](https://github.com/crewhaus/ui): drop-in, shape-aware web UIs for a compiled harness — quick start, CLI, programmatic API, and how it streams `TraceEvent`s
+- [chvm](https://github.com/StudioMaxIO/chvm) — the CrewHaus version manager: pinned side-by-side `crewhaus` installs, instant shim-based switching (`chvm use`), plus `system` and factory-checkout (`local`) targets; installed from source with Bun
 - [SKILLS-FORMAT.md](SKILLS-FORMAT.md) — the `SKILL.md` file format, discovery roots, and precedence
 - [COMPILER-ARCHITECTURE.md](COMPILER-ARCHITECTURE.md) — the meta-harness compiler reference
 - [AI-Harness-Systems.md](AI-Harness-Systems.md) — a survey of production agent harnesses, and the meta-harness argument the factory is built on
