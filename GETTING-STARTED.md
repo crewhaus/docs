@@ -7,19 +7,18 @@
 >
 > The examples below live in the [crewhaus/demos](https://github.com/crewhaus/demos) repo (clone or copy it). The compiler and runtime ship as the bare, unscoped `crewhaus` package.
 >
-> **Install it with [chvm](https://github.com/crewhaus/chvm)**, the CrewHaus version manager — the path we recommend and support. It puts `crewhaus` on your PATH and switches which version your shell runs, the way nvm switches Node. It needs [Bun](https://bun.sh), on macOS, Linux, or Windows:
+> **Install it with [chvm](https://github.com/crewhaus/chvm)**, the CrewHaus version manager — the path we recommend and support. It puts `crewhaus` on your PATH and switches which version your shell runs, the way nvm switches Node:
 >
 > ```sh
-> git clone https://github.com/crewhaus/chvm
-> cd chvm && bun install && bun src/index.ts setup
+> npm install -g @crewhaus/chvm
 > chvm use latest
 > ```
 >
-> Those three lines run as written in bash, zsh, and PowerShell. `setup` writes a `crewhaus` shim and puts it on your PATH — one line in your shell profile on macOS and Linux, your user PATH on Windows; `chvm use latest` installs the newest release from npm. Confirm with `crewhaus --version`.
+> Works on macOS, Linux, and Windows; `bun add -g` and `pnpm add -g` do the same thing. The first `chvm use` also puts a `crewhaus` shim on your PATH — one line in your shell profile, or your user PATH on Windows — and tells you what it changed. Confirm with `crewhaus --version`.
 >
-> Clone it, don't `npm i -g chvm` — chvm is not published on npm, and that name there belongs to an unrelated package.
+> chvm itself runs on Node, so it installs anywhere npm does. [Bun](https://bun.sh) is what runs `crewhaus`, so you need it before `chvm use` can fetch a release — chvm says so if it is missing. Mind the scope: the bare `chvm` on npm is an unrelated package.
 >
-> The extra step buys things a package manager cannot: `chvm use 0.5.4` pins a project to the release it was built against, `chvm use local [path]` runs a [factory](https://github.com/crewhaus/factory) checkout straight from source, and a switch takes effect immediately in every open shell — the shim re-reads `~/.chvm/version` on each run, so nothing needs re-sourcing. Versions can be partial (`chvm use 0.5` picks the newest 0.5.x), and `chvm ls`, `ls-remote`, `current`, and `which` round out the surface.
+> It buys things a plain package install cannot: `chvm use 0.5.4` pins a project to the release it was built against, `chvm use local [path]` runs a [factory](https://github.com/crewhaus/factory) checkout straight from source, and a switch takes effect immediately in every open shell — the shim re-reads `~/.chvm/version` on each run, so nothing needs re-sourcing. Versions can be partial (`chvm use 0.5` picks the newest 0.5.x), and `chvm ls`, `ls-remote`, `current`, and `which` round out the surface.
 >
 > **The other channels are still supported and still current.** Reach for one when you want a self-contained binary on a box with no Bun:
 >

@@ -12,9 +12,9 @@ You invoke the CLI from inside a harness directory (the standalone-harness
 convention — spec, `.crewhaus/` state, datasets, and MCP config all resolve
 from the current working directory). Install it with
 [chvm](https://github.com/crewhaus/chvm), the CrewHaus version manager and
-the recommended path — a git-clone install needing Bun, on macOS, Linux, or
-Windows. chvm is not published on npm, and that name there belongs to an
-unrelated package, so clone it rather than `npm i -g`. `chvm use
+the recommended path — `npm install -g @crewhaus/chvm`, on macOS, Linux, or
+Windows. Mind the scope: the bare `chvm` on npm is an unrelated package.
+`chvm use
 <version>|latest|system|local` points the shim at a pinned npm install, the
 system `crewhaus` on your PATH, or a factory checkout run from source, and a
 switch applies immediately in every open shell. Homebrew, Scoop, winget,
