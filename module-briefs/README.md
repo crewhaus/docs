@@ -40,7 +40,7 @@ To see which task-oriented walkthrough exercises each catalog layer (i.e. "is mo
 | 21 | [`spec-validator`](021-spec-validator.md) | implemented and tested | F1 - Spec & IR | named in Part G |
 | 22 | [`ir-model`](022-ir-model.md) | implemented and tested | F1 - Spec & IR | named in Part G |
 | 23 | [`ir-passes`](023-ir-passes.md) | planned | F1 - Spec & IR | named in Part G |
-| 24 | [`migration-engine`](024-migration-engine.md) | planned | F1 - Spec & IR | named in Part G |
+| 24 | [`migration-engine`](024-migration-engine.md) | implemented and tested | F1 - Spec & IR | named in Part G |
 | 25 | [`compiler-core`](025-compiler-core.md) | implemented and tested | F2 - Compiler & Codegen | named in Part G |
 | 26 | [`bundle-packager`](026-bundle-packager.md) | planned | F2 - Compiler & Codegen | named in Part G |
 | 27 | [`spec-registry`](027-spec-registry.md) | planned | F1 - Spec & IR | inferred from catalog layer F1 |
@@ -386,3 +386,14 @@ To see which task-oriented walkthrough exercises each catalog layer (i.e. "is mo
 | 275 | [`speculation-cache`](275-speculation-cache.md) | planned | R18 - Specialized / Advanced | inferred from catalog layer R18 |
 | 276 | [`commitments-engine`](276-commitments-engine.md) | planned | R18 - Specialized / Advanced | inferred from catalog layer R18 |
 
+## v0.6.0: Per-model settings and hybrid routing
+
+Three new packages from the model-plan release, plus two back-filled briefs for packages that shipped earlier without one.
+
+| # | Module | Status | Catalog layer | Origin |
+|---:|---|---|---|---|
+| 307 | [`model-plan`](307-model-plan.md) | implemented and tested | R2 - Model Layer | v0.6.0 model-plan release |
+| 308 | [`model-service`](308-model-service.md) | implemented and tested | R2 - Model Layer | v0.6.0 model-plan release |
+| 309 | [`tool-consult`](309-tool-consult.md) | implemented and tested | R4 - Built-in Tool Implementations | v0.6.0 model-plan release |
+| 310 | [`routing-store`](310-routing-store.md) | implemented and tested | R2 - Model Layer | back-fill — shipped with adaptive routing in v0.2.2 |
+| 311 | [`watchme-store`](311-watchme-store.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | back-fill — shipped with the watch-me subsystem |

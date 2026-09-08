@@ -545,9 +545,12 @@ schema is the source of truth for which shape carries which block.
 
 #### Model, cost, and budget blocks
 
-Three ways to make model choice and spend resilient. Model fields stay
-outside the optimizer's reach, so these are declarations *you* make, not
-knobs the flywheel touches.
+Three ways to make model choice and spend resilient — and, from v0.6.0, a
+`models:` registry that gives each of them per-model settings (see
+[Per-model settings and hybrid setups](#per-model-settings-and-hybrid-setups)
+below). Which model serves stays outside the optimizer's reach, so the roster
+is a declaration *you* make, not a knob the flywheel touches; only the
+quality/cost dials on a declared model are tunable.
 
 ```yaml
 agent:
@@ -636,6 +639,108 @@ stays outside the optimizer's reach — learning only tunes selection *within* t
 set you declare (though `crewhaus advise` will mine the scoreboard and suggest
 *policy* tweaks, eval-gated through `optimize --from-advice`).
 
+#### Per-model settings and hybrid setups
+
+Everything above picks *which* model. This picks which model **with which
+settings**, and lets a cheap worker hand a hard turn to a stronger one.
+
+A `models:` block declares each model once, by name, with the settings it
+should be called with. Any model slot in the spec then refers to it as
+`$name`. Nothing new reaches the runtime: a `$ref` on a single-model slot is
+expanded at compile time into the fields that already existed, so a spec that
+uses the registry and a spec that repeats the settings inline lower to the
+same IR.
+
+The motivating shape is a **cascade**: cheap drafts, a stronger checker
+grades them, and the strong model redoes the turn when the grade fails.
+`crewhaus init --hybrid` scaffolds exactly this, commented line by line:
+
+```yaml
+# Per-model settings, declared ONCE and referenced as `$name` from any model
+# slot. Slot-local keys override a profile field by field; `tags` are the
+# routing identity, so keep them meaningful.
+models:
+  fast:
+    model: claude-haiku-4-5
+    tags: [cheap]
+  strong:
+    model: claude-sonnet-4-6
+    tags: [strong]
+
+agent:
+  model: $fast
+  instructions: …
+  model_pool:
+    # The roster. Every arm is a profile, so the reward scoreboard records
+    # under the PROFILE name and survives a model-id change.
+    candidates:
+      - { model: $fast,   tags: [cheap] }
+      - { model: $strong, tags: [strong] }
+    # `heuristic` routes on deterministic per-turn signals. Move to `learned`
+    # once every arm has samples — `crewhaus route propose` says when, and
+    # eval-gates the flip.
+    policy: heuristic
+    strategy:
+      # The cascade: the cheap arm DRAFTS, the judge below grades it, and a
+      # failing grade re-runs the turn on the strong arm.
+      cascade: { draft: cheap, escalate_to: strong, clean_prompt: true }
+      max_escalations: 1
+
+# The judge that grades each draft. `on_fail: escalate` is what turns the
+# grade into the cascade's trigger.
+evaluation:
+  grader:
+    type: llm_judge
+    criteria: "Does the answer fully and correctly address the user's request?"
+    model: strongest
+  threshold: 0.7
+  on_fail: escalate
+  allow_self_judge: true
+```
+
+That last flag is the honest part. In a two-arm cascade the checker *is* the
+strong arm, so the judge grades a model it also serves as. The compiler calls
+that a measurement-integrity hazard and warns unless you say you meant it.
+Declare a third profile and point the judge at it the moment the grade needs
+to be trusted on its own — in an eval gate, or in a report someone acts on.
+
+**A profile can carry more than parameters.** `tools:` narrows the advertised
+toolset for that model (subset-only — a profile can never *add* a tool);
+`permissions:` narrows the decisions, carrying `deny` and `ask` alone;
+`instructions:` adds an overlay; `rate_limits`, `requires`, `fallbacks` and
+`circuit_breaker` are per-profile too. So "the cheap arm drafts with read-only
+tools while the strong arm has the full set" is one block, not a second spec.
+
+**Beyond the cascade**, `model_pool.strategy` also declares:
+
+| Strategy | What it does |
+|---|---|
+| `guide` | A stronger model writes a short plan the cheap model executes. |
+| `shadow` | Re-runs a sampled share of turns on an audition candidate *after* the primary answered, grades the pair blind, and records both — steering nothing until you promote it. |
+| `committee` | Several arms answer and a judge picks. Single-turn hosts only (workflow steps, graph nodes, crew roles): a REPL turn is one someone is waiting on. |
+| `model_directed` | Registers `Consult` and `Escalate`, so the serving model can ask a roster sibling a question or admit the turn is beyond it. `Consult`'s target resolves against the roster only — a model can never name a model your spec did not declare. |
+
+**Seeing what happened.** Every hybrid decision is on the record:
+
+```bash
+crewhaus models explain          # each slot's profile, the strategy in a sentence
+crewhaus models audit            # pricing, capabilities, and which knobs a provider drops
+crewhaus route explain <session> # one run as a timeline: route → directive → stage
+crewhaus route status --by profile
+```
+
+**Spend stays inside one ceiling.** Judge, guide, classifier, consult,
+committee, shadow and compaction calls are all metered as auxiliary spend, and
+`budget.judge_share` caps their share of `budget.usd` — so adding a checker
+tightens the budget rather than quietly doubling it.
+
+**Before you rely on it, measure it.** `crewhaus eval --routing as-declared`
+runs the eval through the pool the spec declares, off a frozen arm snapshot so
+the measurement cannot move the harness's learned policy;
+`--routing candidate:$fast` measures one arm alone. `eval --models pool
+--record` runs a cell per arm, and `eval leaderboard` ranks them and refuses
+to name a winner the evidence cannot support.
+
 #### Memory and feedback blocks
 
 The `memory:` block's mere presence wires the Remember/Recall tools into
@@ -693,7 +798,12 @@ observability:
 An optional non-negative integer schema-version stamp. It exists so the
 `crewhaus upgrade` migration chain has somewhere to record which schema
 version a spec targets. Absent means "current/unversioned" (fully
-back-compat); you rarely write it by hand — migrations stamp it.
+back-compat); you rarely write it by hand — migrations stamp it. v0.6.0
+ships the first real migration (1 → 2), and it is comment- and
+key-order-preserving, so running `crewhaus upgrade --write` on a
+carefully-commented spec gives you back your spec with a version stamp, not a
+re-serialised copy of it. An older CLI does not refuse a newer spec: it parses
+and compiles it with its own semantics, and only `upgrade` reports the drift.
 
 ```yaml
 version: 1

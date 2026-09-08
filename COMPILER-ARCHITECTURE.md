@@ -292,7 +292,7 @@ Two `compile()`-adjacent gates reuse the same variant-agnostic `collectToolNames
 
 The ir-passes now split into two families, and `compile()` treats them differently. From the pass header ([packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts)):
 
-- **VALIDATING** — `transactionPolicyEnforcement`, `wellFormednessCheck`, `memoryIntegrityPass`. Pure pass-throughs that **rewrite nothing** and `throw IrPassError` on a violation (dangling graph edge, unreachable node, a `when`/`parallel` reference to a node that doesn't exist, chain referential-integrity breakage, an out-of-bounds `memory.wiki.recallK`, session-scope continuity on a non-session shape, …).
+- **VALIDATING** — `transactionPolicyEnforcement`, `wellFormednessCheck`, `memoryIntegrityPass`, and (v0.6.0) `modelPlanIntegrity`. Pure pass-throughs that **rewrite nothing** and `throw IrPassError` on a violation (dangling graph edge, unreachable node, a `when`/`parallel` reference to a node that doesn't exist, chain referential-integrity breakage, an out-of-bounds `memory.wiki.recallK`, session-scope continuity on a non-session shape, a per-model tool list that is not a subset of its block's, …).
 - **REWRITING** — `deadToolElimination`, `redundantMcpServerCollapse`, `permissionRuleCanonicalize`, `promptCachePrefixSort`. Structural optimisations that *do* change the IR.
 
 `compile()` runs the validating family **unconditionally**, between `lower()` and `emit()`:
@@ -311,7 +311,7 @@ const bundle = emit(ir, { readme: opts.readme !== false });
 return { files: bundle.files, warnings: collectCompileWarnings(spec) };
 ```
 
-The rationale is exactly the byte-drift argument that kept the passes opt-in before: rewriting passes *can* change bundle bytes, so they stay behind `applyIrPasses: true` for codegen consumers who have validated their outputs. But validating passes **cannot** drift bytes — they either return the IR untouched or throw — so there is no reason to gate them, and a spec that violates referential integrity should fail the *build* rather than emit a bundle that breaks at runtime. `VALIDATING_PASSES` is exported from ir-passes and is also spliced into `DEFAULT_PIPELINE` (in the same relative order: chain integrity → graph/crew well-formedness → memory/continuity integrity), so `applyPasses(ir)` remains a complete standalone audit and the double-run under `applyIrPasses: true` is free (pure pass-throughs on an already-valid IR).
+The rationale is exactly the byte-drift argument that kept the passes opt-in before: rewriting passes *can* change bundle bytes, so they stay behind `applyIrPasses: true` for codegen consumers who have validated their outputs. But validating passes **cannot** drift bytes — they either return the IR untouched or throw — so there is no reason to gate them, and a spec that violates referential integrity should fail the *build* rather than emit a bundle that breaks at runtime. `VALIDATING_PASSES` is exported from ir-passes and is also spliced into `DEFAULT_PIPELINE` (in the same relative order: chain integrity → graph/crew well-formedness → memory/continuity integrity → model-plan integrity), so `applyPasses(ir)` remains a complete standalone audit and the double-run under `applyIrPasses: true` is free (pure pass-throughs on an already-valid IR).
 
 ## Loop-contract-0.4 field lowering (v0.4.0)
 
@@ -342,6 +342,71 @@ Three lowering conventions worth internalising, all consistent with the rest of 
 - **Safety controls stay off the optimizer surface.** `evaluation.threshold` and `evaluation.max_retries` join `OPTIMIZABLE_PATHS` (field-preserving 1:1 through `lower()`), but the grader itself, `permissions.ask_mode`, and `knowledge` sources are deliberately excluded — same rule the [lossy-lower section](#the-lossy-lower-and-how-crewhaus-optimize-writes-back) applies to permission rules and secrets.
 
 The graph additions (`when` / `parallel` / `messageSchemas`) are the reason the validating `wellFormednessCheck` pass matters more in 0.4.0: it re-verifies that every `when.key` names a declared node, that reachability holds *through* parallel barriers (a group whose first member is reachable makes all its members reachable), and that named edge schemas resolve — throwing `IrPassError` rather than emitting a graph that deadlocks at runtime.
+
+## Model-plan lowering (v0.6.0)
+
+The 0.6.0 release makes *"which model, with which settings, which tools, and which judge, for this call"* a compiled fact rather than a boot constant. Its whole spec surface funnels through one lowering idea:
+
+```mermaid
+flowchart LR
+    Y["models: registry + $profile refs on every model slot"] --> L[lower]
+    L --> IR["IrModelProfile on candidates · modelProfile? + temperature? on slots"]
+    IR --> V["modelPlanIntegrity (validating pass)"]
+    V --> E["emit&lt;Target&gt; — literal routing fields + ONE call"]
+    E --> W["wireModels(fragment, deps)  · @crewhaus/model-service"]
+```
+
+**Spec** ([packages/spec/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts)): a new top-level `models:` block, accepted on **all fourteen shapes**. Each entry is a named profile — a model string plus the settings that model should be called with (`max_tokens`, `thinking`, the new `temperature`, `instructions` overlay, `tools`, `tool_config`, a restricted `permissions`, `rate_limits`, `cost`, `requires`, `capabilities`, `fallbacks`, `circuit_breaker`, `tags`). Every model slot in the spec then accepts `$name` in place of a model string, and a `model_pool` candidate accepts the same per-candidate settings inline.
+
+**A `$profile` reference is a lower-time macro.** On a single-model slot it expands into the IR fields that already exist — `model`, `thinking`, `maxTokens`, plus a new `temperature` — together with a provenance-only `modelProfile` name; a profile `instructions` overlay folds into the slot's instructions. Nothing downstream of the compiler ever sees a `$`. Only the multi-candidate pool carries per-candidate settings to runtime, and it does so inside the one pool blob every emitter already writes verbatim.
+
+Three lowering rules worth knowing:
+
+- **Every slot resolves, including the ones that used to bypass the shared resolver.** `resolveModelRef` runs at each of them: the agent / step / node / role model, pool candidates, tiers and fallbacks, the evaluation judge and its panel, the budget degrade model, the security and watch-me judges, sub-agents, and the browser grounding model. A slot the resolver never reached would be the one place a `$fast` survived into a bundle.
+- **A seventh case sits outside the compiler.** `extractSpecModel` ([packages/preflight/src/credentials.ts](https://github.com/crewhaus/factory/blob/main/packages/preflight/src/credentials.ts)) reads *spec text*, not IR, and its answer picks the provider whose credentials `crewhaus doctor` and the `run` preflight demand. It resolves the reference against the same spec's `models:` block before returning, keeping its tolerant contract (`undefined` for anything it cannot resolve). Left alone, an unresolved `$fast` would reach the model-grammar parser, throw, and give every spec that adopts the registry a wrong credential verdict.
+- **`cheapest` keeps working, and `strongest` is new.** `strongest` resolves **roster-first** — the first `strong`-tagged profile or candidate, else the last declared — and falls back to price rank only for a bare single-model spec. A price-rank-only `strongest` was rejected because the pricing-table lookup returns nothing for a provider outside the table and refuses to cross providers, which would make "local cheap worker plus hosted strong judge" uncompilable. Inside a profile's own `model:` (or a candidate's), the sentinels resolve by price rank only — otherwise the resolution is circular. A `strongest` that crosses providers is noted by `lint` and `doctor`: a local primary with a hosted judge ships transcript content off-box and needs a second credential.
+
+**IR** ([packages/ir/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir/src/index.ts)): no new variant and no version bump — this is field enrichment, the 0.4.0 pattern. A new `IrModelProfile` carries the resolved settings; `IrModelPoolCandidate` becomes `IrModelProfile & { tags, enabled? }`, so today's `{ model, tags }` candidate remains a valid value with every new key absent and existing pools lower and emit byte-identically. `IrModelPool` gains `rules`, `directives`, `classifier`, `strategy`, `reward` and `scope`; graph nodes and sub-agent definitions gain routing blocks; `IrBudget` gains `judgeShare` and `scope`.
+
+**Compile-time validation** happens in two places, deliberately:
+
+- **At pool lowering**, against the capability and pricing tables — a profile whose `requires`, `thinking` or tool set the table says the model cannot serve is a `CompilerError`; an announced sunset is a warning; a non-table provider that declares no `capabilities:` is warned that the adapter's own feature matrix is the only gate.
+- **In `modelPlanIntegrity`**, the validating ir-pass appended last in `VALIDATING_PASSES` so it runs unconditionally through `compile()` and in `crewhaus lint`. It checks that a candidate's `tools` are a subset of the block's, that a profile's `permissions` carry only `deny` / `ask` (a profile may narrow the shape's decisions, never widen them), that `enabled: false` leaves at least one routable candidate, that every strategy / rule / floor role slot names a declared tag or arm, and that the pool blob survives a JSON round-trip unchanged. It returns the IR untouched when no model keys are present, so it cannot drift bytes.
+
+  The **"judge ≠ serving arm"** check is deliberately *not* in the throwing pass. It is a `compile()` warning scoped to specs that opt into `models:` or a pool `strategy`, silenced by `allow_self_judge: true`, so a spec that was valid before this release still compiles.
+
+**`ACCEPTED_BUT_UNWIRED` gains no rows.** That table's contract is that a row exists only while the shape *really* ignores the block, and its canned sentence is "…its emitter does not wire it yet". Since `models:` is consumed at lower time on every shape, a row there would print a false statement about a spec whose model the registry supplied. Field-level drops are reported instead as **field-precise cross-field warnings** — "profile `fast.tools` is ignored on the voice shape — the realtime loop registers no tool catalog" — alongside the emitter's ignored-note comment.
+
+Two smaller consequences: `deadToolElimination` counts a candidate's `tools` as references, and both `projectLoop()` and the generated README learn to list profiles, pool candidates and judges, closing an existing gap where the README named only the primary model.
+
+### Per-shape carry / emit / ignore
+
+**E** = emit-wired · **—** = not carried (the strict union rejects it) · **n/a** = meaningless on that shape. There is no "carried but ignored" column: no shape gets an `ACCEPTED_BUT_UNWIRED` row, because `models:` is consumed at lower time everywhere, and the partial cases are reported as field-precise cross-field warnings instead.
+
+| Shape | `models:` | `$profile` on slots | pool: per-candidate / rules / classifier | per-profile tools / permissions / tool_config / rate_limits | cascade | guide / shadow | committee | Consult / Escalate | per-model evals |
+|---|---|---|---|---|---|---|---|---|---|
+| cli | E | E | E | E | E | E | — (REPL) | E | E |
+| workflow | E | E (model, steps[].model, judge.model) | E per step | E per step | E via judge + force | E | E | E | E |
+| channel | E | E | E (directives opt-in) | E | E | E | — (REPL semantics) | E | E |
+| graph | E | E (model, nodes[].model, judge.model) | **E per node — NEW** | E per node | E via judge nodes + force | E | E | E | E |
+| managed | E | E | E | E | E | E | — | E | E |
+| pipeline | E | E (agent.model) | E params/overlay only | — (`tools`/`permissions` rejected: the pipeline spec declares no `tools:`) | — | E | — | —† | n/a |
+| crew | E | E (model, roles[].model, routing.model NEW, sub_agents) | **E per role — FIXED** | E per role | — | E | E | E | n/a |
+| research | E | E | E | E | — | E | — | E | n/a |
+| batch | E | E | E | E | — | E | — | E | n/a |
+| voice | E (profile → model/params only; other fields warned per field) | E | — (no pool block) | — | — | — | — | — | n/a |
+| browser | E | E (agent.model, groundingModel) | E | E | — | E | — | E | n/a |
+| eval | E | E (agent.model; `graders.yaml per_model`) | — | — | — | — | — | — | E (graders) |
+| onchain | E (as voice) | E | — | — | — | — | — | — | n/a |
+| onchain-game | E (as voice) | E | — | — | — | — | — | — | n/a |
+
+Notes: `channel` and `managed` are `—` for committee because each inbound message is its own single-turn run whose latency the user is waiting on — the mechanism is allowed only where a step boundary already exists. **†** pipeline's `—` for Consult/Escalate is a scope decision, not a mechanical limit: the pair is built from the pool roster and *added* to the tool list (`wireModelDirected` narrows nothing), and a pipeline bundle does register tools of its own, so the shape could host it. It is excluded because the pipeline shape's agent turn is a retrieval-answer step where a mid-turn consult has no established use; the compiler reports the key as `model-plan-ignored-on-shape` with that reason rather than silently dropping it. Revisit if a user asks for it. The three cf-worker emitters receive profile-resolved `model`/`thinking` for free and keep ignoring pools with the existing ignored-note pattern ([packages/target-cf-worker-cli/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/target-cf-worker-cli/src/index.ts)); a `$profile` resolving to a non-Anthropic model becomes a `TargetEmitError` at emit time through `assertAnthropicModel`, which is expected and now documented.
+
+**Where this table lives in code.** The hybrid columns are machine-readable: `HYBRID_FAMILIES_BY_SHAPE` in [packages/model-service/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/model-service/src/index.ts) maps each shape to the closure families its compiled bundle constructs — `modelDirected` (Consult + Escalate), `classifier` (the `policy: classifier` label call) and `sideCalls` (guide / shadow / committee). The emitters, the compiler's warning and `crewhaus models explain` all read that one table, so the matrix above and the bundles cannot drift apart. Reading the two together:
+
+- Ten pool-bearing shapes take `classifier` and `sideCalls`; `pipeline` alone declines `modelDirected`, which is the `—†` row above.
+- `committee` is a `sideCalls` member rather than a family of its own, because the strict schema already refuses a `strategy.committee` block on every shape the table marks `—`. The schema is the gate; no shape has to decline the family for it.
+- The four shapes with no `model_pool` block (`voice`, `eval`, `onchain`, `onchain-game`) take no family at all — the strict union refuses the block first.
 
 ## `projectLoop()` and `compile --emit-loop`
 
@@ -407,6 +472,8 @@ This is the same Pillar-3 shape as `assertToolScopesStrict`: an exported policy 
 | Eval-driven *spec* mutation | [packages/spec-patch](https://github.com/crewhaus/factory/tree/main/packages/spec-patch) (Pillar 2) |
 | Trust-boundary classification | [packages/boundary-classifier](https://github.com/crewhaus/factory/tree/main/packages/boundary-classifier) (Pillar 3) |
 | Memory/continuity composition root (v0.3.0) | [packages/memory-service](https://github.com/crewhaus/factory/tree/main/packages/memory-service) — `wireMemory(fragment, deps)`, the one call every memory-carrying emitter embeds |
+| Per-model plan arithmetic (v0.6.0) | [packages/model-plan](https://github.com/crewhaus/factory/tree/main/packages/model-plan) — pure, fs-free: profile refs, request params, subset-only advertisement, eligibility, fingerprints |
+| Model-routing composition root (v0.6.0) | [packages/model-service](https://github.com/crewhaus/factory/tree/main/packages/model-service) — `wireModels(fragment, deps)`, plus `HYBRID_FAMILIES_BY_SHAPE`, the per-shape matrix in code |
 
 If you're adding a feature and you can't find where it goes, the answer is almost always one of: (a) IR variant, (b) IR pass, (c) target emitter, (d) runtime-core utility consumed by emitted code. Cross-cutting concerns that span multiple targets belong in `packages/runtime-core/` or in a dedicated package referenced by every target's emitter.
 
