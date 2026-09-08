@@ -22,9 +22,8 @@ Owns:
 - **`Escalate`** — the receipt and the latch the loop consumes. It records a `model_stage` with `stage: "escalate"`, `cause: "self"`; `strategy.max_escalations` (default 1) bounds it, and past the cap the call records a skipped stage and returns a not-a-failure receipt rather than erroring.
 - **The `consult` TrustOrigin** — registered across every site of the origin union, and the classification that goes with it. The reply re-enters the parent's context through one `classifyBoundary(..., { origin: "consult" })` pass followed by a lineage tag for the egress fabric; the tool sets `classifyOutput: false` so the runtime does not classify the same text twice, which Pillar 3 forbids.
 - **Roster allowlist validation** — `Consult.to` is a model-filled argument, so it resolves *only* against `model_pool.candidates`: a profile name, a tag, or the exact candidate model string. Anything else returns an `is_error` tool result. Nothing model-filled can name a model outside the spec, and no adapter is ever resolved from model text at runtime.
-- **`narrowRuleSet`**, the decision-level meet a per-profile `permissions` block needs — deny beats ask beats allow, proved through evaluation rather than by editing rule arrays.
 
-Does not own: the runner (injected by `model-service`), the escalation *policy* (the loop decides what a captured latch does), or the strategy lanes — guide, shadow and committee are side calls, not tools.
+Does not own: the runner (injected by `model-service`), the escalation *policy* (the loop decides what a captured latch does), or the strategy lanes — guide, shadow and committee are side calls, not tools. Nor the permission narrowing a per-profile `permissions` block needs: that is `narrowRuleSet`, the decision-level meet (deny beats ask beats allow, proved through evaluation rather than by editing rule arrays), and it lives in `@crewhaus/sub-agent-permission-inheritance` and is applied by `runtime-core`.
 
 ## Inputs and Outputs
 
@@ -40,7 +39,7 @@ Permission posture follows the `Task` precedent: `readOnly`, `concurrencySafe`, 
 
 ## First Implementation Slice
 
-Shipped in factory PR #432 with the TrustOrigin registration, `narrowRuleSet`, and interpreter/loop-contract parity, so the compiled bundle and `crewhaus run` register the identical pair.
+Shipped in factory PR #432 with the TrustOrigin registration and interpreter/loop-contract parity, so the compiled bundle and `crewhaus run` register the identical pair. (The same PR added `narrowRuleSet`, but to `@crewhaus/sub-agent-permission-inheritance`, not here.)
 
 ## Study References
 
