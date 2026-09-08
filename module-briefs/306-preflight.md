@@ -18,7 +18,9 @@ It backs `crewhaus harness preflight`, the Hangar console's expandable preflight
 
 Owns:
 
-- **`credentials.ts`** — the provider env-var matrix over the **union** of every model a spec can route to: `agent.model`, `model_fallbacks`, `model_tiers`, `model_pool` candidates, the evaluation judge, and the budget degrade model. A spec that falls back to a provider you have no key for is a boot failure waiting for the first fallback, not a healthy harness.
+- **`credentials.ts`** — the provider env-var matrix over the **union** of every model a spec can route to: every `models:` profile, `agent.model`, `model_fallbacks`, `model_tiers`, `model_pool` candidates, the evaluation judge and its panel, and the budget degrade model. A spec that falls back to a provider you have no key for is a boot failure waiting for the first fallback, not a healthy harness.
+
+  Since v0.6.0 the union **resolves `$profile` references** before it maps a slot through the model grammar — in the walk *and* in `extractSpecModel`, the tolerant single-slot reader whose result decides which provider's credentials `crewhaus doctor` and the `run` preflight demand. This is the one reference-resolution site outside the compiler: it reads spec text rather than IR, so without it an unresolved `$fast` would reach the grammar parser, throw, and hand every spec that adopts the registry a wrong credential verdict. The tolerant contract is unchanged — anything it cannot resolve (an unknown profile, a profile whose model is a compile-time sentinel) still yields `undefined`.
 - **`channels.ts`** — the channel daemon's boot-gate secret env refs, checked offline as pure env presence, against **the exact set the compiled daemon exits 2 on**. That equality is what makes this the one unforceable area in the supervisor's gate: a manager cannot honestly wave through a check whose failure the child itself refuses to start on.
 - **`mcp.ts`** — a dry-run of boot-time MCP secret-ref resolution, plus lint for `$…` literals the transports never expand and for credentials pasted inline.
 - **`ports.ts`** — bindability of requested and declared ports.

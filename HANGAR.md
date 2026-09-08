@@ -971,8 +971,8 @@ same code path; a four-lane scheduler timeline (heartbeat / schedule / dream
 own process can report; and cross-harness Approvals and Review inboxes that
 settle work through the same stores the CLI writes through.
 
-**The detail surface** adds nine harness tabs and four fleet screens over
-a frozen 189-route contract, across seven areas:
+**The detail surface** adds ten harness tabs and four fleet screens over
+a frozen 193-route contract, across eight areas:
 
 1. **the spec's write side** — trust-tier table, diff interstitial, version
    pin/rollback, and the template / grader / dataset / MCP-connector builders;
@@ -988,12 +988,51 @@ a frozen 189-route contract, across seven areas:
    browser;
 6. **the raw store inspectors**;
 7. **the Advisor** — the derived alert/suggestion feed and its loops:
-   decisions, trend, reports, and the issue inbox (below).
+   decisions, trend, reports, and the issue inbox (below);
+8. **Models** — the registry, hybrid routing and the learned scoreboard
+   (below).
 
-("Seven areas" is the prose grouping. The machine-readable grouping the route
-table and the left rail actually key on is twelve: `spec`, `memory`,
+("Eight areas" is the prose grouping. The machine-readable grouping the route
+table and the left rail actually key on is thirteen: `spec`, `memory`,
 `evals`, `data`, `feedback`, `creds`, `channels`, `security`, `thredz`,
-`inspect`, `runtime`, `advisor`.)
+`inspect`, `runtime`, `advisor`, `models`.)
+
+**The Models tab** (`#/h/<id>/models`, right after Costs — it answers the
+question Costs raises: *which* model, under which settings, spent it) has four
+panels, in the order an operator asks the questions:
+
+1. **Registry** — the `models:` profiles this spec declares and the pool
+   candidates that reference them, one card per pool. A pool is not an
+   `agent:` field: a crew role, a workflow step, a graph node or a sub-agent
+   declares one just as readily.
+2. **Per-profile spend** — the same cost fold the Costs tab reads, split by
+   **role** and by **profile** instead of by model. This is where a judge, an
+   escalation or a sub-agent's spend becomes visible; those calls carried the
+   attribution before 0.6.0, and nothing rendered it.
+3. **Leaderboard** — the learned arms ranked inside each routing band, with
+   the arm a `learned` policy would exploit starred.
+4. **Route timeline** — one run's durable routing lines in order, so the
+   shape of a hybrid turn (draft → judge → escalate) reads back as itself.
+
+```
+GET /api/h/:id/models                 GET /api/h/:id/models/arms
+GET /api/h/:id/models/routes/:sess    GET /api/h/:id/models/leaderboard
+```
+
+The tab is **read-only, by design**. The roster, the rules, the strategy
+membership and the conservative quality floor are human-owned and travel
+through `crewhaus propose`; the arms and the priors are the runtime's to
+write. Hangar never writes either.
+
+The Advisor learns the vocabulary too: `policy-flip-ready`,
+`candidate-underperforming`, `judge-spend-dominates`, `sunset-in-roster`,
+`escalation-rate-high`, `audition-ready` and `restart-to-serve-pin` join the
+feed, its quick actions can queue `route status`, `route propose`,
+`models audit` and `models explain`, and its reports gain `routing` and
+`hybrid` kinds. The spec editor's security-surface list gains `models`,
+`model_pool.rules`, `model_pool.strategy`, `model_pool.reward` and
+`sub_agents.*.allowed_profiles`, so an edit to any of them is tiered as the
+security decision it is.
 
 **The Advisor** is the triage surface: a per-harness tab
 (`#/h/<id>/advisor`, right after Overview — the strip order is the
@@ -1112,6 +1151,13 @@ An honest list, all verified against the shipped code.
 - **Experiments are not a live-traffic split.** CrewHaus's serving path does
   not split traffic by itself; `deploy canary` is an eval gate plus a pin
   flip, not a traffic splitter.
+- **A flipped pin does not restart anything.** Nothing propagates a registry
+  pin to a running daemon: a local daemon serves its own harness directory's
+  spec and bundle. 0.6.0 closes the *visibility* half — the Advisor raises
+  `restart-to-serve-pin` by comparing the pinned spec against the running
+  bundle's stamp, and `crewhaus daemon status` prints the same — so the
+  honest statement is "merged PR or flipped pin, **plus a restart**". A
+  pin-triggered reload is a 0.6.x item.
 - **`audit verify` states its own two blind spots.** `anchorChecked: false`
   means records dropped off the *end* of the chain could not be ruled out;
   `externalAnchorChecked: false` means a rewrite that also rewrote the local

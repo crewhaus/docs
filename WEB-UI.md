@@ -178,6 +178,39 @@ and this UI render the same events. See
 [Observability and cost](https://crewhaus.ai/docs/getting-started/observability/)
 for the event grammar and the other ways to read that stream.
 
+### Hybrid runs in the feed (v0.6.0)
+
+A harness with per-model settings or a hybrid strategy streams the same feed
+with more said on it, so a run that used to read as a flat list of model calls
+now reads as a shape.
+
+Two event kinds are new. **`model_stage`** marks one hybrid stage transition —
+`draft`, `verify`, `escalate`, `plan`, `guide`, `shadow`, `member` — carrying
+the strategy that owns it, the model and profile serving it, an outcome
+(`started` / `done` / `failed` / `skipped`), the cause of a skip, and the
+stage's own spend. **`model_directive`** records a per-message `/model …`
+request parsed at a typed input seam: what was asked for, what it resolved to,
+whether it was accepted, and why not.
+
+Model and cost events also carry attribution now, all optional so older
+sessions keep rendering unchanged:
+
+| Field | What it says |
+|---|---|
+| `role` | Why the call happened — `primary`, `draft`, `judge`, `escalation`, `consult`, `guide`, `classifier`, `committee`, `shadow`, `compaction`, `subagent`. An absent role reads as `primary`. |
+| `stage` | The hybrid stage the call belongs to, when it belongs to one. |
+| `profile` | The `models:` profile the serving candidate was declared under. |
+| `paramsFingerprint` | Tells two calls on the same model apart when their settings differ. |
+| `effectiveParams` | What the adapter actually sent, including the `dropped` list — see [which knobs each route accepts](https://crewhaus.ai/docs/reference/providers/). |
+
+The practical consequence for a UI reading this stream: **spend accumulates per
+role and per profile**, not only per model. A judge, an escalation and a
+sub-agent's re-published spend are three different things happening on
+possibly the same model id, and only the attribution tells them apart. The same
+fields drive the Hangar console's Models tab and the OTel model span, so a
+number in the browser, a number in the console and a number in your tracing
+vendor all come from one source.
+
 The front-end is dependency-free: a small DOM toolkit, a `TraceEvent` renderer,
 shared chrome, and one CSS design system. All rendering is done with DOM nodes
 and `textContent`, so a harness can never inject markup into the page — a

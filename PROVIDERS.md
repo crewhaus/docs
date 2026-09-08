@@ -24,7 +24,8 @@
 6. [Azure OpenAI](#azure-openai)
 7. [Google Vertex AI](#google-vertex-ai)
 8. [Capabilities per route](#capabilities-per-route)
-9. [Troubleshooting](#troubleshooting)
+9. [Which knobs each route accepts](#which-knobs-each-route-accepts)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -388,6 +389,48 @@ Notes:
   (`claude-*`, `vertex/claude-*`) — not on Anthropic-on-Bedrock.
   Everywhere else, give the agent the `WebSearch`/`WebFetch` tools
   instead.
+
+---
+
+## Which knobs each route accepts
+
+Capabilities say what a model can *do*. This says what it will *listen to*: which of the four request knobs a route actually puts on the wire, and which the adapter accepts and then silently omits. That distinction matters as soon as you declare per-model settings — a `temperature` a route drops is a setting that reads as configured and behaves as absent.
+
+Every adapter projects its own marshaller through `effectiveParams(req)`, so this table is derived from the same code that builds the request rather than restated beside it. The projection is pure and network-free, which is why `crewhaus models audit` can report it offline and every `model_request` event can echo what was really sent.
+
+| Route | `max_tokens` | `thinking.budget_tokens` | `thinking.effort` | `temperature` |
+|---|---|---|---|---|
+| `claude-*` (Anthropic direct) | ✅ | ✅ native | ✅ → lowered to a budget | ✅, **dropped** alongside thinking, and dropped outright on models that reject it |
+| `vertex/claude-*` | ✅ | ✅ native | ✅ → lowered to a budget | same as Anthropic direct |
+| `bedrock/<anthropic id>` | ✅ | ✅ native | ✅ → lowered to a budget | same as Anthropic direct |
+| `bedrock/<non-anthropic id>` (Converse) | ✅ | **dropped** | **dropped** | ✅ |
+| `openai/<reasoning model>`, `azure/`, named hosts, `local/` | ✅ (sent as `max_completion_tokens`) | ✅ → mapped to the nearest effort bucket | ✅ native | **dropped** |
+| `openai/<standard model>`, `azure/`, named hosts, `local/` | ✅ | **dropped** | **dropped** | ✅ |
+| `gemini/<model>`, `vertex/gemini-*` | ✅ | ✅ native | ✅ → lowered to a budget | ✅ |
+
+Reading the three verdicts:
+
+- **✅ native** — the knob goes on the wire as you wrote it.
+- **→ lowered / mapped** — a *conversion*, not a loss. An effort preset becomes a token budget on budget-style providers; a token budget becomes the nearest effort bucket on OpenAI's reasoning models. The adapter reports it as a note, and the value it converted to is what the event echoes.
+- **dropped** — the adapter accepted the field and did not send it. Every drop is named, with the reason, so it is visible rather than mysterious.
+
+The drops in full:
+
+- **Anthropic and Anthropic-on-Bedrock drop `temperature` twice over.** Once because the API rejects an explicit temperature alongside extended thinking; once because the newer Claude models reject the parameter outright. If you want a pinned temperature, do not also declare thinking on that profile — and check `models audit` before assuming a temperature took effect.
+- **OpenAI reasoning models reject a non-default `temperature`.** The adapter drops it rather than letting the API 400.
+- **OpenAI standard models expose no reasoning control**, so both `thinking` and `effort` are dropped there.
+- **Bedrock Converse has no cross-vendor thinking control** — the model-agnostic path carries `maxTokens` and `temperature` and nothing else, so both reasoning knobs are dropped for every non-Anthropic family.
+- **Gemini maps all four natively**, so its drop list is always empty.
+
+Two ways to see this for a real spec:
+
+```bash
+# Offline: every model slot, with the knobs its provider would drop.
+crewhaus models audit
+
+# After a run: what the adapter actually sent, per call.
+grep model_request .crewhaus/sessions/<id>.jsonl
+```
 
 ---
 
