@@ -36,11 +36,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # --timeout: lychee defaults to 20s. The zenodo DOI in the whitepaper
+          # resolves in ~25s, so the checker was failing a link that works.
+          # Raised rather than excluding the DOI — an exclude would drop real
+          # coverage to hide a slow resolver.
           args: >-
             --cache
             --max-cache-age 1d
             --no-progress
             --max-concurrency 4
+            --timeout 45
             --accept 200,206,429
             --exclude '^https?://github\.com/crewhaus/'
             './**/*.md'
