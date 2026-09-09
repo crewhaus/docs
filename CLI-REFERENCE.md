@@ -918,6 +918,7 @@ Scheduled evidence collection, tamper verification, and GDPR/TTL enforcement.
 | `cloud teardown --provider <p> --region <r>` | Tear down a managed cluster. |
 | `channel provision <spec> --base-url <public-url> [--platform slack\|telegram\|discord\|all] [-o <dir>] [--dry-run] [--force]` | One-command platform app setup for a channel spec: Slack app manifest YAML (including the reaction scopes the ratings feature needs), Telegram `setWebhook`, Discord interactions endpoint + invite URL. |
 | `channel verify <spec> [--platform …] [--base-url <url>] [--dry-run]` | Scope doctor: Slack `auth.test` + granted scopes, Telegram `getWebhookInfo`, Discord application fetch (exit 1 on missing scopes / mismatched webhook). |
+| `services setup <spec> [--zone <domain>] [--port <n>] [--services slack,cloudflare,thredz] [--hostname <fqdn>] [--tunnel <name>] [--space-type shared\|individual] [--app-id <id>] [--manual-install] [--env-file <path>] [--dry-run] [-y]` | Create the external services the spec asks for: a Slack app (manifest applied, both request URLs set, then installed), a Cloudflare named tunnel with a public hostname and DNS, and a Thredz wiki space. Credentials land in the harness `.env`; the wiki slug lands in the spec. Provisioning tokens are read once and never stored. |
 | `federation discover <deployment> [--srv-domain <d>] [--format json\|yaml]` | Resolve a federated peer's endpoint + cert fingerprint via DNS SRV or `.well-known`. |
 | `sandbox doctor [--probe] [--format json\|table]` | List registered sandbox images + healthcheck status. |
 
