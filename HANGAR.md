@@ -1224,10 +1224,21 @@ An honest list, all verified against the shipped code.
   trusted home or office network is what this is for; a café is not, and
   neither is a port-forward. For anything beyond that, put the loopback
   console behind Tailscale or an SSH tunnel instead.
-- **A daemon's own mini-dashboard link stays loopback-only.** Hangar links a
-  running daemon's dashboard as `http://127.0.0.1:<port>/`, which on a phone
-  resolves to the phone. The manager works over LAN; that one nested link
-  does not.
+- **A daemon's own mini-dashboard is local to the machine running it.** The
+  `gateway:` control-UI port is the one port CrewHaus never exposes —
+  `crewhaus services setup` prints it as `(not tunnelled)` and points the
+  public hostname at the events port instead — so Hangar reports its address
+  as `http://127.0.0.1:<port>/`. Opened from a phone the console says so
+  rather than offering a link that would resolve to the phone.
+- **That control-UI port currently binds every interface, with no auth.**
+  The compiled daemon creates it with `Bun.serve({ port, fetch })` and no
+  `hostname`, which binds the wildcard rather than loopback, and the surface
+  has no bearer, no origin check and no method check. What it discloses is
+  reconnaissance rather than secrets — harness name, shape, boot time, the
+  wired channel list, turn and heartbeat counts — and there is no write
+  surface, but anyone on the same network can read it. It contradicts the
+  intent every other part of the system states, so treat the address above
+  as the contract and this as a bug to be fixed in the emitter.
 - **One route is unimplemented and says so.**
   `POST /api/h/:id/secrets/:name/rotate` answers **501**: rotation needs
   `@crewhaus/secrets-manager`, which the server does not depend on, and the
