@@ -1416,7 +1416,7 @@ applies the same way regardless of how you launched the CLI.
 | `spec {put,list,get,pin,alias,log} …`        | Versioned spec storage, environment pinning, and per-spec changelog.                    |
 | `deploy {promote,rollback,canary} …`         | Re-pin a spec across environments (or ramp a canary with an eval gate), audit-logged.   |
 | `fleet {list,status,run} …`                  | Cross-harness inventory, health, and bulk read-ops.                                     |
-| `hangar [status\|open]`                      | Boot the local Hangar console over every harness registered on this machine (`127.0.0.1:4200`). |
+| `hangar [status\|open\|qr]`                   | Boot the local Hangar console over every harness registered on this machine (`127.0.0.1:4200`). `hangar --lan` binds this machine's LAN address instead and prints a QR code to scan from a phone. |
 | `harness {list,show,add,scan,preflight} …`   | The machine-wide harness registry that backs the console. `run`/`compile`/`eval`/`dev` register themselves, so it fills itself. |
 | `daemon {start,stop,restart,status,logs,wake,drain} …` | Supervise one harness from the terminal — the same supervisor the console drives, with no console running. |
 
