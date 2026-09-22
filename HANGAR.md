@@ -101,6 +101,7 @@ argument starts with `--` other than `--help` / `-h`
 | `hangar [serve]` | Boot the console and open it in the browser. |
 | `hangar status [--json]` | Lock / port / registry / token report. Works with no server running — it reads the lock file, not the socket. Always exits 0. |
 | `hangar open` | Re-open the running console's URL. Exits 1 when nothing is running. |
+| `hangar qr [--ascii] [--no-color]` | Reprint the running console's QR code. Exits 1 when nothing is running, or when the console is bound to loopback and no phone could reach it. |
 
 `--help` / `-h` works at the **verb position only**. `crewhaus hangar serve
 --help` is an unknown-flag error, not a help screen.
@@ -111,8 +112,10 @@ argument starts with `--` other than `--help` / `-h`
 |---|---|---|
 | `--port <n>` | `4200` | TCP port. `0` asks the kernel for an ephemeral one. |
 | `--host <h>` | `127.0.0.1` | Bind interface. Implies auth **and** requires `CREWHAUS_HANGAR_ALLOW_REMOTE=1` for any non-loopback value. |
+| `--lan` | off | Bind this machine's LAN address and print a QR code to scan from a phone on the same network. Implies auth. Its own opt-in — see [Opening the console on a phone](#opening-the-console-on-a-phone). Cannot combine with `--host` or `--smoke`. |
 | `--no-auth` | off | Disable the bearer token entirely. Loopback-dev only. |
 | `--no-open` | off | Do not spawn the browser. |
+| `--no-qr` | off | Boot a `--lan` console without printing the QR code. |
 | `--smoke` | off | Boot on an ephemeral port, run four self-checks, exit. |
 | `--read-only` | off | Every mutating route answers 403. The screen-share posture; it can still be lifted from the UI. |
 | `--read-only-locked` | off | As above, and the mode cannot be lifted over the wire. **Implies `--read-only`** — the lock flag alone is sufficient. |
@@ -126,13 +129,24 @@ There is no flag for the shutdown grace: children get `SHUTDOWN_GRACE_MS`
 `crewhaus: <message>` on stderr:
 
 ```
-hangar serve: unknown flag "--x" (expected: --port, --host, --no-auth, --no-open, --smoke, --read-only, --read-only-locked)
+hangar serve: unknown flag "--x" (expected: --port, --host, --lan, --no-auth, --no-open, --no-qr, --smoke, --read-only, --read-only-locked)
 hangar serve: --port requires a value
 hangar serve: unexpected argument "<x>"
 hangar serve: --port must be an integer 0..65535 (got "<x>")
+hangar serve: --lan picks this machine's LAN address for you and --host names one yourself — pass one or the other
+hangar serve: --lan exposes the console beyond loopback and REQUIRES auth — drop --no-auth
+hangar serve: --smoke self-checks a throwaway loopback console — it cannot combine with --lan
 hangar serve: --host exposes the console beyond loopback and REQUIRES auth — drop --no-auth
 hangar serve: --smoke verifies the auth surface (401 without a token) — it cannot combine with --no-auth
 hangar serve: --smoke always boots on an ephemeral port — drop --port
+```
+
+…and, when `--lan` cannot find an address to bind:
+
+```
+hangar serve: --lan found no LAN address on this machine — every interface is loopback, a VPN
+or container tunnel, or self-assigned (169.254.x.x). Join a network, or pass --host <address>
+to choose one yourself.
 ```
 
 The port check is deliberately strict about spelling: it rejects anything
@@ -175,13 +189,19 @@ fails closed too.
 ```
 ┌─ Hangar — the CrewHaus harness manager
 │  url       http://127.0.0.1:4200/#t=<token>
+│  phone     crewhaus hangar --lan — bind this machine's LAN address and print a QR code to scan
 │  token     ~/.crewhaus/hangar/token — sent as a URL #fragment
 │  registry  ~/.crewhaus/harnesses.json (7 harness(es))
 │  stop      Ctrl-C (SIGINT/SIGTERM) — stops attached runs, leaves daemons up, releases the lock
 └─
 ```
 
-With `--no-auth` the second row reads
+Under `--lan` the `phone` row is replaced by a `network` row naming the
+interface that was chosen and what that exposes, and the QR code is printed
+after the box — last, so it sits next to the shell prompt where a phone is
+easiest to point.
+
+With `--no-auth` the `token` row reads
 `auth  DISABLED (--no-auth) — every local process can read this fleet's state`
 instead, and the server logs the same warning.
 
@@ -189,6 +209,69 @@ Before the box, when they apply, you also get
 `seeded <n> harness(es) from the legacy watchme registry`, a note about a
 replaced stale lock, and
 `adopted <n> running daemon(s)[, <n> gone since the last manager][, re-queued <n> pending job(s)]`.
+
+### Opening the console on a phone
+
+`crewhaus hangar --lan` binds this machine's LAN address instead of loopback
+and prints a QR code. Scan it and the console opens on your phone.
+
+```
+$ crewhaus hangar --lan
+┌─ Hangar — the CrewHaus harness manager
+│  url       http://192.168.1.42:4200/#t=<token>
+│  network   en0 — every device on this network can reach this console over plain HTTP
+│  token     ~/.crewhaus/hangar/token — sent as a URL #fragment
+│  registry  ~/.crewhaus/harnesses.json (7 harness(es))
+│  stop      Ctrl-C (SIGINT/SIGTERM) — stops attached runs, leaves daemons up, releases the lock
+└─
+
+scan to open Hangar on your phone — the code carries the access token:
+
+  ▄▄▄▄▄▄▄ ▄  ▄▄  ▄▄▄▄▄▄▄
+  █ ▄▄▄ █ ▀█▄▀▀  █ ▄▄▄ █
+  █ ███ █ █ ▄█▄  █ ███ █
+  ▀▀▀▀▀▀▀ ▀ ▀ ▀  ▀▀▀▀▀▀▀
+  …
+```
+
+**`--lan` is its own opt-in.** A bare `--host` needs
+`CREWHAUS_HANGAR_ALLOW_REMOTE=1` on top, because a non-loopback bind should
+never happen by muscle memory. Typing `--lan` *is* that deliberate, visible
+act, so the variable is not demanded twice. Nothing else is relaxed: auth
+stays mandatory (`--lan --no-auth` is refused), and the exposure is exactly
+the one `--host` carries.
+
+**The QR code is the credential.** It encodes the same
+`http://<lan-address>:<port>/#t=<token>` URL the summary prints, so anyone
+who photographs your terminal has the fleet — the same as anyone who
+photographs the `url` row, but a camera reads a QR code from across a room
+and a 64-character token it does not. For a screen share or a talk, boot with
+`--read-only-locked`, or with `--no-qr` and open the console by hand.
+
+**Which address it picks.** The first RFC 1918 address on a physical-looking
+interface (`en0`, `eth0`, `wlan0`), preferring real LAN addresses over
+carrier-grade-NAT ones and skipping loopback, VPN and container tunnels
+(`utun*`, `tailscale*`, `docker*`, `bridge*`, `vmnet*`), Apple's peer-to-peer
+radios (`awdl*`, `llw*`) and self-assigned `169.254.x.x`. Ties break on the
+interface name, so the answer is the same across boots. IPv6 is skipped
+entirely: a link-local address needs a zone index no browser will accept in a
+URL. If it picks the wrong one, `--host <address>` with the opt-in variable
+names it yourself.
+
+**It binds that one address, not `0.0.0.0`.** So the URL in the lock file,
+in `hangar status` and in the QR code is one a phone can actually open, and a
+VPN tunnel on the same machine is not exposed along with the LAN.
+
+**Reprinting it.** The boot-time code scrolls away. `crewhaus hangar qr`
+prints it again from the lock file and the token on disk — useful when a
+second person needs in, or the terminal got cleared. `--ascii` swaps the
+half-block characters for two spaces per module, for fonts that render `▀`
+and `▄` with seams; `--no-color` drops the escape codes that pin the symbol's
+contrast, which is worth doing only if your terminal has a light background.
+
+If the terminal is narrower than the symbol, nothing is drawn: a wrapped QR
+code is not a degraded QR code, it is a picture. You get the required width
+and the terminal's own instead.
 
 ### `hangar status --json`
 
@@ -874,10 +957,16 @@ cannot land in access logs or referrer headers. The browser strips it with
 and **trades** it for a fresh ticket via `POST /api/boot-ticket`, falling
 back to opening the bare URL when that fails.
 
-**Loopback by default.** `127.0.0.1:4200`, with the explicit opt-in
-described above for anything else. The console is machine control over
-plain HTTP: no TLS, no origin pinning, no rate limiting. That is a fine
-posture for loopback and a poor one for a LAN.
+**Loopback by default.** `127.0.0.1:4200`, with an explicit opt-in for
+anything else. The console is machine control over plain HTTP: no TLS, no
+origin pinning, no rate limiting. That is a fine posture for loopback and a
+thin one for a LAN, which is why moving off loopback is never the default and
+never accidental — `--host` needs `CREWHAUS_HANGAR_ALLOW_REMOTE=1`, and
+`--lan` has to be typed. What a LAN bind leaves you with is the bearer token
+and nothing else: anyone who can reach the port and read the token owns the
+fleet, and anyone sniffing the network can read the token, because there is
+no TLS. Use `--lan` on a network you trust, for as long as you are using it,
+and add `--read-only` when the phone only needs to watch.
 
 **Read-only mode is an accident-guard, not an auth boundary.** The console
 says so itself, in the body of `GET /api/read-only`:
@@ -1129,6 +1218,29 @@ dry-run-first ladder in front of destructive verbs.
 
 An honest list, all verified against the shipped code.
 
+- **A `--lan` console is only as private as the network.** The bearer token
+  is the whole boundary, and it crosses the wire in clear text because there
+  is no TLS. There is also no DNS-rebinding defence and no rate limiting. A
+  trusted home or office network is what this is for; a café is not, and
+  neither is a port-forward. For anything beyond that, put the loopback
+  console behind Tailscale or an SSH tunnel instead.
+- **A daemon's own mini-dashboard is local to the machine running it, and
+  there is no way to widen it.** The `gateway:` control-UI port binds
+  `127.0.0.1` and carries no authentication of its own — no bearer, no origin
+  check — so loopback is the whole boundary. That is deliberate: it is the
+  one port CrewHaus never exposes (`crewhaus services setup` prints it as
+  `(not tunnelled)` and points the public hostname at the events port
+  instead), and the `gateway:` block takes only `port` and `ui`, so there is
+  no bind field to reach for. Hangar reports the address as
+  `http://127.0.0.1:<port>/`; opened from a phone the console names it rather
+  than offering a link that would resolve to the phone. Reaching it from
+  elsewhere means a tunnel you make yourself, which is the point at which you
+  are choosing the exposure deliberately.
+
+  Before this release the listener omitted its `hostname` and so bound every
+  interface, publishing that status page unauthenticated to the whole
+  network. **A daemon compiled before the fix keeps the old bind until it is
+  recompiled** — `crewhaus compile` it again to pick this up.
 - **One route is unimplemented and says so.**
   `POST /api/h/:id/secrets/:name/rotate` answers **501**: rotation needs
   `@crewhaus/secrets-manager`, which the server does not depend on, and the
@@ -1236,6 +1348,22 @@ and executes nothing. So the Windows *supervisor* is CI-verified; the
 Windows *binary* is not smoke-tested by CI.
 
 ## Troubleshooting
+
+**The QR code will not scan.** Check three things in order. Is the phone on
+the same network — not on cellular, and not on a guest SSID that isolates
+clients? Does the terminal render `▀` and `▄` as solid halves with no seam
+between rows — if not, `crewhaus hangar qr --ascii`. And is the symbol
+whole: if the window is narrower than the code, Hangar prints the required
+width instead of drawing it, so widen the window and run `crewhaus hangar
+qr`. If the code scans but the page never loads, a firewall is refusing the
+port — on macOS, System Settings → Network → Firewall, and allow incoming
+connections for the terminal you launched from.
+
+**`--lan` picked the wrong address.** It prefers RFC 1918 addresses on
+physical interfaces and skips tunnels, but a machine with two real networks
+has no way to know which one your phone is on. `crewhaus hangar status`
+shows what it chose; `--host <address>` with
+`CREWHAUS_HANGAR_ALLOW_REMOTE=1` names the other one.
 
 **The console shows a token-paste screen.** Any 401 swaps the app for a
 screen naming the token file. Read it and paste the value, or just re-run

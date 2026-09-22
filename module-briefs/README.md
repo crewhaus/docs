@@ -397,3 +397,9 @@ Three new packages from the model-plan release, plus two back-filled briefs for 
 | 309 | [`tool-consult`](309-tool-consult.md) | implemented and tested | R4 - Built-in Tool Implementations | v0.6.0 model-plan release |
 | 310 | [`routing-store`](310-routing-store.md) | implemented and tested | R2 - Model Layer | back-fill — shipped with adaptive routing in v0.2.2 |
 | 311 | [`watchme-store`](311-watchme-store.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | back-fill — shipped with the watch-me subsystem |
+
+## v0.6.x: The Hangar phone door
+
+| # | Module | Status | Catalog layer | Origin |
+|---:|---|---|---|---|
+| 313 | [`qr-code`](313-qr-code.md) | implemented and tested | F3 - Deployment & Operations | `crewhaus hangar --lan` |

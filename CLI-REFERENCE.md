@@ -776,17 +776,23 @@ server, and a daemon either head starts is adopted by the other.
 | `hangar [serve]` | Boot the manager console over the machine-wide registry and open it in the browser. Bare `crewhaus hangar` — and any invocation whose first argument starts with `--` — is `hangar serve`. |
 | `hangar serve --port <n>` | TCP port; default `4200`, `0` for an OS-assigned one. Must be an integer 0..65535 in canonical spelling (`007` and `80.0` are refused). |
 | `hangar serve --host <h>` | Bind interface; default `127.0.0.1`. Implies auth **and** requires `CREWHAUS_HANGAR_ALLOW_REMOTE=1` for any non-loopback value. Loopback is `localhost`, all of `127.0.0.0/8`, and `::1` in any spelling; `0.0.0.0` and `::` are wildcards, **not** loopback. Hostnames are never resolved — an unrecognised host fails closed. |
-| `hangar serve --no-auth` | Disable the bearer token. Loopback-dev only; refused together with `--host` or `--smoke`. |
+| `hangar serve --lan` | Bind this machine's LAN address and print a QR code to scan from a phone on the same network. Implies auth, and is its own opt-in — typing it replaces `CREWHAUS_HANGAR_ALLOW_REMOTE=1` rather than adding to it. Refused together with `--host`, `--no-auth` or `--smoke`; refused when no LAN address exists. Binds that one address, never `0.0.0.0`. |
+| `hangar serve --no-auth` | Disable the bearer token. Loopback-dev only; refused together with `--host`, `--lan` or `--smoke`. |
 | `hangar serve --no-open` | Do not spawn the browser. |
+| `hangar serve --no-qr` | Boot a `--lan` console without printing the QR code. |
 | `hangar serve --read-only` | Boot with every mutating route refused (403). The screen-share posture; it can still be lifted from the UI. Not persisted — a normal restart gives a writable console back. |
 | `hangar serve --read-only-locked` | As above, and the mode cannot be lifted over the wire — only by restarting without the flag. **Implies `--read-only`.** |
 | `hangar serve --smoke` | Boot on an ephemeral port, run four self-checks (healthz, the embedded UI shell, `/api/harnesses` with a token → 200, without → 401), then exit. The release workflow's compiled-binary smoke entry. Refused with `--port` or `--no-auth`. |
 | `hangar status [--json]` | Lock / port / registry / token report. Reads the lock file, not the socket, so it works with no server running. **Always exits 0.** |
 | `hangar open` | Trade the token file for a fresh single-use boot ticket and open the running console. Takes no flags. **Exits 1** when nothing is running. |
+| `hangar qr [--ascii] [--no-color]` | Reprint the running console's QR code, from the lock file and the token on disk. `--ascii` uses two spaces per module instead of half blocks; `--no-color` drops the escape codes that pin the symbol's contrast. **Exits 1** when nothing is running, or when the console is loopback-bound and no phone could reach it. |
 
 The console binds `127.0.0.1:4200` by default and hands its bearer token to
 the browser as a URL `#fragment` via a single-use `/boot/<nonce>` path — the
-token is never a command-line argument. One instance per hangar root, held
+token is never a command-line argument. `--lan` binds this machine's LAN
+address instead and prints a QR code that encodes that same `#fragment` URL,
+so the code carries the credential: pair it with `--read-only` for a screen
+share. See [HANGAR.md](HANGAR.md#opening-the-console-on-a-phone). One instance per hangar root, held
 by `<hangarRoot>/hangar.lock`; a stale lock from a dead pid is replaced
 automatically with a note. Ctrl-C stops attached runs, **leaves daemons up**
 (they are adopted by the next boot), and releases the lock.
