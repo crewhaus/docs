@@ -1514,7 +1514,7 @@ register them. Where that list lives depends on the target: top-level
 | `Screenshot` / `Click` / `Type` / `Key` / `Scroll` / `FindElement` | Browser-only.                  |
 | `Python` / `JavaScript` / `Shell` | Sandboxed REPL (Docker, network=none, read-only root).             |
 
-MCP servers add their own tools, namespaced as `<server>__<tool>`.
+MCP servers add their own tools, namespaced as `mcp__<server>__<tool>`.
 
 ### The four permission modes
 
