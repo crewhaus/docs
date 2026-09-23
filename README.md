@@ -7,6 +7,7 @@ The standalone documentation repository for [CrewHaus Factory](https://github.co
 - [Whitepaper — *CrewHaus: A Meta-Harness Compiler for AI Agents*](whitepaper/crewhaus-meta-harness-compiler.pdf) — the positioning + architecture paper (PDF; [Markdown source](whitepaper/crewhaus-meta-harness-compiler.md))
 - [GETTING-STARTED.md](GETTING-STARTED.md) — guided tour for new users, from first principles to a runnable agent
 - [CLI-REFERENCE.md](CLI-REFERENCE.md) — the complete `crewhaus` command surface, grouped by task (build/run, the eval flywheel, the observer/advisor, model & cost automation, self-healing ops, deploy/govern, fleet, safety, compliance)
+- [TOOLS-REFERENCE.md](TOOLS-REFERENCE.md) — the 549 builtin tools a harness runs without a model call: finding one from the CLI (`crewhaus tools search|show|list|categories`), the `all-<category>` grammar for turning them on a group at a time, and what they deliberately refuse to do
 - [HANGAR.md](HANGAR.md) — the harness manager: the `crewhaus hangar` console, the Advisor (alerts, suggestions, reports, and the issue inbox — per harness and fleet-wide), library curation, the machine-wide registry, `crewhaus daemon`, `crewhaus.control.v1`, and the security model
 - [PROVIDERS.md](PROVIDERS.md) — the canonical model-provider reference: the model-string grammar, per-provider setup, capabilities, and troubleshooting
 - [WEB-UI.md](WEB-UI.md) — [`@crewhaus/ui`](https://github.com/crewhaus/ui): drop-in, shape-aware web UIs for a compiled harness — quick start, CLI, programmatic API, and how it streams `TraceEvent`s
