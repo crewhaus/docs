@@ -6,7 +6,7 @@ If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE
 
 ---
 
-## Snapshot — 2026-10-24 (v0.8.0 — the provability release)
+## Snapshot — 2026-10-25 (v0.8.0 — the provability release)
 
 - **v0.8.0 is the provability release.** A `provability:` block sets a floor on a four-rung ladder — `cited`, `grounded`, `checked`, `proven` — and a deterministic gate checks every claim in an answer against the evidence the run recorded before the answer is served: a page it fetched, a tool result it logged (a pure tool is re-run to confirm), a proof a checker accepted. A proof bundle travels with every gated answer. Off unless a spec turns it on. Design: [design/0.8.0-provability-release.md](https://github.com/crewhaus/factory/blob/main/design/0.8.0-provability-release.md).
 - **New packages, each with a brief (314–321):** `claim-ledger` (R17), `evaluation-service`, `provability`, `proof-checker` and `grader-provability` (R15), `tool-proof` (R4), and `sandbox-image-z3` / `sandbox-image-lean4` (R8). See the [v0.8.0 section of the brief index](module-briefs/README.md#v080-the-provability-release).
