@@ -6,6 +6,16 @@ If you want the *what / why / how* of a module, go to [MODULE-CATALOG.md](MODULE
 
 ---
 
+## Snapshot — 2026-10-24 (v0.8.0 — the provability release)
+
+- **v0.8.0 is the provability release.** A `provability:` block sets a floor on a four-rung ladder — `cited`, `grounded`, `checked`, `proven` — and a deterministic gate checks every claim in an answer against the evidence the run recorded before the answer is served: a page it fetched, a tool result it logged (a pure tool is re-run to confirm), a proof a checker accepted. A proof bundle travels with every gated answer. Off unless a spec turns it on. Design: [design/0.8.0-provability-release.md](https://github.com/crewhaus/factory/blob/main/design/0.8.0-provability-release.md).
+- **New packages, each with a brief (314–321):** `claim-ledger` (R17), `evaluation-service`, `provability`, `proof-checker` and `grader-provability` (R15), `tool-proof` (R4), and `sandbox-image-z3` / `sandbox-image-lean4` (R8). See the [v0.8.0 section of the brief index](module-briefs/README.md#v080-the-provability-release).
+- **Where the block is wired:** cli, channel and managed through `evaluation-service`, and research through its report gate. Crew accepts the block with an `accepted-but-unwired` warning; every other shape rejects the key. The design's §12 names the deferred seams, among them the pipeline (RAG) answer stage, the crew synthesis turn, research `on_fail: retry`, workflow and graph gate steps, and the Hangar console's bundle viewer.
+- **One composition root for the in-loop gates.** The `evaluation:` judge used to be built in four places (three emitters and the interpreter); `evaluation-service` now builds it and the provability gate for every emitter and for `crewhaus run`. A bundle with `evaluation:` compiles to different code with the same judge behaviour; a bundle with neither block compiles byte for byte as before.
+- **Changes that reach harnesses without the block** are listed in the [factory CHANGELOG](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md) under "Before you upgrade"; among them: `continuity.proof: require | off` is enforced; `all-safety` now grants the three proof tools, and `ProofCheckers`, `ProvabilityPreflight` and `ProofCheck(builtin)` are allowed by default; the agent's tools cannot write the run's own record (session logs, spilled tool results, proof bundles); and `FactCrossCheck` reads lookalike characters as the plain ones.
+
+---
+
 ## Snapshot — 2026-07-03 (v0.2.0 — the automation release)
 
 - **v0.2.0 shipped 2026-07-03** — the automation release. Lands all 69 items from the [automation audit](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md): the self-building eval flywheel, the observer/advisor (`advise` + `optimize --from-advice`), model & cost automation (provider failover, right-sizing, budget caps), self-healing operations (`deploy canary`, `mcp doctor`, SLO monitor), fleet/lifecycle/marketplace, and safety-that-learns.
@@ -63,6 +73,7 @@ Implemented (✅) and in-progress (🚧) modules have absorbed their risk and do
 | **v0.3.x** | (TBD — see factory ROADMAP) | Crewhaus Forge community registry, `crewhaus publish`, verified-artifact distinction. |
 | **v0.4.x** | Evals campaign | The eval surface's largest expansion since v0.2.0. New CLI verbs (`eval suite`, `eval plan`, `redteam generate\|report`, `review`, `experiment`, `schedule generate`, `eval-report trends\|export`, `graders test\|card`, `datasets verify\|status\|release\|card`, `dataset audit\|lint`), a grown `graders.yaml` grammar (`combine`, per-grader `weight`, `expected_contains`, categorical rubrics, judge panels, `target: transcript`, validated pack `opts:`), the dataset lifecycle (canaries, provenance taxonomy, the test-split lock), and a runtime-invoking `compile --with-eval-harness` bridge for the multi-stage shapes. Two new packages: `feedback-distill` (brief 300) and `meta-harness-optimizer`. **Three behaviour changes:** judge `temperature` pinned to 0; a bare `registry:<name>` ref resolves train+dev only; `distill` / `dataset mine` PII-redact by default. |
 | **v0.4.x+** | §41–§45 + new sections | Plugin SDK v2, plugin loader/registry, module marketplace, cloud-deploy adapters, additional channel adapters, optional non-EVM chain adapters. |
+| **v0.8.0** | Provability release ([design](https://github.com/crewhaus/factory/blob/main/design/0.8.0-provability-release.md)) | The `provability:` block and its four-rung ladder, an in-loop proof gate at the `evaluation:` judge's seam, a proof bundle on every surface (footer, gateway `proof` field, research `## Provability` section, `provability_graded` trace line, an audit record when the audit sink is wired, `.crewhaus/proofs/`), the proof tools and three checkers (a built-in certificate checker, Z3 and Lean 4 in curated sandbox images), the `provability.*` graders, and `crewhaus provability show \| check \| audit \| checkers \| prune`. New packages: `claim-ledger`, `evaluation-service`, `provability`, `proof-checker`, `tool-proof`, `sandbox-image-z3`, `sandbox-image-lean4`, `grader-provability` (briefs 314–321). |
 | **v1.0** (target: Q4 2026) | Stabilization | Schema + CLI commands stable, security audit complete, production-readiness statement per target shape. |
 
 Per the [factory ROADMAP](https://github.com/crewhaus/factory/blob/main/ROADMAP.md), pre-1.0 minors may include breaking changes documented in the changelog.
@@ -232,11 +243,11 @@ Cross-references the per-layer `Depends on` columns in the catalog with the buil
 ## Module count
 
 - **Factory-level**: ~37 catalog rows across F1–F5.
-- **Runtime composable**: ~180 catalog rows across R1–R20 (including v0.2.x, v0.3.0 memory-release, and v0.4.0 additions).
-- **Total**: ~215 catalog rows.
+- **Runtime composable**: ~187 catalog rows across R1–R20 (including v0.2.x, v0.3.0 memory-release, v0.4.0, and v0.8.0 provability-release additions).
+- **Total**: ~222 catalog rows.
 - **Grouped bundles**: 18 coarse aggregations (see [MODULE-CATALOG.md → Module groups](MODULE-CATALOG.md#module-groups)).
-- **Shipped (✅)**: ~163 — including the eight v0.3.0 memory-release modules (`continuity-store`, `tool-plan`, `wiki-store`, `tool-wiki`, `memory-service`, `dream-engine`, `default-skills`, `grader-continuity`) and the three v0.4.0 runtime packages (`worker-runtime`, `mcp-server`, `tool-schema-sanitizer`). **Unbuilt**: ~52 (excluding the deferred mobile targets).
-- The `factory/packages/` directory contains 219 workspace packages — higher than the ✅ count because some catalog rows aggregate multiple packages (e.g., R4 `sandbox-image-{python,javascript,...}` is one row, multiple packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
+- **Shipped (✅)**: ~170 — including the eight v0.3.0 memory-release modules (`continuity-store`, `tool-plan`, `wiki-store`, `tool-wiki`, `memory-service`, `dream-engine`, `default-skills`, `grader-continuity`), the three v0.4.0 runtime packages (`worker-runtime`, `mcp-server`, `tool-schema-sanitizer`), and the v0.8.0 provability packages (`claim-ledger`, `evaluation-service`, `provability`, `proof-checker`, `tool-proof`, `sandbox-image-{z3,lean4}`, `grader-provability`). **Unbuilt**: ~52 (excluding the deferred mobile targets).
+- The `factory/packages/` directory holds more workspace packages than the ✅ count, because some catalog rows aggregate multiple packages (e.g., R8 `sandbox-image-{python,javascript,...}` and `sandbox-image-{z3,lean4}` are one row each, several packages) and a few packages are scaffolding/testing infrastructure rather than catalog modules (e.g., `smoke-harness`).
 
 ---
 

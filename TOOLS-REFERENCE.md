@@ -3,9 +3,10 @@
 > What your agent can already do, what else it could do, and how to find a
 > specific tool without reading a registry.
 >
-> CrewHaus 0.7.0 ships **549 builtin tools**, up from 22 in 0.6.0, and a
-> category grammar for turning them on a group at a time. This page covers
-> finding them, enabling them, and the things they deliberately refuse to do.
+> CrewHaus ships hundreds of builtin tools and a category grammar for
+> turning them on a group at a time. This page covers finding them, enabling
+> them, the things they deliberately refuse to do, and the proof tools behind
+> the provability gate.
 >
 > Everything below is a real command with real (trimmed) output. Run them
 > yourself — the CLI reads the same registry the compiler does, so it is
@@ -20,7 +21,8 @@
 3. [Turning tools on in a spec](#turning-tools-on-in-a-spec)
 4. [What is available](#what-is-available)
 5. [What these tools will not do](#what-these-tools-will-not-do)
-6. [Where to go next](#where-to-go-next)
+6. [Proving claims — the proof tools](#proving-claims--the-proof-tools)
+7. [Where to go next](#where-to-go-next)
 
 ---
 
@@ -113,8 +115,8 @@ crewhaus tools search "sign transaction"
 no builtin tool matches "sign transaction" — try `crewhaus tools categories`
 ```
 
-That one is not a gap in the index. Nothing in the 549 signs a transaction;
-see [What these tools will not do](#what-these-tools-will-not-do).
+That one is not a gap in the index. No builtin can sign a transaction in
+this release; see [What these tools will not do](#what-these-tools-will-not-do).
 
 ### `crewhaus tools show` — one tool in full
 
@@ -179,7 +181,7 @@ run `crewhaus tools list` to see them all
 ### `crewhaus tools list` — everything, or one category
 
 `list` prints every builtin with its key, runtime name, flags and
-description. All 549 is a lot of scrollback, so reach for `--category` once
+description. That is a lot of scrollback, so reach for `--category` once
 you know roughly where you are:
 
 ```sh
@@ -439,18 +441,22 @@ discovery. The `all-operations` roll-up collects them.
 The refusals are a feature, and they are what makes a broad grant reasonable.
 Each of these is enforced in code, not documented as a convention.
 
-**No tool among the 549 signs or sends a transaction.** The chain tools read.
-Every method name goes through a shared read-only allow-list at the RPC seam
-before a socket is opened, so `eth_sendTransaction` and
+**No builtin can sign or send a transaction in this release.** The chain
+tools read. Every method name goes through a shared read-only allow-list at
+the RPC seam before a socket is opened, so `eth_sendTransaction` and
 `eth_sendRawTransaction` throw there even if a future edit asked for them —
 structural, not a promise about call sites. `crewhaus tools search "sign
 transaction"` returns nothing, which is the registry agreeing.
 
-*The honest boundary:* `@crewhaus/tool-evm-tx` **does** sign. Its
-`EvmSendTransaction` runs an unsigned transaction through the wallet engine
-(simulate → policy check → approval → custody sign → broadcast). It is wired
-per shape, it is not in any category, and it is not one of the 549 — which is
-why it does not appear in `crewhaus tools list`.
+*The honest boundary:* `evmSendTransaction` is built to sign. It runs a
+transaction through the wallet engine (simulate → policy check → approval →
+custody sign → broadcast), and the graph, workflow and crew shapes compile
+it. But no custody provider that can sign ships in this release, so every
+call returns an error, and compile warns `tool-unwired` (an error under
+`--strict`). `evmSimulate` runs the same transaction without signing. Neither
+is in a category, so neither appears in `crewhaus tools list`;
+`crewhaus tools show evmSendTransaction` says where it runs and why it
+cannot sign.
 
 **Nothing moves money.** `PaymentFileBuild` assembles a bank-ready NACHA or
 SEPA pain.001 batch with every control figure computed from the rows, and
@@ -480,6 +486,203 @@ values travel beside the program — `item N of argv` on macOS, `$env:…` on
 Windows, argv after `--` on Linux — and the escape helper refuses to build an
 argv for source it did not register. There is no `sh -c` and no `cmd /c`
 anywhere in the package.
+
+---
+
+## Proving claims — the proof tools
+
+Three builtins are the tool side of the provability gate, the `provability:`
+block that makes every claim in an answer carry evidence before the answer is
+served (see
+[GETTING-STARTED.md](GETTING-STARTED.md#requiring-proof-in-answers--provability)).
+They have a leaf category of their own, `all-proof`, which the `all-safety`
+roll-up includes beside `all-verify`.
+
+```sh
+crewhaus tools list --category proof
+```
+
+```
+3 builtin tool(s) in all-proof:
+proofCheck (ProofCheck) [destructive]
+  Check a formal proof of one claim with a proof checker and save the verdict
+  as a proof artifact. …
+proofCheckers (ProofCheckers) [read-only]
+  List the proof checkers this harness can prove claims with, in preference
+  order: …
+provabilityPreflight (ProvabilityPreflight) [read-only]
+  Check a draft answer against the provability gate before you send it. …
+```
+
+None of them makes a model call, and none of them cites for the model. A
+source grounds from the fetches and reads the model already makes; the tools
+exist only where there is real work to do (checking a proof) or a question to
+answer (what can I prove with? would this draft pass?).
+
+### How a harness gets them
+
+**Under `provability:`, the gate brings its own.** They are bound to the
+spec's block, its proofs directory and the evidence the gate's verifier
+reads, so an artifact is filed where the gate looks for it and a preflight
+grades a draft against what the gate will grade the answer against.
+
+- `ProvabilityPreflight` is added at every rung.
+- `ProofCheckers` and `ProofCheck` are added at `proven`, or when the spec
+  sets `formal.checkers` to anything but the default `[builtin, smt]`. A
+  `proof:` citation meets any floor, so a `checked` spec that names `lean4`
+  means the model to use it. Below `proven` with the default checkers they
+  are left out: a tool no claim needs is prompt weight.
+- A proof tool the spec also lists in `tools:` is replaced by the gate's
+  bound one, at any rung.
+
+**Without the block**, listing them — `tools: [all-proof]`, or one key —
+registers standalone instances: the compiler's defaults at the `grounded`
+floor, artifacts under `.crewhaus/proofs/default/`, and the run's session
+log as evidence.
+
+**Only a sandbox checker asks.** `ProofCheckers`, `ProvabilityPreflight` and
+`ProofCheck(builtin)` are builtin allow rules wherever the tools are
+registered, so a headless turn never parks on them: a `proven` harness can
+reach its floor through the builtin checker with no approval.
+`ProofCheck(smt)` and `ProofCheck(lean4)` start a container and keep the
+mode's default; allow them with a rule such as `alwaysAllow
+ProofCheck(smt)`. On a channel or managed spec, where nobody can answer an
+approval, `crewhaus lint` warns `provability-proofcheck-asks` when a listed
+sandbox checker would wait for one.
+
+### `ProofCheckers` — what can this harness prove with?
+
+```sh
+crewhaus tools show proofCheckers
+```
+
+```
+proofCheckers  (ProofCheckers)
+  List the proof checkers this harness can prove claims with, in preference
+  order: whether each can run here (and why not), and the statement language
+  each one checks. Use it before ProofCheck, so you write the statement and
+  the proof in a language an available checker accepts.
+
+  flags       read-only, internal, concurrency-safe
+  categories  all-proof, all-safety
+  input       (no declared fields)
+  …
+  enable with  tools: [proofCheckers]
+```
+
+It returns the floor, the checkers in the spec's preference order — each
+marked available or not, with the reason and a paragraph on the statement
+language it checks — and how to use them. `crewhaus provability checkers`
+prints the same listing for an operator. There are three checkers, and
+`builtin` is always among them: a spec's `formal.checkers` is a preference
+order, and the compiler appends `builtin` when the list leaves it out.
+
+| Checker | Runs | Checks |
+| --- | --- | --- |
+| `builtin` | in-process, no sandbox, always available | exact rational arithmetic and logic, with quantifiers over explicit finite domains only. A proof is a JSON list of steps — `given` (a hypothesis), `eval`, `arith`, `subst`, `mp`, `and_intro`, `and_elim`, `or_intro`, `cases`, `instantiate`, `witness` — or the single word `eval` for a closed statement true by evaluation. No induction and no unbounded quantifiers: those need `smt` or `lean4`. |
+| `smt` | Z3, in a container sandbox (`ghcr.io/crewhaus/sandbox-z3`) | an SMT-LIB 2 goal over a preamble limited to `set-logic`, declarations, definitions and `assert`. The checker first requires the asserts to be satisfiable, then asserts the negated goal: `unsat` proves it, `sat` rejects it with Z3's model as the counterexample, and `unknown` or a timeout rejects it. |
+| `lean4` | Lean 4, in a container sandbox (`ghcr.io/crewhaus/sandbox-lean4`, no Mathlib unless `formal.image` names an image that has it) | a Lean proposition with a term or tactic proof. The `formal.forbid` tokens (`sorry`, `axiom`, `native_decide` by default), any new command or attribute, and an import from outside `Init` and `Std` (`Mathlib` is allowed too once `formal.image` overrides the image) are refused before Lean runs. A proof resting on `sorryAx` is rejected, and so is one that trusts the compiler (`bv_decide`, say) while `native_decide` is forbidden; any other axiom beyond `propext`, `Classical.choice` and `Quot.sound` is listed with the proof. |
+
+The sandbox checkers run only in a container sandbox — `CREWHAUS_SANDBOX`
+set to `docker` (what unset means) or `podman`, with no network and a
+read-only root — and refuse on `noop`. Unavailable, they say why, and the
+builtin checker still works.
+
+### `ProofCheck` — check one proof, keep the verdict
+
+```sh
+crewhaus tools show proofCheck
+```
+
+```
+proofCheck  (ProofCheck)
+  Check a formal proof of one claim with a proof checker and save the verdict
+  as a proof artifact. Give the checker id (see ProofCheckers), the claim
+  sentence as your answer will state it, the formal statement, and the proof
+  in that checker's language. …
+
+  flags       mutating, destructive, internal, concurrency-safe
+  categories  all-proof, all-safety
+  input       checker, claim, proof, statement
+  …
+  rule checks checker: an id
+  example     - { type: alwaysAllow, pattern: "ProofCheck(builtin)" }
+
+  enable with  tools: [proofCheck]
+```
+
+The input is the `checker` id, the `claim` exactly as the answer will state
+it, the `statement` — the claim in the checker's language — and the `proof`.
+An unknown or unavailable checker is refused before anything is checked or
+saved. Otherwise the checker runs and the verdict is saved, accepted or
+rejected, as `.crewhaus/proofs/<spec>/artifacts/<prf_id>.json` (mode `0600`,
+never overwritten; on a managed harness, under the tenant's own root). A
+rejected proof is kept because it is signal: a bundle can then say why a
+citation of it failed. A check still running at `formal.timeout_ms` plus a
+30-second grace is saved as a rejection; a cancelled call saves nothing.
+
+The report puts what to do first: `ok`, the artifact `id`, the `checker`,
+and `next` — how to cite it, or what to do instead — then the `reason` and
+`counterexample` of a rejection, the `assumptions` and `axioms` the proof
+rests on, and the checker's `output`. Each check also publishes a
+`proof_checked` trace event (`checker`, `ok`, `artifactId`, `durationMs`,
+`axioms`) and appends it to the session log, where `crewhaus sessions tail`
+shows it.
+
+An accepted proof is cited as `[n]: proof:prf_…` on the sentence that states
+the claim, with the same words, figures and polarity, or the gate reports
+`claim_mismatch`. The gate trusts the artifact only when the run's evidence
+holds the `ProofCheck` call that wrote it, with the same checker, claim,
+statement and proof — a file alone proves nothing, since a shell command
+could have written it — and it checks a builtin proof again before trusting
+it. The
+hypotheses a proof rests on (builtin `given` steps, SMT asserts and
+definitions) are counted as assumptions on every surface.
+
+`ProofCheck` is `destructive` because it writes an artifact, and it is not
+`requiresSandbox`: the builtin checker needs none, so the sandbox floor
+applies per checker instead. Its operative argument is `checker`, which is
+what lets a rule name one.
+
+### `ProvabilityPreflight` — would this draft pass?
+
+```sh
+crewhaus tools show provabilityPreflight
+```
+
+```
+provabilityPreflight  (ProvabilityPreflight)
+  Check a draft answer against the provability gate before you send it. Runs
+  the verifier the gate runs, over the evidence this session has gathered,
+  and returns the verdict, each claim with its evidence and status, and what
+  to fix. Sends nothing and gates nothing. …
+
+  flags       read-only, internal, concurrency-safe
+  categories  all-proof, all-safety
+  input       draft
+  …
+  enable with  tools: [provabilityPreflight]
+```
+
+The input is the `draft`, exactly as it would be sent, definition lines
+included. The report comes in the order to read it: the verdict, floor,
+score, achieved rung and counts; the footer the reader would see; `next`;
+notes on where the preflight differs from the gate; the gate's own retry
+nudge when the draft would not pass cleanly; then one row per claim, the
+unmet ones first. It is sized so the model reads all of it.
+
+It never leaves the run, so it skips three of the gate's steps and says so
+where one would have mattered:
+
+- **No HEAD request.** `sources.resolve: head` is read as `off`.
+- **No replay.** Cited tools are not re-run; their bindings read
+  `replayed: false`.
+- **No waiver judge.** A paraphrase the gate's judge might accept shows as
+  `not_found_in_source`, so the preflight is the stricter of the two.
+
+It does re-check a stored builtin proof, and it refuses the run's own state
+directories as sources, as the gate does. For a document outside a run,
+`crewhaus provability check` is the same verifier on the command line.
 
 ---
 
