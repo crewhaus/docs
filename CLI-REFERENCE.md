@@ -62,6 +62,20 @@ apt, and npm all still ship the CLI. See
 > byte-identically, and the roster stays human-owned — every automation here
 > proposes, and a person merges.
 >
+> **v0.8.0** lets a spec require proof in its answers. The CLI half is the
+> [`provability`](#provability--proof-bundles-and-the-offline-gate)
+> namespace (`show`, `check`, `audit`, `checkers`, `prune`),
+> `init --provability`, `eval --provability`, and a proof-checker probe in
+> `doctor --probe`. Under a `provability:` block, `run` prints a proof
+> footer after each answer and `on_fail: halt` stops the run with exit
+> **37**. A spec with neither `provability:` nor `evaluation:` compiles
+> byte-identically; one with `evaluation:` now calls a shared composition
+> root, and its judge behaves as before. A handful of changes reach every
+> harness, the largest being that the agent's own tools can no longer write
+> the session logs, spilled tool results or proof bundles the runtime keeps
+> — the [CHANGELOG](https://github.com/crewhaus/factory/blob/main/CHANGELOG.md)
+> lists them all.
+>
 > **v0.5.0** adds the harness manager — [`hangar`](#the-hangar),
 > [`harness`](#crewhaus-harness), and [`daemon`](#crewhaus-daemon) — plus
 > the `crewhaus.control.v1` surface compiled daemon bundles now serve. It is
@@ -97,6 +111,12 @@ apt, and npm all still ship the CLI. See
 13. [Compliance, audit, and retention](#compliance-audit-and-retention)
 14. [Registry, secrets, and state](#registry-secrets-and-state)
 15. [Distribution and infrastructure](#distribution-and-infrastructure)
+16. [Provability — proof bundles and the offline gate](#provability--proof-bundles-and-the-offline-gate)
+    — [where bundles live](#where-bundles-live) · [`show`](#provability-show) ·
+    [`check`](#provability-check--the-gate-offline) · [`audit`](#provability-audit) ·
+    [`checkers`](#provability-checkers) · [`prune`](#provability-prune) ·
+    [measuring a rung](#measuring-a-rung--eval---provability) ·
+    [elsewhere in the CLI](#provability-elsewhere-in-the-cli)
 
 Flag conventions in this document: `<required>` positional or value,
 `[--optional]`, `a|b|c` an enum of choices, `-o` / `--out` a short alias.
@@ -131,6 +151,7 @@ The everyday loop: scaffold a spec, compile it to a bundle, run it.
 | `init --with-evals` | Also scaffold `eval/dataset.jsonl` + `eval/graders.yaml` (offline template mode — no credentials needed) so the harness can `crewhaus eval` on day one. |
 | `init --sentinel` | Also scaffold `.github/workflows/sentinel-drift.yml`, the nightly model-drift sentinel cron. |
 | `init --hybrid` | Scaffold the **hybrid** spec instead of the single-model one: a small `models:` registry, a two-arm `model_pool`, the cascade (cheap drafts → a stronger checker grades → the strong model redoes it on failure), and the `evaluation.on_fail: escalate` judge that triggers it — every line commented. The fast/strong pair is read from the installed pricing table and is always **within one provider**; a cross-provider pair needs a second credential and a second vendor seeing your transcripts, which is your call rather than a scaffold's. `init --interactive` asks the same question once. |
+| `init --provability off\|cited\|grounded\|checked\|proven` | Declare how much proof the new spec's answers carry: the scaffold ends in a live `provability: <rung>` key under a comment saying what the rung asks, and `init` prints what the rung asks of an answer plus any [`lint`](#provability-elsewhere-in-the-cli) note the floor still needs. A floor the tools cannot meet would fail every answer, so `grounded` also declares `read` and `webFetch` and `checked` declares `evaluate`; `cited` needs no tool and `proven` gets its proof tools from the gate. `off` writes nothing, because an absent block is off. Composes with `--hybrid`. Refuses a directory whose `crewhaus.yaml` already exists — add the key by hand there. With `--interactive` it answers the proof question before it is asked: the scripted questionnaire asks it last, on the `cli` and `research` shapes only (default `off` on cli, `cited` on research) and refuses the flag on a shape that cannot carry the block; the conversational interview is told the answer, and its spec gets the rung whatever the interview wrote (only the rung changes; for a target that cannot carry the block the spec is kept and stderr says the flag was ignored). |
 | `compile <spec> -o <out-dir>` | Parse → IR → emit a runnable bundle. **The FR-002 external-sink scope gate runs by default** — the build fails if an I/O-capable tool is left at a non-`external` scope. |
 | `compile <spec> --emit-ir [-o <dir>]` | Print the lowered IR as JSON (or write `<dir>/ir.json`); skip codegen. |
 | `compile <spec> --emit-loop [--json] [-o <dir>]` | Skip codegen and print the canonical **agent-loop projection** (`projectLoop` of the lowered IR) — the exact wire shape the Studio `/builder` renders and the compiler-worker's `POST /loop` returns. Human-readable by default; `--json` prints the raw `LoopProjection`; `-o` writes `<dir>/loop.json`. A read-only view: nothing is emitted and (matching `POST /loop`) the FR-002 scope gate does **not** run, so you can inspect the loop of a spec whose tool scopes still need fixing. Mutually exclusive with `--emit-ir`. |
@@ -299,6 +320,7 @@ flags below are additive report/gate modes.
 | --- | --- |
 | `doctor` | Environment health check. |
 | `doctor --detect [--no-probe]` | Read-only inventory of reachable providers, the local Ollama/vLLM endpoint's models, and MCP servers imported from `.mcp.json` / Claude Desktop config. `--no-probe` skips the localhost HTTP probe (offline / CI). |
+| `doctor --probe` | Opt-in live checks, never on by default: one ~1-token call per configured provider, catching an unfunded account or an invalid key before a long run dies on it (a failure fails doctor), and a `wiki_stats` round-trip when the spec carries `thredz:`. **v0.8.0** adds the proof checkers: when the cwd spec's harness runs one (a `proven` floor, a `formal.checkers` other than the default, or `proofCheck` / `proofCheckers` in `tools:`, which `all-proof` lists) and lists `smt` or `lean4`, each checker's sandbox and image health is probed — the same check as [`provability checkers`](#provability-checkers), and on docker a first probe may pull the image. An unavailable checker is a warning, not a failure: the builtin checker needs no sandbox and is always there. Without `--probe`, doctor prints one line saying the checkers were not probed. |
 | `doctor --fix` | Apply the mechanical remediations `--detect` otherwise only prints (scaffold `crewhaus.yaml`, create `.crewhaus/`, mark outward tools `scope: external`, append commented `.env` stubs). **Dry-run is the default** — without `--fix`, doctor prints the diff it would apply. |
 | `doctor --philosophy-alignment` | The three-pillar architectural audit. |
 | `doctor --philosophy-alignment --json [--baseline \| --accept-baseline]` | Scope-audit drift gate: `--json` persists findings to `.crewhaus/scope-audit/<date>.json`; `--baseline` exits non-zero only on **new** findings vs the pinned baseline; `--accept-baseline` promotes the current findings to the baseline. |
@@ -340,6 +362,7 @@ evaluate one of the other target shapes, emit its bridge with
 | `eval … --models <m1,m2,…>` | Benchmark matrix: run the same dataset+graders once per model; each cell writes to `<out>/<model-slug>/` and the run emits `matrix.json` + `index.html`. Since v0.6.0 the list also accepts **`$profile` refs and the word `pool`** — `--models '$fast,$strong'` runs one cell per `models:` profile, `--models pool` expands the whole `model_pool` roster (quote the refs, or the shell eats them). Adding `--record` runs every cell through the run-history flow under its **own per-arm lineage**, which is what makes `--gate`/`--no-promote` legal with `--models`; without it, cells stay comparisons rather than lineage and those flags are refused. Incompatible with `--max-p95-latency-ms`/`--max-cost-usd`, with `--record-tools`/`--replay-tools` (cells share sample ids), with `--resume`, and with `--routing`. |
 | `eval … --routing static\|as-declared\|candidate:<$profile\|model>` | **Route the eval.** Default `static` is the configured `agent.model`, exactly as before. `as-declared` wires the spec's own pool / tiers / fallbacks so you measure what production serves; `candidate:$fast` pins one roster member and measures that arm alone, with *its* request params and instructions overlay. Every routed mode pins the pool's learning seed and routes off a **frozen arm snapshot** — the run reads arm statistics and records none, so a measurement can never move the harness's learned policy, and two runs of the same seed make identical decisions. Routed runs key their own baseline lineage beside the legacy `(spec, dataset)` one, so a cheap candidate can never pin over the primary's baseline. |
 | `eval … --warm-arms` | Seed that frozen snapshot from the harness's live `arms.jsonl` instead of starting cold. The file is re-read at the end and a mid-run change is reported. The snapshot's digest is the run's **instrument identity**: two runs with different digests start a new baseline lineage rather than gating across the difference. Needs `--routing`. |
+| `eval … --provability cited\|grounded\|checked\|proven` | **Measure a proof rung without editing the spec** (v0.8.0). The spec's own `provability:` block runs at that level — a block parked at `level: off` runs as written, re-validated at that rung — or `provability: <level>` with every default when the spec has none. The gate runs in every sample exactly as in production, so the cost line shows what the rung costs, and the six `provability.*` graders join the run: a sample passes only when your graders pass **and** every provability bar holds. A run like this is recorded but never becomes the baseline, so `--gate`, `--sentinel`, `--models` and `--voice` are refused with it, and `--resume` must repeat the flag. See [measuring a rung](#measuring-a-rung--eval---provability). |
 | `eval leaderboard <matrix-dir> [--pairwise] [--export-priors <file> [--spec <s>]] [--min-n N] [--seed N] [--json]` | Rank the arms of a recorded `--models` matrix, entirely offline (it opens run directories and makes no model call, so it is safe in CI). Each row carries a Wilson interval on pass rate and a Student-t interval on mean score; the verdict comes from a **paired** sign-flip permutation test over per-sample deltas, Holm-corrected across comparisons. It **refuses to name a winner the evidence cannot support** — `UNDERPOWERED` below the comparable-pair floor (`--min-n`, default 30), `TIE` when the test is not significant or the top two intervals overlap — and writes that verdict back into `matrix.json` as an additive block. Cells graded with a different graders hash or judge model are excluded rather than ranked beside comparable ones. `--pairwise` prints every head-to-head with raw and adjusted p-values (a statistical comparison of recorded runs — it makes no judge calls; that is `eval-report diff --pairwise`). `--export-priors` writes the measurement as routing priors in reward units, pseudo-count capped so a prior can never outweigh a handful of live observations, and fingerprinted against the spec's roster so a roster edit invalidates it loudly. |
 | `eval … --no-regressions` | Skip the default union of the per-spec `<name>-regressions` registry dataset (also skips the failure-arbiter's bug-sample pin into it). |
 | `eval … --no-retry` | Opt out of the runner's default one-shot retry of ERRORED samples (infra noise, not graded failures). |
@@ -862,7 +885,7 @@ Per-harness prep lives in the harness's own `.crewhaus/settings.json` under
 operator commands run between compile and spawn, whose non-zero exit refuses
 the start exactly like a blocking preflight finding. A string declaration is
 one command and is not word-split; an array is an argv vector. Nothing goes
-through a shell. See [HANGAR.md](HANGAR.md#per-harness-prep-compile-and-hooks).
+through a shell. See [HANGAR.md](HANGAR.md#per-harness-prep---compile-and-hooks).
 
 Exit codes 20 (spec), 21 (config), 30 (auth), 31 (billing) and 33
 (crewhaus_budget) are **terminal** and never auto-restarted; 36 is *parked*,
@@ -910,7 +933,7 @@ Scheduled evidence collection, tamper verification, and GDPR/TTL enforcement.
 | --- | --- |
 | `secrets doctor` | List known secrets via the configured backend (`--backend env-var\|file`). |
 | `secrets rotate <name> [--value V]` | Rotate a named secret (file backend). |
-| `state backup [-o <file.tar.gz>] [--exclude <glob,glob>]` | Snapshot the cwd `.crewhaus` state dir (sessions, feedback, memories, datasets, durable-state) to a tarball. |
+| `state backup [-o <file.tar.gz>] [--exclude <glob,glob>]` | Snapshot the cwd `.crewhaus` state dir (sessions, feedback, memories, datasets, durable-state, proof bundles) to a tarball. A managed harness files its proof bundles under its tenants root (`CREWHAUS_TENANTS_ROOT`, default `/tmp/crewhaus-tenants`), outside `.crewhaus`, so back that root up separately. |
 | `state restore <file.tar.gz> [--into <dir>] [--force] [--merge feedback\|all]` | Restore a snapshot (refuses a non-empty `.crewhaus` without `--force`). `--merge feedback` folds deployed-bot feedback back into the dev loop (deduped). |
 
 ---
@@ -927,6 +950,336 @@ Scheduled evidence collection, tamper verification, and GDPR/TTL enforcement.
 | `services setup <spec> [--zone <domain>] [--port <n>] [--services slack,cloudflare,thredz] [--hostname <fqdn>] [--tunnel <name>] [--space-type shared\|individual] [--app-id <id>] [--manual-install] [--env-file <path>] [--dry-run] [-y]` | Create the external services the spec asks for: a Slack app (manifest applied, both request URLs set, then installed), a Cloudflare named tunnel with a public hostname and DNS, and a Thredz wiki space. Credentials land in the harness `.env`; the wiki slug lands in the spec. Provisioning tokens are read once and never stored. |
 | `federation discover <deployment> [--srv-domain <d>] [--format json\|yaml]` | Resolve a federated peer's endpoint + cert fingerprint via DNS SRV or `.well-known`. |
 | `sandbox doctor [--probe] [--format json\|table]` | List registered sandbox images + healthcheck status. |
+
+---
+
+## Provability — proof bundles and the offline gate
+
+A spec's [`provability:` block](GETTING-STARTED.md#requiring-proof-in-answers--provability)
+puts a deterministic gate in front of every answer: each claim must bind to
+evidence at or above a floor — `cited`, `grounded`, `checked` or `proven` —
+before the answer is served. The gate's verdict is a **proof bundle**, filed
+beside the answer. These verbs read bundles, grade documents the same way
+offline, and manage the files. None of them calls a model.
+
+| Command | Purpose |
+| --- | --- |
+| `provability show [<spec.yaml>] [--session <id>] [--turn N [--pass K]] [--tenants-root <dir>] [--json]` | One bundle in long form — the footer's long version. Default: the newest. See [`show`](#provability-show). |
+| `provability check <answer.md> --level <rung> [--evidence <dir>] [--session <id>] [--spec <spec.yaml>] [--report] [--tenant <id> [--tenants-root <dir>]] [--json]` | The gate, offline, over any document. **Exits 0 only when it passes**, so a generated report can be gated in CI. See [`check`](#provability-check--the-gate-offline). |
+| `provability audit [<spec.yaml>] [--since <when>] [--tenants-root <dir>] [--json]` | A roll-up across bundles and the session logs' `provability_graded` lines, with the gaming signals worth a human look. See [`audit`](#provability-audit). |
+| `provability checkers [<spec.yaml>] [--json]` | Every proof checker, whether it can run here and why not, and the statement language it checks. See [`checkers`](#provability-checkers). |
+| `provability prune [<spec.yaml>] --older-than <duration> [--dry-run] [--tenants-root <dir>] [--json]` | Delete old bundles. Proof artifacts are kept. See [`prune`](#provability-prune). |
+
+On `show`, `audit` and `prune`, a positional `<spec.yaml>` narrows the verb
+to that spec's bundles; on `checkers` it configures the probe; `check` takes
+its spec as `--spec`. Each flag is read only by the verbs that use it, and
+any other verb refuses it by name rather than ignoring it:
+
+```
+crewhaus: provability show does not take --level (it takes --session, --turn, --pass, --tenants-root, --json)
+```
+
+A bare `crewhaus provability`, or `--help`, prints the usage and exits 0. A
+usage or input mistake — an unknown flag, an id of the wrong shape, a file
+that cannot be read — prints one `crewhaus:` line on stderr and exits 1.
+Durations are `30m`, `12h`, `7d` or `2w`; `--since` also takes an ISO date
+(`2026-10-01`). Text output replaces control and bidirectional-override
+characters in what it prints — a line break or tab becomes a space, every
+other one U+FFFD, so tampering stays visible — because bundles hold model
+prose and fetched page text; `--json` prints the data as stored.
+
+### Where bundles live
+
+The gate files one bundle per graded pass and never rewrites one. Files are
+mode `0600`, directories `0700`:
+
+```
+.crewhaus/proofs/<spec>/
+├── <sessionId>/turn-<n>.json       # a turn's first pass
+├── <sessionId>/turn-<n>.<k>.json   # its k-th pass, when a retry graded it again —
+│                                   # the last pass is the turn's standing bundle
+└── artifacts/<prf_id>.json         # one per ProofCheck call, accepted or rejected
+```
+
+`<spec>` is the spec's `name:`, mapped to a safe directory name when it would
+not make one. Bundles carry no TTL: they are the audit record, which is why
+`prune` exists. `state backup` archives them with the rest of `.crewhaus`.
+Two shapes file elsewhere:
+
+- **managed** — every turn runs under its tenant, so its bundles live under
+  `<tenants-root>/<tenant>/proofs/<spec>/<sessionId>/`. `show`, `audit` and
+  `prune` read them when a tenants root resolves: `--tenants-root <dir>`,
+  else `CREWHAUS_TENANTS_ROOT`, else `/tmp/crewhaus-tenants` (a managed
+  daemon's default) when the spec — named, or the directory's
+  `crewhaus.yaml` — is a managed one. A relative value resolves against the
+  harness directory. One tenants root serves every managed harness on the
+  machine, so once the spec is known only its own directory under each
+  tenant is read, and only that one is pruned. The root lies outside
+  `.crewhaus`, so `state backup` does not carry it: back it up separately.
+- **research** — the report gate grades one report per run and writes
+  `.crewhaus/research/<runId>/proof.json` beside `report.md`. `show`,
+  `audit` and `prune` read these too, unless a named spec is not a research
+  one; name one with `show --session run_<16 hex>`.
+
+### `provability show`
+
+Prints the floor, the verdict, the score against the threshold, the highest
+rung the answer reached, its distinct sources (and how many the run wrote
+itself), its assumptions (proof hypotheses and refused ones included), any
+judge waivers with their spend, then every claim with its status, best rung
+and bindings — origin, excerpt, digest, and why a binding fell short — and
+finally the answer's own footer line, so the two can be matched by eye.
+
+- `--session` takes `sess_<16 hex>`, `no-session` (a run with no session id)
+  or a research run's `run_<16 hex>`.
+- `--turn N` picks one graded turn. A retried turn keeps every pass, and
+  `--pass K` reads the K-th; it needs `--turn`, and without it you get the
+  last pass, the one the answer was served under.
+- `--json` prints the bundle exactly as persisted — what each row of Hangar's
+  `GET /api/runs/:sessionId/proof` carries.
+
+With nothing to show it exits 1 and says where it looked, and that a managed
+harness files its bundles under its tenants root.
+
+### `provability check` — the gate, offline
+
+`check` runs the verifier the in-loop gate, the `ProvabilityPreflight` tool
+and the research report gate all call, over a document you name. Its
+configuration is `--spec <spec.yaml>`'s `provability:` block, with `--level`
+overriding the floor, or else the defaults at `--level`; one of the two is
+required. Its evidence comes from up to three places:
+
+- **`--session <sess_id>`** — that session's event log, every tool call the
+  run recorded (`CREWHAUS_SESSION_DIR`, else `.crewhaus/sessions`). A
+  `tool:` citation's call is found here, and so is the `ProofCheck` call
+  behind a `proof:` citation.
+- **`--evidence <dir>`** — a directory of fetched bodies, one page per
+  regular file, walked up to four levels deep (dotfiles and links skipped).
+  A page's URL is a sidecar `<file>.url` whose first non-empty line is an
+  http(s) URL or a `doi:`, else the file's first line, `URL: <url>` — the
+  line a `WebFetch` result opens with, so a saved result works as is. That
+  header is taken off before grounding, and a redirected result, whose
+  header also names the `Requested:` URL, is indexed under both addresses,
+  as the live gate indexes it. A body that opens with a `[user prompt: …]`
+  echo needs the prompt verbatim in `<file>.prompt`; without it the file is
+  skipped, because the model's own prompt must never read as the page. A
+  skipped file grounds nothing — a claim citing its page fails `not_fetched`
+  — and a `note` line says why it was skipped.
+- **Workspace files** the document cites by path, read from disk.
+
+A workspace file the document cites by path is never read when it is the
+document itself — by path, through a link, as a hard link or as a copy — or
+when it sits under the harness's own state: `.crewhaus/`, wherever
+`CREWHAUS_SESSION_DIR`, `CREWHAUS_DATASETS_DIR`, `CREWHAUS_WATCHME_ROOT`,
+`CREWHAUS_SHARED_DIR` or `CREWHAUS_TENANTS_ROOT` put part of it,
+`.crewhaus-shared/`, the default tenants root, and any `--tenants-root`.
+Those hold the model's own words, and a document citing itself would pass
+the very gate it is meant to face; a citation of one fails `not_fetched`.
+
+An `--evidence` directory is read as you name it. The document, and any
+copy of it, is skipped there too, but every other file in it is taken as a
+fetched body, wherever the directory sits — `check` does not refuse one
+under `.crewhaus/`. Point it at pages you saved, never at `.crewhaus/` or a
+session directory.
+
+The offline gate differs from the live one, and prints a `note` wherever a
+difference applies (on stderr under `--json`):
+
+- **No request leaves the machine.** `sources.resolve: head` sends no HEAD;
+  URLs are checked lexically — scheme, `sources.allow` / `deny`, private
+  address space.
+- **No waiver judge.** A paraphrase miss `provability.judge` would have been
+  asked about stays unmet, so offline is the stricter of the two.
+- **`scope: turn` does not apply.** A document has no current turn, so all
+  the evidence given counts.
+- **Workspace files are read as they are now.** The live gate grounds a path
+  citation only on what a recorded `Read` returned.
+- **Without `--session`, a `proof:` citation is held to its stored artifact
+  alone.** The live gate also requires the run's `ProofCheck` call that
+  wrote it; given `--session`, so does `check`. Artifacts are looked up in
+  the `--spec`'s proofs directory (else every one under `.crewhaus/proofs`),
+  then the `--tenant`'s.
+
+At `checked` and above, with `execution.replay` on, `check` re-runs the pure
+tools a `tool:` citation names, from the same builtin tool table `crewhaus
+run` loads.
+
+Two flags fit particular documents:
+
+- **`--report`** grades a research `report.md` as its gate did: the text
+  above the writer's trailer (`## Citations`, then `## Provability`), whose
+  lines are the writer's, not the run's claims. A document that does not end
+  in that trailer is refused under `--report`. One that does, checked
+  without the flag, is graded whole, with a note suggesting `--report`.
+- **`--tenant <id>`** reads a managed answer's evidence: that tenant's
+  session log and proof artifacts under the tenants root, which resolves as
+  for `show` (a managed `--spec` is enough to reach the default root). One
+  tenant only, since another tenant's evidence must not ground the answer;
+  `--tenants-root` without `--tenant` is refused here. A document citing
+  `tool:` or `proof:` in a managed harness, checked without `--tenant`, gets
+  a note saying where that evidence lives.
+
+A document that says what its source does not:
+
+```sh
+crewhaus provability check wrong.md --level grounded --evidence evidence
+```
+
+```
+offline check · wrong.md
+  config      the defaults at --level grounded
+  evidence    1 fetched body from evidence
+  floor       grounded
+  verdict     ✗ fail
+  score       0/1 claim (0%, threshold 100%)
+  achieved    cited
+  …
+
+claims (1)
+  1. ✗ unmet · best cited · line 1
+     Refunds are accepted within 30 days of purchase.
+     [1] ✗ source · rung cited · not found in source
+         origin    https://acme.example/policy
+         why       the claim's words are not together in one 60-token window of https://acme.example/policy (missing: 30)
+         …
+
+── provability · grounded ✗ · 0/1 claim · unmet: [1] · 0 sources · 0 assumptions
+```
+
+That exits 1. The same sentence with "14 days", which is what the saved page
+says, passes and exits 0. `--json` prints the bundle on stdout instead.
+Check an answer's text, not its footer: a `── provability · …` line left in
+the document is a sentence with figures in it, and is graded as an uncited
+claim like any other.
+
+### `provability audit`
+
+Reads every bundle — each pass of every turn — and every
+`provability_graded` line in the session logs, the tenants' included when a
+tenants root resolves. A graded turn is counted once, through its standing
+pass. The passes a retry superseded are counted apart, as `retried`, with
+their own unmet reasons: they are not the turn's answer, but the failing pass
+a retry fixed is part of what an audit is for.
+
+It reports verdicts, the distribution of achieved rungs, the floors in use,
+claims met and unmet, the assumption rate (declared assumptions, refused ones
+and proof hypotheses included, over claims), the judge-waiver rate (waived
+bindings over met source bindings), gate passes with their retries and
+escalations, the unmet reasons ranked, and four **gaming signals**:
+
+- one evidence reference bound to many claims that share little vocabulary;
+- replay mismatches;
+- proof statements nearly identical to the prose they back;
+- sources the run wrote itself before reading them back.
+
+Each signal names its bundle file. They are pointers for a person, never a
+verdict — a long policy page can honestly ground several unrelated claims —
+so `audit` always exits 0. `--since` keeps only bundles and lines newer than
+the bound. `--json` prints the whole roll-up, with notes on stderr. Only the
+newest bundles and session logs are read past a cap, and a note says so when
+it applies.
+
+### `provability checkers`
+
+Lists `builtin`, `smt` and `lean4`, with the ones the spec configures first,
+in its preference order. For each: available, or unavailable with the reason;
+whether the spec's harness runs it (`configured`); its image; and the
+paragraph that tells a model its statement language, the same text the
+`ProofCheckers` tool returns.
+
+- The spec is the positional, else the directory's `crewhaus.yaml`; with no
+  `provability:` block the defaults apply.
+- The sandbox is the one a run would use: `CREWHAUS_SANDBOX` — `docker` when
+  unset, `podman`, or `noop`, which turns container execution off.
+- `smt` runs the curated Z3 image, `ghcr.io/crewhaus/sandbox-z3`. `lean4`
+  runs `ghcr.io/crewhaus/sandbox-lean4`, a Mathlib-free Lean 4, unless
+  `provability.formal.image` names another.
+- A harness that never runs a checker — a `cited` floor on the default
+  checkers with neither `proofCheck` nor `proofCheckers` in `tools:`, say —
+  gets a note saying so, and no checker is marked configured.
+- On docker a first probe may pull an image. It always exits 0.
+
+```sh
+CREWHAUS_SANDBOX=noop crewhaus provability checkers
+```
+
+```
+proof checkers
+  sandbox  noop — CREWHAUS_SANDBOX=noop turns container execution off
+
+✓ builtin  available · configured
+    builtin: exact finite arithmetic and logic, no sandbox. `statement` is one formula. …
+
+✗ smt  unavailable — the smt checker needs a container sandbox and none is configured (set CREWHAUS_SANDBOX=docker or podman); the builtin checker needs none · configured · image ghcr.io/crewhaus/sandbox-z3:…
+    smt: SMT-LIB 2 checked by the Z3 solver in a sandbox; …
+
+✗ lean4  unavailable — the lean4 checker needs a container sandbox and none is configured (…) · image ghcr.io/crewhaus/sandbox-lean4:…
+    lean4: Lean 4 (no Mathlib unless the harness overrides the image), checked in a sandbox. …
+```
+
+### `provability prune`
+
+`--older-than` is required. `prune` deletes every bundle file last written
+before the cutoff — each pass of a turn is a file of its own, judged by its
+own time, so a turn retried after the cutoff keeps its later passes — under the harness's proofs directory, its research
+runs (only `proof.json` goes; `report.md` and `report.json` stay) and, when a
+tenants root resolves, the tenants' directories for the spec. Artifacts under
+`artifacts/` are never pruned: a bundle that survives cites them. `--dry-run`
+lists what would go and deletes nothing. `--json` prints `dryRun`,
+`olderThan`, `cutoff`, `removed` (or `wouldRemove`), `tenantsRoot` when one
+was read, and the `bundles` list.
+
+### Measuring a rung — `eval --provability`
+
+`crewhaus eval <spec> --dataset <d> --graders <g> --provability <rung>` runs
+the gate in every sample at that rung (the [eval row](#running-an-eval) has
+the flags it refuses) and adds the provability graders. They read the bundle
+each sample's gate produced, saved as `<sample>/proof.json`, and call no
+model:
+
+| Grader | Measures | Bar |
+| --- | --- | --- |
+| `provability.claimCoverage` | claims that meet the floor ÷ claims that count (assumptions excluded) | ≥ 0.95, and every `expected_sources` origin grounds the answer |
+| `provability.rungAchieved` | the highest floor the answer passed | at or above the floor |
+| `provability.citationValidity` | defined markers ÷ markers | ≥ 0.99 |
+| `provability.assumptionRate` | declared assumptions ÷ claims | ≤ 0.1 |
+| `provability.replayIntegrity` | replayed tool results that matched ÷ replayed | = 1.0 |
+| `provability.costPerProvenClaim` | gate-caused spend per met claim | reported, never a bar |
+
+They sit beside the graders file's `combine:` policy, not inside it: a sample
+passes only when your graders pass and every bar holds. A sample can set its
+own floor, and the sources that must back its answer, and is gated and graded
+at that level:
+
+```jsonl
+{"id": "refund", "input": "What is the refund window?", "metadata": {"provability": {"level": "grounded", "expected_sources": ["https://acme.example/policy"]}}}
+```
+
+A sample with no bundle, or one the gate could not verify, fails every
+grader as unmeasured; it never passes. A spec that already declares
+`provability:` is gated the same way without the flag — name the graders
+with `type: registry` in the graders file to grade it.
+
+### Provability elsewhere in the CLI
+
+| Surface | What it does with provability |
+| --- | --- |
+| `run` | Under `provability:` the gate grades each completed answer, before an `evaluation:` judge does. With `render: footer`, the default, one line follows the answer in the REPL and on `--prompt`'s printed result: `── provability · grounded ✓ · 6/6 claims · 3 sources · 0 assumptions · .crewhaus/proofs/<spec>/<session>/turn-7.json`. `render: json` prints the bundle and `none` prints nothing. On a fail, `on_fail` decides: `retry` (default) re-runs the turn with a nudge naming each unmet claim and why, and once `max_retries` is spent serves the last attempt under a ✗ footer; `note` serves the answer under the ✗; `escalate` re-runs the turn on a stronger `model_pool` candidate; `halt` stops at the first failing verdict, classified `provability`, **exit 37**. The cli streams each attempt as it is written, so a rejected attempt and a halted answer have already printed when their ✗ follows. A verifier that throws fails open: the answer is served under `? unverified`. |
+| `compile --strict` | Escalates the five provability lowering warnings — `provability-inert-block`, `provability-on-fail-degraded`, `provability-execution-unresolved`, `provability-image-unused` and `provability-research-rung-unreachable` — like any remediable warning, and `model-plan-self-judge` when the waiver judge is one of the agent's own serving models (`judge.allow_self_judge: true` accepts that). |
+| `compile --emit-as cf-worker` | The Worker runs no answer gate, so a `provability:` block (and an `evaluation:` one) warns `accepted-but-unwired`, and `--strict` fails the edge build instead of shipping it ungated. |
+| `compile --emit-loop` | The agent-loop projection, which the Studio builder and `POST /loop` share, lights the `evaluate` segment under `provability:`, keyed `provability`: `● evaluate provability gate (grounded, on fail: retry)  [provability]`. A threshold below 1 is named (`, threshold 0.9`), and so is a `retry` gate's cap when it allows more than one (`, ≤ 3 retries`). Beside an `evaluation:` block, both gates share the segment, joined by ` · `. |
+| `lint` | Repeats those five warnings in the same words, and adds `provability-no-source-tool` (a `grounded` floor with nothing that can read a source), `provability-no-execution-tool` (a `checked` floor with no tool on `execution.allow`), `provability-execution-unknown-tool` (an `execution.allow` entry no call can match), `provability-sandbox-only-checkers` (`formal.checkers` names only `smt` / `lean4`), `provability-proofcheck-asks` (a channel or managed harness whose sandbox checker would wait for an approval nobody can give) and `provability-self-judge` (the waiver judge is one of the agent's own serving models). All are warnings: each describes a valid spec that is unlikely to do what its author meant. |
+| `doctor --philosophy-alignment` | Three findings: the citation-marker pattern has exactly one definition in the tree, `@crewhaus/provability` imports no model adapter, and `provability.level` stays off the optimizer's writable paths. |
+| `doctor --probe` | Probes the sandbox proof checkers the cwd harness runs — see [doctor](#health-and-diagnostics--doctor). |
+| `sessions tail` | Prints the gate's verdict on each pass (`⚖ provability grounded ✓ 3/3 claims · <bundle path>`) and each `ProofCheck` run (`∎ proof builtin ✓ accepted prf_…`); `--transcript-only` hides both. |
+| `advise` | Flags a harness whose gated turns keep failing after their retries (`provability-pressure`), with a `max_retries` patch where more retries can help and advice keyed to the most common unmet reason, and one whose gated turns keep standing unverified because the verifier failed open (`provability-unverified`). It never proposes lowering the floor. |
+| `watchme report` | Takes its grounding figures from the gate's verdicts on turns graded at `grounded` or above, in place of its own estimate. |
+| `models explain`, `models audit`, `doctor --models` | Walk the waiver judge, `provability.judge.model`, like every other judge slot: its pricing, capabilities and parameters are checked, but no right-size or downshift search ever proposes a cheaper judge, because nothing in that search measures the judge. |
+| `tools show proofCheck` | The three proof tools are builtins, in `all-proof` and so in `all-safety` — see [TOOLS-REFERENCE.md](TOOLS-REFERENCE.md#proving-claims--the-proof-tools). |
+
+Hangar serves the same bundles over HTTP, as
+`GET /api/runs/:sessionId/proof` — see
+[HANGAR.md](HANGAR.md#proof-bundles-over-the-api-v080).
 
 ---
 

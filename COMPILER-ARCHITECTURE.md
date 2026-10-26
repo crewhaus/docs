@@ -270,8 +270,9 @@ A warning fires for the **accepted-but-unwired** case: a spec key that a shape's
 The catalogue lives in one table, `ACCEPTED_BUT_UNWIRED` ([packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts)), keyed by `spec.target`. It encodes the **post-Batch-A/E/F intended state**, so it is deliberately *sparse* — a key is listed only while its emitter still drops it:
 
 - `continuity` on `workflow` / `batch` / `voice` / `browser` (those emitters print the ignored-note comment).
-- `thredz` on `research` / `crew` (Batch E wired it on channel + managed, so their rows are gone).
+- `thredz` on `research` (Batch E wired it on channel + managed, and 0.5.0 on crew, so their rows are gone).
 - `mcp_servers` / `tools` on `voice`, `mcp_servers` on `browser` / `onchain` / `onchain-game` (no MCP host or tool catalog is booted there).
+- `provability` on `crew` (v0.8.0: the block lowers onto `IrCrewV0`, but the orchestrator's synthesis turn is not yet a completed turn the gate can wrap — see [Provability lowering](#provability-lowering-v080)). `provability: off` is not a declaration and never warns.
 
 Anything a batch *wired* is intentionally absent from the table: `limits`/`thinking`/`hooks`, `evaluation`, `knowledge`, `expose`, and Batch F's `schedule:` (now wired on channel/managed/batch) carry no row on the shapes that honour them. The table's contract is "delete the row the moment the emitter wires the key," and the warnings tests pin the table so a row can't rot.
 
@@ -410,6 +411,66 @@ The other nine columns are not pinned by that table. `crewhaus models explain` p
 - `committee` is a `sideCalls` member rather than a family of its own, because the strict schema already refuses a `strategy.committee` block on every shape the table marks `—`. The schema is the gate; no shape has to decline the family for it.
 - The four shapes with no `model_pool` block (`voice`, `eval`, `onchain`, `onchain-game`) take no family at all — the strict union refuses the block first.
 
+## Provability lowering (v0.8.0)
+
+The 0.8.0 release lets a spec require proof in its answers: a top-level `provability:` block sets a floor on a four-rung ladder (`cited` → `grounded` → `checked` → `proven`), and a deterministic gate checks every claim in an answer against the run's recorded evidence before the answer is served. Its walk from YAML to running gate follows the memory release's shape — one composition-root call — and it takes over the in-loop `evaluation:` judge's wiring on the way:
+
+```mermaid
+flowchart LR
+    Y["provability: / evaluation:"] --> L[lower]
+    L --> F["IR fragment (IrProvability + IrEvaluation + spec name + primary model)"]
+    F --> E["emit&lt;Target&gt; — embeds ONE call"]
+    E --> W["wireEvaluation(fragment, deps)  · @crewhaus/evaluation-service"]
+    W --> S["RunChatLoopOptions.provability / .evaluation + the bound proof tools"]
+```
+
+**Spec** ([packages/spec/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/spec/src/index.ts)): the block is a union of a rung-name shorthand (`provability: grounded` ≡ `{ level: grounded }`) and a `.strict()` object in which `level` is **required** — a block that configures the gate without saying how high it sits is a mistake, not an implicit `off`. It is accepted on `cli`, `channel`, `managed`, `research` and `crew`; the strict unions reject it on every other shape. Two cross-field rules are parse errors: `on_fail: escalate` without `agent.model_pool` on `cli`, `channel` and `managed`, and a `judge.model` naming an undeclared `$profile` (checked at every level, `off` included). A `sources.allow` / `deny` entry must be a host glob (`*`, `*.<host>` or a host): a URL, port or path there could never match, so on `deny` it would fail open. Everything softer — a floor the spec's tools cannot reach, sandbox-only checkers, a self-judging waiver — is a `crewhaus lint` rule, because each describes a valid spec unlikely to do what its author meant.
+
+**Lower** ([packages/compiler/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/compiler/src/index.ts), `lowerProvability`): spread-return-`{}`, the `lowerWatchme` template. An absent block or `level: off` spreads **nothing**, so a spec without the block compiles byte-identically. Otherwise every field resolves at lower time — a bare `provability: cited` arrives fully populated — so no emitter or the interpreter re-derives a default:
+
+| Spec key | `IrProvability` field | Resolved default |
+|---|---|---|
+| `level` | `level` | — (`cited \| grounded \| checked \| proven`) |
+| `on_fail` | `onFail` (+ `escalateTo` when `escalate`) | `retry`; `note` on research |
+| `max_retries` | `maxRetries` | `1` |
+| `threshold` | `threshold` | `1` |
+| `scope` | `scope` | `session` |
+| `assumptions` / `max_assumptions` | `assumptions` / `maxAssumptions?` | `allow` / uncapped |
+| `render` | `render` | `footer` |
+| `sources.{allow,deny,bibliographic,resolve}` | `sources.*` | `[]` (any public host), `[]`, `false`, `off` |
+| `grounded.{coverage,window_tokens,independent}` | `grounded.{coverage,windowTokens,independent}` | `0.8`, `60`, `1` |
+| `execution.{allow,replay,max_replays}` | `execution.{allow,replay,maxReplays}` | `[all-compute, all-verify, -goldenUpdate]` expanded, `true`, `20` |
+| `formal.{checkers,image,forbid,timeout_ms}` | `formal.{checkers,image?,forbid,timeoutMs}` | `[builtin, smt]`, —, `[sorry, axiom, native_decide]`, `30000` |
+| `judge.{model,allow_self_judge}` | `judge?` (`model`, `modelProfile?`, `params?`, `allowSelfJudge?`) | absent: zero model spend |
+
+Four rules worth knowing:
+
+- **`execution.allow` is expanded through the `tools:` category grammar**, so the IR carries concrete tool names and never `all-compute`. Each builtin lowers to its spec key however it was spelled (`MoneyAdd`, `moneyadd` → `moneyAdd`); anything else, such as an `mcp__*` tool, is kept exactly as written, because MCP names are case-sensitive. An unknown category or an exclusion that removes nothing fails the compile exactly as it does in `tools:` — on an inert `level: off` block too, since a typo is a typo whether or not the gate is on. The default leaves out `goldenUpdate`, the one tool in `all-verify` that writes, and a test reads the safety flags of every tool the default expands to.
+- **`formal.checkers` gains `builtin` last when the spec leaves it out.** The builtin certificate checker needs no sandbox, so the proof tools always carry it; the IR is the list that runs, which keeps the default skill's `{{checkers}}`, the `ProofCheckers` tool and `crewhaus provability checkers` reading one list. The list is a preference order, not an allowlist.
+- **`judge.model` is an auxiliary model slot**, resolved like the watch-me and security judges — `$profile`, `cheapest`, `strongest` — and `on_fail: escalate` resolves `escalateTo` with the same cascade helper `IrEvaluation` uses.
+- **Per shape**: research's report gate runs once per report, not per turn, so an undeclared `on_fail` resolves to `note` there silently, and a declared `retry` or `escalate` lowers to `note` with a warning. Crew carries the block unwired (its `ACCEPTED_BUT_UNWIRED` row) and has no `agent.model_pool`, so a declared `escalate` lowers to `note` there too.
+
+**Compile warnings.** The lowering reports five remediable codes, which `crewhaus compile --strict` escalates and `crewhaus lint` repeats in the same words: `provability-inert-block` (a `level: off` block that sets other keys — it lowers to nothing, and saying so beats dropping config silently), `provability-on-fail-degraded`, `provability-execution-unresolved` (a `checked` / `proven` floor whose `execution.allow` names a tool the catalog cannot resolve offline — the gate replays pure tools and trusts their results, so an unverifiable name is the FR-002 posture's unverifiable sink, for evidence), `provability-image-unused` (a `formal.image` with no `lean4` checker to run it) and `provability-research-rung-unreachable` (a research floor of `checked` / `proven`, which a report's fetched sources can never reach). The unresolved-tool check is deliberately a warning `--strict` escalates rather than a `compile({ strict: true })` refusal: that option is FR-002's default-on scope gate, set by `compile`, `run --watch` and the compiler worker without any flag. The cf-worker emit paths add `accepted-but-unwired` for a `provability:` block (and an `evaluation:` one), because the edge Worker runs no answer gate.
+
+**IR** ([packages/ir/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir/src/index.ts)): no new variant — `provability?: IrProvability` is field enrichment on `IrV0`, `IrChannelV0` and `IrManagedV0` (beside `evaluation?`) and on `IrResearchV0`; `IrCrewV0` carries it unwired.
+
+**Emit → evaluation-service.** Before 0.8.0 the in-loop judge was built in four places that had to agree: a `renderEvaluation` copy in each of the cli, channel and managed emitters, and the interpreter's twin. They collapse into one composition root, `wireEvaluation(fragment, deps)` in [packages/evaluation-service](https://github.com/crewhaus/factory/tree/main/packages/evaluation-service) — the 0.3.0 `wireMemory` and 0.6.0 `wireModels` rule that every new in-loop gate lands in one root, never in an emitter's codegen. Each of those emitters renders one boot line, `const __gates = await wireEvaluation(<fragment JSON>, { cwd, catalog, footerTarget, … })`, and `crewhaus run` calls the same function from `apps/cli/src/loop-contract.ts`. The fragment is data: the lowered `evaluation` and `provability` blocks, the spec name (where bundles are filed) and the primary model (the judge's default). The root returns the `RunEvaluation` / `RunProvability` closures for `runChatLoop` plus the three proof tools bound to the gate's configuration, proofs root and evidence. It also renders the `provability` skill (shipped in [packages/default-skills](https://github.com/crewhaus/factory/tree/main/packages/default-skills)) from the lowered block, and the skill joins skill discovery at lowest precedence only when the IR carries the block, so a provability-less bundle gains no prompt bytes. Nothing is opened at wiring time: every root is resolved per turn, for the tenant the turn runs under. Research is the exception to the one call: its report gate (`@crewhaus/report-writer`) runs the same `verifyDocument` over the rendered report, with the run's citation tracker as the evidence.
+
+The compatibility consequence is the release's one change to generated code: a bundle with **neither** block compiles byte-identically; a bundle **with** `evaluation:` changes form — one `wireEvaluation` call instead of an inlined grader, and an import of `@crewhaus/evaluation-service` — and its judge behaves as before. Recompile to pick it up.
+
+**runtime-core builds no gate.** It imports only `@crewhaus/provability`'s bundle types and helpers (`summarizeBundle`, `unverifiedBundle`, `claimReasons`, `isProvabilityLevel`) — never `verifyDocument`, and never evaluation-service, which builds the verifier — and receives `RunChatLoopOptions.provability` as closures, exactly as it receives `memory` and `continuity`. It owns only the mechanics: the gate runs in the same turn-completion wrapper as the judge, after the tool loop reaches Done, and **before** the judge (it is free and deterministic; the judge may spend). Each gate keeps its own `maxRetries`; `halt` stops the run classified `provability`, exit code 37 (`EXIT_CODES.provability`, beside `evaluation`'s 35 in the 3x band of CrewHaus-configured stops); a verifier that throws fails open as `unverified`, the judge's contract.
+
+**Optimizer surface (Pillar 2).** Four dials join `OPTIMIZABLE_PATHS`, each 1:1 through `lower()`: `provability.threshold`, `provability.max_retries` (not on research, which has no retry), `provability.grounded.coverage` and `provability.grounded.window_tokens`. `level` and `on_fail` are `OPTIMIZER_REFUSED_LEAVES` rows, so even a wholesale block patch cannot move them: the optimizer is graded by this gate, and one that could lower the floor would learn to blind its critic. Every other key — the assumption policy, `scope`, `render`, the source and execution allowlists, the checkers, the judge — is excluded with its reason beside the table.
+
+| Shape | `provability:` |
+|---|---|
+| `cli` | wired — `wireEvaluation` in the boot block; footer streamed after the answer; the interpreter through the same call |
+| `channel` | wired — same root; one-line footer appended to the reply (`render: none` honoured) |
+| `managed` | wired — same root; the bundle rides the gateway results' `proof` field, filed under the tenant's root |
+| `research` | wired as a report gate — `halt` \| `note` only; `## Provability` section always rendered; `grounded` at most |
+| `crew` | carried, `accepted-but-unwired` — the synthesis turn is not exposed to the gate yet |
+| `workflow`, `graph`, `pipeline`, `batch`, `voice`, `browser`, `eval`, `onchain`, `onchain-game` | rejected by the strict union |
+
 ## `projectLoop()` and `compile --emit-loop`
 
 0.4.0 (Batch B, G42) adds a read-only *view* of a lowered IR: `projectLoop(ir)` ([packages/ir/src/loop.ts](https://github.com/crewhaus/factory/blob/main/packages/ir/src/loop.ts)) projects an `IrNode` into its canonical **agent-loop phase graph** — a plain, JSON-serializable `LoopProjection` with no functions or classes:
@@ -435,7 +496,7 @@ The remaining shapes (`voice` / `browser` / `eval` / `onchain` / `onchain-game`)
 
 The mapping source of truth is the IR's **resolved** fields, not the raw spec. This is deliberate: continuity is default-on in 0.3+, so `update` lights up unless the spec opted out — the projection reports what the loop *actually does*. Per-step/node models are resolved at lower time, so node minis always show the resolved model. `Stop` stays defaults-honest: with neither `budget` nor `limits` in the IR the segment is inactive and `NO_BUDGET_WARNING` is emitted. `keys` entries remain spec-dotted paths (`"agent.model_pool"`, `"channels.slack"`) so an operator can jump from a segment back to the YAML that (would) configure it.
 
-**Why this lives in `@crewhaus/ir`, not the CLI:** the `LoopProjection` shape is a **wire contract** shared with the studio's client-side projection (`studio-pwa/src/lib/loop-model.ts`), and the compiler-worker's `POST /loop` endpoint returns exactly `projectLoop(lower(parseSpec(yaml)))`. `projectLoop` is a pure function of the IR (no I/O, no imports beyond the IR types), so all three consumers — the CLI, the worker, and the studio `/builder` page — render the same projection; the canvas node kinds are pinned to the studio's `step|node|role|doc` union so factory can't emit a kind the renderer doesn't know.
+**Why this lives in `@crewhaus/ir`, not the CLI:** the `LoopProjection` shape is a **wire contract** shared with the studio's client-side projection, and the compiler-worker's `POST /loop` endpoint returns exactly `projectLoop(lower(parseSpec(yaml)))`. `projectLoop` is a pure function of the IR (no I/O, no imports beyond the IR types), so all three consumers — the CLI, the worker, and the studio `/builder` page — render the same projection; the canvas node kinds are pinned to the studio's `step|node|role|doc` union so factory can't emit a kind the renderer doesn't know.
 
 `crewhaus compile --emit-loop` ([apps/cli/src/index.ts](https://github.com/crewhaus/factory/blob/main/apps/cli/src/index.ts)) is the CLI surface. It is a print mode like `--emit-ir` (mutually exclusive with it — each owns stdout), does `parse → lower → projectLoop`, and prints a rendered view (`formatLoopProjection`), or the raw `LoopProjection` JSON under `--json`, or writes `<out-dir>/loop.json` with `-o`. Notably it runs **before** the FR-002 scope gate: the projection is a read-only view producing no artifact, so it must return exactly what the worker's ungated `POST /loop` returns for the same YAML — *including* specs the scope gate would refuse — so an operator can see the loop before fixing scopes.
 
@@ -476,6 +537,8 @@ This is the same Pillar-3 shape as `assertToolScopesStrict`: an exported policy 
 | Memory/continuity composition root (v0.3.0) | [packages/memory-service](https://github.com/crewhaus/factory/tree/main/packages/memory-service) — `wireMemory(fragment, deps)`, the one call every memory-carrying emitter embeds |
 | Per-model plan arithmetic (v0.6.0) | [packages/model-plan](https://github.com/crewhaus/factory/tree/main/packages/model-plan) — pure, fs-free: profile refs, request params, subset-only advertisement, eligibility, fingerprints |
 | Model-routing composition root (v0.6.0) | [packages/model-service](https://github.com/crewhaus/factory/tree/main/packages/model-service) — `wireModels(fragment, deps)`, plus `HYBRID_FAMILIES_BY_SHAPE`, the per-shape matrix in code |
+| In-loop gate composition root (v0.8.0) | [packages/evaluation-service](https://github.com/crewhaus/factory/tree/main/packages/evaluation-service) — `wireEvaluation(fragment, deps)`, the one call behind both `evaluation:` and `provability:` |
+| The provability ladder (v0.8.0) | [packages/provability](https://github.com/crewhaus/factory/tree/main/packages/provability) — the four verifiers, the evidence index, the proof bundle and its renderers, `verifyDocument`; imports no model adapter. [packages/claim-ledger](https://github.com/crewhaus/factory/tree/main/packages/claim-ledger) owns the claim and citation grammar it reads |
 
 If you're adding a feature and you can't find where it goes, the answer is almost always one of: (a) IR variant, (b) IR pass, (c) target emitter, (d) runtime-core utility consumed by emitted code. Cross-cutting concerns that span multiple targets belong in `packages/runtime-core/` or in a dedicated package referenced by every target's emitter.
 

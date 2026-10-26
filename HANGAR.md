@@ -652,7 +652,7 @@ supervised at all:
 | `interactive` | `cli`, `browser` | `crewhaus run <spec>` when a `crewhaus` bin resolves (harness `node_modules/.bin` first, then PATH), else `bun dist/agent.ts`; attached, piped stdio |
 | `daemon` | `channel`, `managed`, `voice` | `bun dist/daemon.ts`, detached, stdio to the log file |
 | `worker` | `batch` | `bun dist/agent.ts` with daemon-class supervision |
-| `one-shot` | `workflow`, `graph`, `pipeline`, `research`, `eval`, `onchain`, `onchain-game`, `crew` | `bun dist/agent.ts`; tracked as jobs, never restarted. `crew` runs `dist/daemon.ts` with a **brief on stdin** — see [`daemon submit`](#daemon-submit). A stale bundle is *reported* by default (exactly when the bundle carries a spec-hash stamp, approximately from mtimes when it does not); `--compile` / `manager.autoCompile` opt in to recompiling it |
+| `one-shot` | `workflow`, `graph`, `pipeline`, `research`, `eval`, `onchain`, `onchain-game`, `crew` | `bun dist/agent.ts`; tracked as jobs, never restarted. `crew` runs `dist/daemon.ts` with a **brief on stdin** — see [`daemon submit`](#daemon-submit--briefs-as-payloads). A stale bundle is *reported* by default (exactly when the bundle carries a spec-hash stamp, approximately from mtimes when it does not); `--compile` / `manager.autoCompile` opt in to recompiling it |
 | `mcp-server` | `expose:` / cli-shape projections | `crewhaus serve --mcp <spec> [--sse --port N]` |
 | `serverless` | cf-worker emits | not a process — the plan refuses: `<target> does not run as a process — it is a deployment artifact` |
 | `export` | claude-plugin emits | not a process — `… — it is a export artifact` |
@@ -1213,6 +1213,56 @@ env through `upsertEnvVar` (values in, presence booleans out), no hard
 delete anywhere in the memory fabric, wiki writes carrying `expectedVersion`
 with a first-class stale-version refusal, and a confirm → typed-confirm →
 dry-run-first ladder in front of destructive verbs.
+
+### Proof bundles over the API (v0.8.0)
+
+A harness whose spec declares `provability:` files a proof bundle for every
+graded answer (see
+[CLI-REFERENCE.md](CLI-REFERENCE.md#provability--proof-bundles-and-the-offline-gate)).
+Hangar serves them read-only:
+
+```
+GET /api/runs/:sessionId/proof[?harness=:id]
+```
+
+The id is the session id a gateway run answers with (`sess_<16 hex>`), or a
+research run's id (`run_<16 hex>`), whose one bundle sits beside its
+`report.md`. A session id names its harness only implicitly, so every live
+registered harness is searched; `?harness=<id>` narrows the search to one.
+The answer lists one row per graded pass of each turn, oldest turn first:
+the harness and spec, the tenant for a managed bundle, the turn and pass,
+`standing: true` on the pass the answer was served under, the
+harness-relative path, the persisted bundle, and its CLI twin:
+
+```
+cd <harness> && crewhaus provability show --session <id> --turn <n> [--pass <k>] [--tenants-root <dir>] --json
+```
+
+`--pass` is named on every pass of a turn a retry graded again, since `show`
+reads a turn's last pass by default; `--tenants-root`, relative to the
+harness, is added for a managed tenant's bundle.
+
+It reads the way every Hangar read does. The id's shape is checked before
+any path is built (a traversal is a 400), and every bundle file is resolved
+inside its harness, so a link out of it is never read. A file that is too
+large, does not parse or is not bundle-shaped is listed under `skipped` with
+the reason, and nothing is written or pruned. Claim text is model prose and
+an excerpt is a fetched page's words, so each harness's rows are masked with
+that harness's own scrubber. A run with no bundle is a 404.
+
+Two limits. The console has no view for the route yet — no rung badge in
+the run feed, no bundle viewer — and it is not in the console's route
+table, so the contract counts above do not include it. And Hangar reads
+nothing outside a registered harness: a managed harness files its bundles
+under its tenants root (`CREWHAUS_TENANTS_ROOT`, by default
+`/tmp/crewhaus-tenants`), so they are read only when that root lies inside
+the harness directory. Otherwise the answer names the root it did not read
+in `tenantRootsNotRead` — and the 404 says so — rather than reporting "none".
+
+The Memory view learns one thing from the same release: under
+`continuity.proof: off` a plan step or goal proven by assertion shows as an
+amber `proven (unverified)`, with the references it cited in its tooltip,
+never as a green proven.
 
 ## Limits and known gaps
 

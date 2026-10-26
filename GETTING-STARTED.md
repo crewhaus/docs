@@ -793,6 +793,235 @@ observability:
 `doctor --slo` / `--ttft` probes recent p95 TTFT against
 `observability.slo.ttft_ms` and names faster candidates on a breach.
 
+#### Requiring proof in answers — `provability:`
+
+From v0.8.0 a spec can promise how much proof its answers carry. One line
+sets a floor on a four-rung ladder, and before an answer is served a
+deterministic gate checks every claim in it against what the run actually
+did:
+
+```yaml
+provability: grounded          # off | cited | grounded | checked | proven
+```
+
+| Rung | A claim passes when… | What it does not establish |
+|---|---|---|
+| `cited` | its `[n]` marker has an `[n]: <source>` definition naming a source that can be located: an http(s) URL on an allowed host, a `doi:`, or a workspace file that exists | that the source says anything — a well-formed made-up reference passes |
+| `grounded` | the cited page or file was fetched or read in this session (or this turn, under `scope: turn`), and the claim's words sit close together in it (a quote must appear verbatim) | that the source is right |
+| `checked` | it cites `tool:<toolUseId>`, a successful call to a tool on the evidence allowlist whose result contains the claim's figures; a pure tool is re-run to confirm the result | that it was the right computation to run |
+| `proven` | it cites `proof:prf_…`, a proof a checker accepted, whose recorded claim matches the sentence | that the formal statement means what the prose says — the bundle shows the two side by side |
+
+Evidence from a higher rung meets a lower floor. A **claim** is any sentence
+that is not a question and carries a marker, states a number, or has at
+least three content words, outside fenced code blocks, headings that are
+only titles, and definition lines that hold only a source (and at most a
+link title). Inline code is read as part of its sentence, an indented code
+block as prose, a heading that cites a source or states a figure as a claim,
+and any other text a definition line shows as claims citing that
+definition. An answer with no claims, such as a clarifying question, passes and
+says it passed vacuously. An **assumption** — `[A1]: assume: the fiscal year
+starts in April`, cited as `[A1]` — takes its claim out of the score but
+never out of the count: assumptions show on every surface, and
+`assumptions: forbid` or `max_assumptions` can refuse them. An answer the
+gate accepts looks like this:
+
+```
+Refunds are accepted within 14 days of purchase [1]. The invoice total is 1,284.50 [2].
+
+[1]: https://acme.example/policy
+[2]: tool:toolu_01H…
+```
+
+**Which shapes take it.** `provability:` is a top-level key, beside
+`evaluation:`, on `cli`, `channel`, `managed` and `research` specs. A `crew`
+spec accepts it with an `accepted-but-unwired` warning, because the gate
+does not run there yet; every other shape rejects the key. An absent block,
+or `provability: off`, is off, and the spec compiles exactly as it did
+before.
+
+The shorthand takes every default. The object form spells them out, and
+like every block it is strict, so a misspelt key fails the build:
+
+```yaml
+provability:
+  level: grounded              # required in this form; level: off keeps the block but turns the gate off
+  on_fail: retry               # retry | halt | note | escalate (escalate needs agent.model_pool)
+  max_retries: 1               # gate-triggered re-runs per turn, 0–5
+  threshold: 1.0               # share of the claims (assumptions aside) that must meet the floor
+  scope: session               # session | turn — how far back evidence may come from
+  assumptions: allow           # allow | forbid — declared assumptions are counted either way
+  # max_assumptions: 3         # absent = uncapped
+  render: footer               # footer | none | json
+  sources:
+    # allow: [arxiv.org, "*.gov"]   # host globs a cited URL must match; absent = any public host
+    deny: []                   # host globs it must not match; deny wins
+    bibliographic: false       # accept free-text references at cited
+    resolve: off               # off | head — one guarded HEAD request per URL at gate time
+  grounded:
+    coverage: 0.8              # share of the claim's content words found in one window
+    window_tokens: 60          # how far apart, in tokens, those words may sit
+    independent: 1             # distinct origins each claim needs (1–5)
+  execution:
+    allow: [all-compute, all-verify, -goldenUpdate]   # tools whose results count at checked
+    replay: true               # re-run a pure tool and compare its output
+    max_replays: 20            # per turn
+  formal:
+    checkers: [builtin, smt]   # preference order; builtin is added last if left out
+    # image: <name>            # lean4 image override, e.g. one with Mathlib
+    forbid: [sorry, axiom, native_decide]   # what the lean4 pre-scan refuses
+    timeout_ms: 30000          # per check
+  # judge:                     # optional: may excuse a paraphrase miss at grounded
+  #   model: $cheap            # a model id or $profile, metered as role judge
+```
+
+`execution.allow` takes the same category grammar as `tools:`; its default is
+every in-process computation and verification tool, less `goldenUpdate`, the
+one of them that writes. `sources.allow` and `deny` take host globs only — a
+host, `*.<host>` or `*` — because a URL there would never match and a `deny`
+would quietly fail open. `formal.checkers` is a preference order, not an
+allowlist: `builtin` needs no sandbox, so it is always there. `judge.model`
+should not be the agent's own model (`crewhaus lint` warns;
+`allow_self_judge: true` accepts it), and it is the gate's one model call: it is asked only
+about a paraphrase the words did not quite cover, never about a missing
+figure or negation, and is skipped once `budget.judge_share` is spent.
+
+**When an answer falls short**, `on_fail` decides:
+
+- `retry`, the default, re-runs the turn with a nudge that names each unmet
+  claim, the evidence it cited and why it fell short (`not_fetched`,
+  `not_found_in_source`, `value_absent`, …). Once `max_retries` re-runs are
+  spent, the last attempt is served under a ✗ footer.
+- `note` serves the answer under the ✗ footer.
+- `escalate` re-runs the turn on a stronger `model_pool` candidate.
+- `halt` stops the run at the first failing verdict, classified
+  `provability`, and the process exits **37**. The cli prints an answer as it
+  is written, so a halted answer has already appeared; its ✗ footer follows.
+
+A research spec gates one report per run, not each turn, so it takes `halt`
+or `note` (default `note`), and a declared `retry` or `escalate` lowers to
+`note` with a warning. A `checked` or `proven` floor warns there too: a
+report's only evidence is the pages the run fetched, which reach `grounded`
+at most.
+
+**The proof travels with the answer.** Each gated answer gets a proof bundle,
+filed under `.crewhaus/proofs/<spec>/<session>/turn-<n>.json`, and shown as a
+footer line on the cli and in channel replies (`render: none` turns that
+off), a `proof` field on the managed gateway's run results, and a
+`## Provability` section in a research report. The trace and the session log
+carry a `provability_graded` line. When the block is on, the harness also
+loads a built-in `provability` skill that tells the model what the gate
+checks and how to cite, and the gate adds the `ProvabilityPreflight` tool so
+the model can grade a draft before it answers — plus `ProofCheckers` and
+`ProofCheck` at `proven`, or wherever the spec's `formal.checkers` is not
+the default ([TOOLS-REFERENCE.md](TOOLS-REFERENCE.md#proving-claims--the-proof-tools)).
+
+**What stays human-owned.** The optimizer may tune `threshold`,
+`max_retries` (not on research), `grounded.coverage` and
+`grounded.window_tokens`. It never touches `level` or `on_fail` — an
+optimizer that could lower the bar it is graded against would learn to
+blind its critic — nor the allowlists, the checkers or the judge.
+
+`provability:` checks claims in answers. It is a different thing from
+`continuity.proof` (`ladder | require | off`), which checks that a plan step
+or goal marked done cites real tool calls; from v0.8.0 its `require` and
+`off` modes do what they say.
+
+##### Walkthrough — require proof in answers
+
+Scaffold a spec with a floor. `--provability grounded` also declares the
+tools a `grounded` answer needs, so the first run cannot fail every answer
+for want of them:
+
+```sh
+crewhaus init support-bot --provability grounded
+```
+
+```
+wrote …/support-bot/crewhaus.yaml
+provability: grounded — the cited source was read this session and holds the claim. After a run, `crewhaus provability show` renders an answer's proof.
+next: cd support-bot && crewhaus run crewhaus.yaml
+```
+
+The spec it writes ends like this:
+
+```yaml
+# grounded needs a tool that reads a source: a file (read) or a web page (webFetch).
+tools:
+  - read
+  - webFetch
+
+# The proof gate: off | cited | grounded | checked | proven.
+# grounded — the cited source was read this session and holds the claim.
+provability: grounded
+```
+
+Give it a source and ask something only the source answers. The model's
+wording will differ; the shape of the answer will not — markers, definition
+lines, then the footer:
+
+```sh
+cd support-bot
+printf 'Refunds are accepted within 14 days of purchase, with a receipt.\n' > policy.md
+crewhaus run crewhaus.yaml --prompt "What is the refund window in policy.md?"
+```
+
+```
+Refunds are accepted within 14 days of purchase [1].
+
+[1]: policy.md
+
+── provability · grounded ✓ · 1/1 claim · 1 source · 0 assumptions · .crewhaus/proofs/support-bot/sess_…/turn-1.json
+```
+
+Had the model answered from memory without reading the file, the gate would
+have failed the claim `not_fetched` and re-run the turn with that reason in
+the nudge; had it read the file and written "30 days", the claim would have
+failed `not_found_in_source`. Read an answer's proof in long form — every
+claim, the source it bound to, the excerpt that grounded it and the digest of
+the body it was checked against:
+
+```sh
+crewhaus provability show
+```
+
+The same gate runs offline over any document, which is how a generated
+report is gated in CI: `check` exits 0 only when it passes. Save that answer
+as `answer.md` — without the footer line, which is the gate's verdict, not
+part of the answer, and would be graded as an uncited claim — and check it.
+Offline, a file the document cites is read from disk, and the output says
+so:
+
+```sh
+crewhaus provability check answer.md --level grounded
+```
+
+```
+offline check · answer.md
+  config      the defaults at --level grounded
+  evidence    1 workspace file read directly
+  note        1 workspace file cited by path was read directly from disk, as it is now — the live gate grounds only on what a recorded Read returned
+  floor       grounded
+  verdict     ✓ pass
+  …
+── provability · grounded ✓ · 1/1 claim · 1 source · 0 assumptions
+```
+
+For pages a run fetched, `--evidence <dir>` takes a directory of saved
+bodies, and `--session <id>` the run's own event log.
+
+Before raising the floor on a harness that already has evals, measure what
+the higher rung costs and how many answers would meet it, without editing the
+spec:
+
+```sh
+crewhaus eval crewhaus.yaml --dataset eval/dataset.jsonl --graders eval/graders.yaml --provability checked
+```
+
+`crewhaus lint` tells you when a floor cannot be reached — a `grounded` spec
+with no tool that reads a source, a `checked` one with no tool on the
+evidence allowlist. The commands are in
+[CLI-REFERENCE.md](CLI-REFERENCE.md#provability--proof-bundles-and-the-offline-gate).
+
 #### The `version:` field
 
 An optional non-negative integer schema-version stamp. It exists so the
@@ -1401,6 +1630,7 @@ applies the same way regardless of how you launched the CLI.
 | `eval <spec> --dataset <d> --graders <g>`    | Run an eval bundle, write per-sample results + an HTML report (`--gate` fails on regression). `target: cli` only — bridge the other shapes with `compile --with-eval-harness`. |
 | `eval suite <suite.yaml> [--tier fast\|nightly\|release]` | Run one named CI tier of a suite manifest — several `(dataset, graders, thresholds)` entries through the same eval path, aggregated into a single tier verdict. |
 | `eval-report {diff,history,trends,export,baseline} …` | Read the run history: compare two runs (with paired significance testing), list runs, chart pass rate / mean score / cost over time, flatten runs to CSV/JSONL, or inspect and pin baselines. |
+| `provability {show,check,audit,checkers,prune} …` | Read the proof bundles a [`provability:`](#requiring-proof-in-answers--provability) gate filed: `show` one answer's proof, `audit` them across sessions, list the proof `checkers`, `prune` old bundles; `check <doc> --level <rung>` runs the gate offline and exits 0 only on a pass. |
 | `flywheel run [spec]`                        | The nightly self-improvement loop, one command: compile-gate → eval → optimize → gate → write-back. |
 | `advise [--session <id> \| --all]`           | Mine session logs into eval-validated spec suggestions; feed to `optimize --from-advice`. |
 | `optimize <spec> --dataset <d> --graders <g>`| Active eval-driven optimization (`--write-back` to apply a gated win). `--ratings <session>\|all` distills user ratings into the training set instead of (or on top of) a file dataset. `--stage <name>` optimizes one step/node/role of a multi-stage `workflow`/`graph`/`crew`/`pipeline` spec. |
@@ -1475,6 +1705,9 @@ the system's audit trail and the source of truth for resuming sessions.
 ├── experiments/<name>.jsonl    # append-only per-version outcome ledger (`crewhaus experiment`)
 ├── graphs/<graphRunId>/        # graph checkpoints (one JSONL per checkpoint)
 ├── research/<runId>/           # research citations.jsonl + fetches.jsonl + content cache
+│                               # (+ proof.json, the report's proof bundle, under provability:)
+├── proofs/<spec>/<sessionId>/  # one proof bundle per graded answer: turn-<n>.json, a retry's turn-<n>.<k>.json
+├── proofs/<spec>/artifacts/    # one artifact per ProofCheck call, accepted or rejected
 ├── studio-specs/               # specs created via Studio's Wizard
 ├── skills/<name>/SKILL.md      # discovered skills (project layer)
 └── commands/<name>.md          # custom slash commands
@@ -1482,6 +1715,13 @@ the system's audit trail and the source of truth for resuming sessions.
 
 Sessions older than 30 days are evicted on next `list()` (mtime-based,
 so `touch -t YYYYMMDD0000 sess_*.json` forces expiry from the shell).
+Proof bundles carry no TTL — they are the audit record, and keep a frozen
+excerpt of each source so they stay readable after the session is gone —
+so `crewhaus provability prune --older-than <age>` is what trims them.
+`sessions/`, `tool-results/` and `proofs/` are the run's evidence, so a tool
+call that writes and names a path inside one is refused, whatever a
+permission rule says (`ProofCheck` files its own artifacts). A shell command
+(`Bash`, `RunCommand`) is the one write the runtime cannot see.
 Nothing here is sacred — `rm -rf .crewhaus/` is a clean reset.
 
 A user-level `~/.crewhaus/` exists too (skills, commands, plugins,

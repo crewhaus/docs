@@ -403,3 +403,18 @@ Three new packages from the model-plan release, plus two back-filled briefs for 
 | # | Module | Status | Catalog layer | Origin |
 |---:|---|---|---|---|
 | 313 | [`qr-code`](313-qr-code.md) | implemented and tested | F3 - Deployment & Operations | `crewhaus hangar --lan` |
+
+## v0.8.0: The provability release
+
+The packages behind the `provability:` block: the text layer every claim checker reads, the composition root for the in-loop gates, the ladder and its verifiers, the proof checkers and their sandbox images, the proof tools, and the eval graders. The release was built as one change rather than as the design's §14 PR train: in three stages, each reviewed before the next, then reviewed as a whole. Each brief's First Implementation Slice follows that order.
+
+| # | Module | Status | Catalog layer | Origin |
+|---:|---|---|---|---|
+| 314 | [`claim-ledger`](314-claim-ledger.md) | implemented and tested | R17 - Infrastructure & Cross-Cutting | v0.8.0 provability release |
+| 315 | [`evaluation-service`](315-evaluation-service.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | v0.8.0 provability release |
+| 316 | [`provability`](316-provability.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | v0.8.0 provability release |
+| 317 | [`proof-checker`](317-proof-checker.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | v0.8.0 provability release |
+| 318 | [`tool-proof`](318-tool-proof.md) | implemented and tested | R4 - Built-in Tool Implementations | v0.8.0 provability release |
+| 319 | [`sandbox-image-z3`](319-sandbox-image-z3.md) | implemented and tested | R8 - Permission, Policy, Safety | v0.8.0 provability release |
+| 320 | [`sandbox-image-lean4`](320-sandbox-image-lean4.md) | implemented and tested | R8 - Permission, Policy, Safety | v0.8.0 provability release |
+| 321 | [`grader-provability`](321-grader-provability.md) | implemented and tested | R15 - Telemetry, Tracing, Eval | v0.8.0 provability release |
