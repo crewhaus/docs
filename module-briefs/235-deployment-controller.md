@@ -18,6 +18,8 @@ This module should be the single owner for that concern. Keep the boundary small
 
 Owns the behavior named above, its typed public contract, and the fixtures needed to prove it. It should expose boring, explicit APIs rather than requiring callers to know internal storage or provider details.
 
+Subpath `@crewhaus/deployment-controller/approval-gate` (planned, 0.9.0, [#513](https://github.com/crewhaus/factory/issues/513)): the protected-environment quorum check, moved unchanged from `apps/cli/src/approval-gate.ts` and re-exported there, so every head calls one implementation. The package's pin-flipping stays in `.`; policy stays in the subpath.
+
 Does not own neighboring concerns from the same phase unless the catalog explicitly says so. If implementation pressure suggests merging modules, keep the module names visible as exported interfaces so the catalog can still map to code.
 
 ## Inputs and Outputs
