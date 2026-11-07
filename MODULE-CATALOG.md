@@ -301,6 +301,8 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `codegen-templates` | Templates per target (Bun + Ink CLI, FastAPI service, …). | All | T1 | — |
 | ✅ `spec-patch` | Apply a `SpecPatch` to a YAML source preserving comments + key order via the yaml CST. Drives Pillar 2's active-optimization mutation loop. | All | T1, T4, T9 | `ir-model` |
 | ✅ `smoke-harness` | Compile-time smoke matrix — one minimal spec per target shape through `compile()` with emitted-bundle invariant assertions. Cross-shape CI gate. | All | T1, T3 | `compiler-core`, target-* |
+| `hangar-e2e` | Never published. Browser journeys over the real console against a seeded fleet, the accessibility toolkit and the release registry. | — | T1, T3 | `hangar-server`, `hangar-ui`, `control-contract`, `service-fakes` |
+| `service-fakes` | Never published. Loopback fakes of a model, Slack, GitHub, Thredz and SMTP for any package's tests. | — | T1, T2 | — |
 
 #### F3 — Deployment & Operations
 
@@ -320,6 +322,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `hangar-server` | The Hangar manager's local HTTP server: token-gated loopback API over the registry — fleet rows with cached rollups, per-harness detail, registry CRUD, supervised process control, a live SSE run feed, a `crewhaus.control.v1` proxy, approvals/review inboxes, the M3 detail surface (189 routes, twelve groups), and the Advisor (group `advisor` on the same dispatch table) — a severity-ranked feed derived from signals other panels already read, act/dismiss/reopen decision ledgers, trend, reports, and an issue inbox that queues only the closed `ADVISOR_JOB_ARGV` vocabulary — plus library curation (`PUT /api/h/:id/visibility`, `GET /api/registry/discover`). Bearer on every `/api` route, no cookies, single-use `/boot/<nonce>` token handoff. | All | T1, T3, T8 | `harness-registry`, `harness-inventory`, `harness-supervisor`, `preflight`, `gateway-protocol`, the stores it reads |
 | ✅ `hangar-ui` | The Hangar console's static UI — one shell, one CSS file, hand-written browser ES modules embedded as text for the single-binary CLI. Zero build step, no framework, no npm dependency; the grouped route contract (the 178 M3 routes plus the `advisor` group) lives as pure data and generates the client wrappers. Draws the Advisor tab and `#/advisor` fleet board, and the curated Library — hidden rows fold into a Hidden rail bucket, and a "Find harnesses…" panel lists discovery candidates without registering them. | All | T1 | — |
 | ✅ `qr-code` | A QR Code encoder and terminal renderer with no dependencies — byte mode, versions 1–40, all four EC levels, the spec's mask evaluation and Reed–Solomon over GF(256). Renders with half-block characters so modules come out square in a terminal, and pins its own contrast with an explicit black-on-white SGR pair so the symbol scans on any theme. Exists for `crewhaus hangar --lan`, which prints a code to scan with a phone. | All | T1 | — |
+| `control-service` | Planned for 0.9.0. The control plane's composition root: commands and receipts, recovery, decisions, deployments, operator controls, retire, the projector and streams. Never in a bundle. | All | T1, T3, T7, T8 | `control-contract`, `access-control`, `control-records`, `session-store`, `harness-supervisor`, `harness-registry`, `harness-lifecycle`, `gateway-protocol`, `permission-engine` |
 
 #### F4 — Studio & Authoring UX
 
@@ -493,6 +496,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `session-router` / `session-binding` | Resolve session keys; bind session ↔ channel ↔ thread ↔ user. | CHN, CLI | T1, T3, T9 | `session-store`, `channel-binding` |
 | 🟡 `replay-store` | Recorded runs for replay tests + regression. | EVAL, all CI | T1, T4 | `event-log`, `trace-recorder` |
 | ✅ `idempotency-keys` | `idempotencyKey(jobId, attempt)` SHA-256-trunc + in-memory TTL store. | BATCH, CHN | T1, T9 | `infra-utils` |
+| `control-records` | Planned for 0.9.0. The file layer under the control core: claims and ledgers, segments, tail readers and cursors, keyed digests, the operator record and the admission verdict. Light; bundles may import it. | All | T1, T3, T7, T8 | `control-contract`, `infra-utils`, `tool-safety` |
 
 #### R8 — Permission, Policy, Safety
 
@@ -519,6 +523,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `audit-encryption` | Envelope encryption (AES-256-GCM) for audit-log payloads; per-tenant DEK. | MGD | T1, T2, T8 | `secrets-manager` |
 | ✅ `data-retention-engine` | GDPR-shaped retention; purge / export / sweep with cross-tenant guard. | MGD | T1, T8, T9 | `audit-log`, `secrets-manager` |
 | ✅ `compliance-controls` | SOC 2 / ISO 27001 / HIPAA evidence collection; `crewhaus compliance evidence` CLI. | MGD | T1, T3 | `audit-log` |
+| `access-control` | Planned for 0.9.0. Who is asking, and may they do this: principals, hashed credentials, grants, links, `authenticate()`, `authorize()` and the approver projection. Never in a bundle. | All | T1, T3, T8 | `control-contract`, `control-records`, `infra-utils` |
 
 #### R9 — Hooks, Skills, Slash Commands
 
@@ -655,6 +660,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `infra-utils` | Common: paths, env, fs, json, retry, time, ids. | All | T1 | — |
 | ✅ `context-bundle` | Slicer utilities for `crewhaus context --bundle` — assembles single-markdown manifests of docs / recipes / spec schema for reuse by the cloud demo prompt builder. Pure functions, no global state. | All (authoring) | T1 | `infra-utils` |
 | ✅ `claim-ledger` | v0.8.0 text layer every claim checker reads — claim extraction (`extractClaims`), the citation grammar for markers and definitions (the marker regex has one definition in the tree, enforced by `doctor --philosophy-alignment`), the evidence-reference grammar (URL, `doi:`, workspace path, `tool:`, `proof:`, `assume:`), the FactCrossCheck locate kernel with its figure and negation rules, exact-decimal number comparison, and the lookalike-character fold. Dependency-free and model-free; `tool-verify`, the continuity and faithfulness graders, the research report gate and `provability` import it. Brief: 314. | All | T1 | — |
+| `control-contract` | Planned for 0.9.0. The one description of the control plane every surface shares: ids, refs, state machines, permissions, the `crewhaus.hangar.v1` operations, errors, events, capabilities and area modules. Its main entry has no dependencies. | All | T1, T2, T9 | — |
 | `feature-flags` | Build-time + runtime flags. | All | T1 | `config-loader` |
 | 🟡 `runtime-migrations` | Versioned runtime data migrations. | All | T1, T4 | `migration-engine` |
 | 🟡 `daemon-process` / 🟡 `node-host` / 🟡 `proxy-capture` / 🟡 `bootstrap-runtime` / `startup-profiler` / 🟡 `update-channel` | Long-running process supervision, cross-host RPC, capture/replay, first-run trust, profiling, auto-update. | varies | T1+ | per-row |

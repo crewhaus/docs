@@ -18,6 +18,8 @@ This module should be the single owner for that concern. Keep the boundary small
 
 Owns the behavior named above, its typed public contract, and the fixtures needed to prove it. It should expose boring, explicit APIs rather than requiring callers to know internal storage or provider details.
 
+Subpath `@crewhaus/ir/policy` (planned, 0.9.0, [#513](https://github.com/crewhaus/factory/issues/513)): the one home for revision digests, `specRevision(text)`, `intentDigest(block)`, `policyMaterialOf(ir)`, `bundleManifestText(files)` and `bundleDigest`. It is a subpath so `.` stays free of `node:` imports. A policy key absent from the IR is omitted, so a spec that uses no new key keeps its revision.
+
 Does not own neighboring concerns from the same phase unless the catalog explicitly says so. If implementation pressure suggests merging modules, keep the module names visible as exported interfaces so the catalog can still map to code.
 
 ## Inputs and Outputs
