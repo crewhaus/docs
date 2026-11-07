@@ -25,6 +25,18 @@ Owns:
 
 Does not own: the runner (injected by `model-service`), the escalation *policy* (the loop decides what a captured latch does), or the strategy lanes — guide, shadow and committee are side calls, not tools. Nor the permission narrowing a per-profile `permissions` block needs: that is `narrowRuleSet`, the decision-level meet (deny beats ask beats allow, proved through evaluation rather than by editing rule arrays), and it lives in `@crewhaus/sub-agent-permission-inheritance` and is applied by `runtime-core`.
 
+## RequestGuidance
+
+Status: planned
+
+A third builtin, for a run that needs a person's answer to a concrete question ("local time or UTC?") rather than an allow or a deny. Unlike the other two it is wired through the builtin table with a `guidance` category, not registered by `model-service`, and a spec opts in by listing it. So it runs on any shape that runs a tool catalog and is not bound by the pool-bearing `Targets` above.
+
+It is read-only and internal, with a new `humanInput` fact. Its permission posture differs from `Consult` and `Escalate`: a builtin rule allows it, since asking permission to ask would ask twice.
+
+The park-and-answer seam stays in `runtime-core`. It looks up an answer in the run's scope, classifies it at TrustOrigin `api` and tags it, then hands it to the tool through `ToolExecuteContext.humanInput`; otherwise it records a question and parks the run. A sub-agent cannot ask. An answer is never authority: it cannot approve a tool call, and a tool approval cannot be answered with text.
+
+No new dependency. It lands with `feat(tool-consult): a harness can ask a person a concrete question and use the answer` ([#517](https://github.com/crewhaus/factory/issues/517)).
+
 ## Inputs and Outputs
 
 Inputs: an injected consult runner, the pool roster, the run context and bus, and the tool-call payloads.

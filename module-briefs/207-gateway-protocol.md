@@ -1,10 +1,10 @@
 # gateway-protocol
 
-Status: planned
+Status: implemented and tested
 Dependency phase: 15 - Channels
 Catalog layer: R16 - UI / TUI / Voice / Media
 Origin in ordering: named in Part G
-Workspace home: not created yet; likely packages/gateway-protocol unless folded into a target bundle
+Workspace home: packages/gateway-protocol
 Targets: CHN, MGD
 Test layers: T1, T2
 
@@ -19,6 +19,10 @@ This module should be the single owner for that concern. Keep the boundary small
 Owns the behavior named above, its typed public contract, and the fixtures needed to prove it. It should expose boring, explicit APIs rather than requiring callers to know internal storage or provider details.
 
 Does not own neighboring concerns from the same phase unless the catalog explicitly says so. If implementation pressure suggests merging modules, keep the module names visible as exported interfaces so the catalog can still map to code.
+
+## The control client
+
+Factory PR #509 moved the `crewhaus.control.v1` client here from `hangar-server`, as a new subpath, `./control-client`, beside `.`, `./control` and `./control-codegen`. It holds `createControlClient`, the lanes, port parsing and the refusal codes. It reads the token path from the protocol's own constants, so the package gained no dependency. Every head that drives a daemon shares it without depending on an HTTP server.
 
 ## Inputs and Outputs
 

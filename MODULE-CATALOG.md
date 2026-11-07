@@ -303,6 +303,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `smoke-harness` | Compile-time smoke matrix — one minimal spec per target shape through `compile()` with emitted-bundle invariant assertions. Cross-shape CI gate. | All | T1, T3 | `compiler-core`, target-* |
 | `hangar-e2e` | Never published. Browser journeys over the real console against a seeded fleet, the accessibility toolkit and the release registry. | — | T1, T3 | `hangar-server`, `hangar-ui`, `control-contract`, `service-fakes` |
 | `service-fakes` | Never published. Loopback fakes of a model, Slack, GitHub, Thredz and SMTP for any package's tests. | — | T1, T2 | — |
+| `compile-service` | Planned for 0.9.0 (brief 334). Checks and compiles a draft spec without registering or writing anything, and never enters a bundle. | All | T1, T3 | `compiler`, `spec`, `ir`, `ir-passes`, `preflight`, `smoke-harness`, `spec-changelog`, `migration-engine`, `tool-registry-manifest`, `errors` |
 
 #### F3 — Deployment & Operations
 
@@ -318,11 +319,14 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `harness-registry` | The machine-wide harness registry — one `harnesses.json` (format v2) under `CREWHAUS_REGISTRY_ROOT` (default `~/.crewhaus`) with stable `hrn_` ids, user-managed groups/tags/pins, a first-class `hidden` visibility flag (`setHidden` — hidden entries stay registered; upsert refreshes never clobber it), scan roots, and watchme interop. Atomic 0600 tmp+rename writes behind a fingerprint-checked read-merge-write loop; vanished directories are stamped `missingSince`, never pruned. Backs `crewhaus harness` and the Hangar console. | All | T1, T3 | `watchme-store` |
 | ✅ `harness-inventory` | Cross-harness discovery (depth-capped walk for `crewhaus.yaml`), the fleet inventory + health rollup, exit-code description, and the seam-injected bulk runner — the `crewhaus fleet` core, lifted out of the CLI byte-identically. | All | T1, T3 | `errors`, `feedback-distill`, `spec-registry` |
 | ✅ `preflight` | Typed pre-spawn health checks over seven areas (spec → credentials → channels → mcp → ports → bundle → durability) with `info`/`warn`/`blocking` levels and stable ids. Every core function takes an injected `env`, so the same checks serve the CLI, tests, and a manager evaluating the *merged spawn* env. | All | T1, T3 | `errors`, `spec`, `model-router`, `mcp-host` |
-| ✅ `harness-supervisor` | The harness process layer — spawn contracts per run class, the preflight gate (channel secrets unforceable), the supervision state machine with exit classification and a 5-per-10-minutes restart window, byte-exact log capture + `TraceEvent` pump, adoption, and the job queue. All state is harness-local under `<harness>/.crewhaus/run/`. | All | T1, T3, T7 | `errors`, `harness-inventory`, `preflight` |
+| ✅ `harness-supervisor` | The harness process layer — spawn contracts per run class, the preflight gate (channel secrets unforceable), the supervision state machine with exit classification and a 5-per-10-minutes restart window, byte-exact log capture + `TraceEvent` pump, adoption, and the job queue. All state is harness-local under `<harness>/.crewhaus/run/`. Also the manager helpers moved out of `hangar-server`, with `./run-detail` and `./job-kinds` as subpaths. | All | T1, T3, T7 | `errors`, `harness-inventory`, `preflight` |
 | ✅ `hangar-server` | The Hangar manager's local HTTP server: token-gated loopback API over the registry — fleet rows with cached rollups, per-harness detail, registry CRUD, supervised process control, a live SSE run feed, a `crewhaus.control.v1` proxy, approvals/review inboxes, the M3 detail surface (189 routes, twelve groups), and the Advisor (group `advisor` on the same dispatch table) — a severity-ranked feed derived from signals other panels already read, act/dismiss/reopen decision ledgers, trend, reports, and an issue inbox that queues only the closed `ADVISOR_JOB_ARGV` vocabulary — plus library curation (`PUT /api/h/:id/visibility`, `GET /api/registry/discover`). Bearer on every `/api` route, no cookies, single-use `/boot/<nonce>` token handoff. | All | T1, T3, T8 | `harness-registry`, `harness-inventory`, `harness-supervisor`, `preflight`, `gateway-protocol`, the stores it reads |
 | ✅ `hangar-ui` | The Hangar console's static UI — one shell, one CSS file, hand-written browser ES modules embedded as text for the single-binary CLI. Zero build step, no framework, no npm dependency; the grouped route contract (the 178 M3 routes plus the `advisor` group) lives as pure data and generates the client wrappers. Draws the Advisor tab and `#/advisor` fleet board, and the curated Library — hidden rows fold into a Hidden rail bucket, and a "Find harnesses…" panel lists discovery candidates without registering them. | All | T1 | — |
 | ✅ `qr-code` | A QR Code encoder and terminal renderer with no dependencies — byte mode, versions 1–40, all four EC levels, the spec's mask evaluation and Reed–Solomon over GF(256). Renders with half-block characters so modules come out square in a terminal, and pins its own contrast with an explicit black-on-white SGR pair so the symbol scans on any theme. Exists for `crewhaus hangar --lan`, which prints a code to scan with a phone. | All | T1 | — |
 | `control-service` | Planned for 0.9.0. The control plane's composition root: commands and receipts, recovery, decisions, deployments, operator controls, retire, the projector and streams. Never in a bundle. | All | T1, T3, T7, T8 | `control-contract`, `access-control`, `control-records`, `session-store`, `harness-supervisor`, `harness-registry`, `harness-lifecycle`, `gateway-protocol`, `permission-engine` |
+| `people-service` | Planned for 0.9.0 (brief 329). Profile management for the console and the CLI, erasure across harness stores included, kept out of every bundle by a guard test. | All | T1, T3, T8 | `people`, `access-control`, `control-service`, `knowledge-index`, `session-store`, `memory-store`, `wiki-store`, `continuity-store`, `data-retention-engine`, `tool-docs` |
+| `attention` | Planned for 0.9.0 (brief 331). One inbox over every decision and signal source, with deduplicated notifications in its `./notifications` export. | All | T1, T3, T8 | `control-contract`, `control-records`, `control-service`, `access-control`, `session-store`, `feedback-distill`, `harness-advice`, `checkpoint-store`, `deployment-controller`, `permission-engine`, `tool-notify` |
+| `github-app` | Planned for 0.9.0 (brief 338). Registers a private GitHub App per connected account and mints short-lived installation tokens for one repository at a time, keeping the App's key out of every harness. | All | T1, T2, T3, T8 | `control-contract`, `control-records`, `access-control`, `secrets-manager`, `tool-codehost`, `boundary-classifier` |
 
 #### F4 — Studio & Authoring UX
 
@@ -337,6 +341,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `scaffold-templates` | 10 built-in spec templates, one per target shape. | All | T1 | `spec-schema` |
 | ✅ `vscode-extension` / `jetbrains-plugin` / `crewhaus-playground` | IDE integration + browser REPL (§35). | All (authoring) | T1, T3 | per-row |
 | ✅ `template-registry` / `template-marketplace-client` | Sigstore-signed template marketplace (§40). | All (authoring) | T1, T8, T9 | `spec-registry`, `secrets-manager` |
+| `creation-engine` | Planned for 0.9.0 (brief 337). The one creation engine behind `crewhaus init` and guided creation, with durable sessions and a pure activation-gate evaluator. | All | T1, T3 | `spec`, `spec-patch`, `claim-ledger`, `runtime-core`, `memory-service`, `tool-builder`, `session-store`, `template-registry`, `control-contract`, `control-records`, `tool-project`, `compile-service` |
 
 #### F5 — Plugin SDK & Extension
 
@@ -346,6 +351,7 @@ These live in `factory` and **produce or operate** generated harnesses. They are
 | ✅ `plugin-loader` (§41 — shipped 2026-05-26 via factory PR #122; **wired v0.4.0**) | Runtime activation: path allow-list (realpath-checked), Ed25519 signature verification, capability gating. **v0.4.0 (Item 3 / G32)** closes the zero-caller gap — a `plugins:` list on cli / channel now calls `activatePlugins`, which re-verifies each manifest's signature + entrypoint digest against the trust anchors; `runChatLoop`'s `plugins: { tools }` option appends plugin-contributed tools through `buildTool` (first-party wins any name collision). | All | T1, T3, T8 | `plugin-sdk` |
 | ✅ `plugin-registry` (§42 — shipped 2026-05-26 via factory PR #123) | Discovery + version pinning + signature verification + capability declaration. File-backed JSON with secrets-manager-resolvable trust anchors. | All | T1, T2, T8 | `plugin-sdk`, `secrets-manager` |
 | ✅ `module-marketplace-client` (§42 — shipped 2026-05-26 via factory PR #124) | Remote registry client for sharing plugins. Search / install / uninstall / update / draftPublish over an abstract `ModuleRegistrySource`. | All | T1, T2 | `plugin-registry`, `plugin-sdk` |
+| `client` | Planned for 0.9.0 (brief 339). A typed SDK over `crewhaus.hangar.v1` for applications outside a harness, with scoped browser streaming, signed webhooks and no runtime dependency. | none | T1, T2, T3 | — |
 
 ### Composable runtime modules (the building blocks)
 
@@ -381,7 +387,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `response-format-coercion` | Force structured JSON output; schema validation; retry-on-malformed. | All | T1, T2, T9 | `model-adapter`, `recovery-engine` |
 | 🟡 `reasoning-controller` | Thinking modes / extended thinking, effort levels. | CLI, CHN, CRW, GRPH, RES | T1, T5 | `model-adapter` |
 | 🟡 `speculation-engine` | Speculative decoding / pre-fetch of likely-next-tool. | CLI, RES | T1, T7 | `model-adapter`, `runtime-orchestrator` |
-| ✅ `cost-tracker` | Subscribe to `model_response`, emit `cost_accrual`. Per-run + per-tenant USD aggregation. | All | T1, T3, T7, T9 | `trace-event-bus` |
+| ✅ `cost-tracker` | Subscribe to `model_response`, emit `cost_accrual`. Per-run + per-tenant USD aggregation. The spend meter, `./spend`, is planned for 0.9.0 (brief 108). | All | T1, T3, T7, T9 | `trace-event-bus` |
 | 🟡 `auth-profiles` | Multi-provider creds; profile switching; rotation. | All | T1, T2, T8 | `secrets-manager` |
 | ✅ `embedder` | Embedding model adapter — OpenAI / Voyage / Cohere / local. | RAG, RES, CHN, MGD | T1, T2 | `model-adapter` |
 | ✅ `circuit-breaker` | Half-open circuit breaker wrapping a `ProviderAdapter`; refuses to stream while tripped so TypeScript-level fallback wiring can route around it. | All | T1, T3, T7 | `adapter-anthropic`, `model-router` |
@@ -445,6 +451,8 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `tool-navigate` | `Navigate(url)` driving `driver.goto(url)` to bootstrap BROW agents. | BROW | T1, T3 | `tool-builder`, `computer-use-driver` |
 | ✅ `tool-document-ingest` | `IngestDocument` — reads `.txt/.md/.csv/.json/.yaml` inline; PDF/DOCX/XLSX via pluggable parsers. | CLI, RAG, RES | T1, T3 | `tool-builder`, `tool-fs` |
 | ✅ `tool-image-generation` | Image-generation tool (DALL-E 3 / Replicate / Flux / SD). Calls remote API; non-destructive. | CLI, CHN, CRW, RAG, RES | T1, T2 | `tool-builder`, `secrets-manager` |
+| `tool-work` | Planned for 0.9.0 (brief 333). Work items, the Work tools and the publish engine that delivers an accepted item as one pull request from an isolated checkout. | Shapes whose spec lists it | T1, T3, T8 | `tool-builder`, `tool-catalog`, `tool-safety`, `control-contract`, `control-records`, `continuity-store`, `durable-execution`, `tool-git`, `tool-codehost`, `egress-classifier` |
+| `tool-project` | Planned for 0.9.0 (brief 336). Bounded, no-exec reading of a project, classified at TrustOrigin `source`, and the project record. | Shapes whose spec lists it | T1, T3, T8 | `tool-builder`, `tool-catalog`, `boundary-classifier`, `tool-git`, `tool-codehost`, `tool-document-ingest`, `tool-docs`, `tool-fetch`, `control-records`, `tool-work` |
 
 #### R5 — MCP & Protocol Hosts
 
@@ -480,6 +488,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ `continuity-store` | v0.3.0 focus/plans/goals/handoff stores under `.crewhaus/state/<spec>/`; claimed→proven proof ladder verified against event logs (child sessions included); trash-with-undo; tenant fencing. Brief: 292. | CLI, CHN, MGD, CRW, RES | T1, T3 | `infra-utils`, `event-log` |
 | ✅ `wiki-store` | v0.3.0 update-in-place semantic tier — versioned markdown articles (supersede, never delete), optimistic concurrency matching the Thredz PATCH contract, hybrid BM25+embedding recall with one-hop link expansion. Brief: 294. | CLI, CHN, MGD, CRW, RES | T1, T3 | `infra-utils`, `embedder` |
 | ✅ `dream-engine` | v0.3.0 scheduled consolidation (`memory.dream`) — deterministic phase (TTL sweep, dedupe/supersede, staleness flags, proof-excerpt freezing) + ONE budget-capped model session; window-idempotent across janitor/cron/CLI triggers. Brief: 297. | CLI, CHN, MGD | T1, T3 | `memory-store`, `wiki-store`, `continuity-store`, `durable-execution`, `cost-tracker` |
+| `people` | Planned for 0.9.0 (brief 328). What a harness loads to use a person's profile: the encrypted vault, the pack reader, note selection and rendering, and the reply screen. | CLI, CHN, MGD, RES | T1, T3, T8 | `control-contract`, `control-records`, `infra-utils`, `tool-safety`, `run-context`, `boundary-classifier`, `egress-classifier`, `model-service` |
 
 #### R7 — State, Sessions, Persistence
 
@@ -503,7 +512,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | Module | Responsibility | Targets | Tests | Depends on |
 |---|---|---|---|---|
 | ✅ `permission-engine` | Modes (default/plan/auto/bypass); 5-source RuleSet; `bypass` only via flag. | CLI, CHN, CRW, MGD, BATCH | T1, T3, T8 | `tool-permission-matcher`, `error-types` |
-| 🟡 `approval-classifier` | ML auto-approve for safe ops. | CLI, CHN | T1, T5, T8 | `permission-engine`, `model-adapter` |
+| 🟡 `approval-classifier` | ML auto-approve for safe ops; parked, not built (brief 083). | CLI, CHN | T1, T5, T8 | `permission-engine`, `model-adapter` |
 | `denial-tracking` | Count consecutive denials; fall back to ask. | CLI, CHN | T1, T9 | `permission-engine` |
 | 🟡 `guardrails` | Input/output guardrails (PII, jailbreak, secret leak, NSFW). | CHN, CRW, MGD, RES, VOICE | T1, T3, T8 | `model-adapter`, `permission-engine`, `pii-redactor` |
 | ✅ `policy-engine` | Side-effect classification + audit; composes with `permission-engine`. | CLI, CHN, MGD, BATCH | T1, T3, T8 | `permission-engine`, `audit-log`, `tool-permission-matcher` |
@@ -575,6 +584,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `knowledge-graph` | Optional KG layer over docs. | RAG, CRW, RES | T1, T5 | `document-store`, `model-adapter` |
 | 🟡 `ingestion-pipeline` | Crawl → load → chunk → embed → store. | RAG, RES | T1, T3, T7 | `document-loader`, `chunker`, `embedder`, `document-store` |
 | ✅ `citation-tracker` | Per-research-run JSONL with content-cache; idempotent record/dedup. | RAG, RES | T1, T4 | `tool-result-store`, `model-adapter` |
+| `knowledge-index` | Planned for 0.9.0 (brief 335). One item model over every knowledge store, a rebuildable search index and the one erasure door, never in a bundle. | All | T1, T3, T8 | `control-contract`, `control-records`, `memory-store`, `wiki-store`, `continuity-store`, `session-store`, `dataset-registry`, `harness-lifecycle`, `tool-state`, `tool-safety`, `infra-utils`, `tool-work`, `eval-grader` |
 
 #### R13 — Channels & Messaging
 
@@ -586,6 +596,7 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | 🟡 `channel-{signal,bluebubbles,email,sms,web}` | Additional adapters (v1.3 §45 long-tail). | CHN | T1, T2, T3 | `channel-adapter-base`, `secrets-manager` |
 | `channel-transport` | Stall watchdog, retries, batching. | CHN | T1, T7 | `infra-utils`, `retry-policy` |
 | `channel-binding` / 🟡 `channel-router` / `channel-features` / `directory-adapters` / 🟡 `media-payload` / 🟡 `pairing-flow` / `message-actions` | Channel-cross-cutting features and routing. | CHN | T1+ | per-row |
+| `slack-connector` | Planned for 0.9.0 (brief 340). The console-level Slack app that reaches every harness under linked authority, beside the per-daemon adapter bundles import. | All | T1, T2, T3, T8 | `control-contract`, `control-records`, `control-service`, `access-control`, `attention`, `channel-adapter-slack`, `service-setup`, `secrets-manager`, `boundary-classifier` |
 
 #### R14 — Scheduling & Background
 
@@ -632,20 +643,22 @@ These ship as **selectable building blocks** the factory wires into a generated 
 | ✅ Vendor exporters | `exporter-datadog` / `-honeycomb` / `-splunk` / `-newrelic` with credential-leak guards. | All | T1, T2, T8 | `otel-exporter` |
 | ✅ Production graders | `grader-nlg-metrics` / `-semantic-similarity` / `-safety-classifiers` / `-multimodal`. Reachable from `graders.yaml` under namespaced registry names with validated `opts:`. `safety.toxicity` / `safety.bias` now resolve a judge-backed classifier lazily from `CREWHAUS_EVAL_CLASSIFIER` or `opts.classifier`, with `safety.toxicity.heuristic` / `safety.bias.heuristic` as the honest offline keyword mocks (never a silent default for the real names); `multimodal.imageOcrThenGrade` resolves OCR from `CREWHAUS_EVAL_VISION_MODEL` or `opts.model` and grades the text with `opts.textGrader`. `semantic.similarity`'s ROUGE-L degradation is now reported at run level (`aggregates.semanticFallback` + a stderr warning) and disableable from YAML. **`multimodal.audioTranscriptMatch` remains a wiring-explaining thrower** — no bundled adapter carries audio input, so a plugin/programmatic `SttFn` is the only route. | EVAL | T1, T8, T9 | `grader-registry`, `embedder` |
 | ✅ Runner-local grader packs | `calibration.abstentionAware` (answered-correct / answered-wrong / **not-attempted** classification, emitting `aggregates.calibration` = answer rate, abstention rate, accuracy-when-answered) and `consistency.paraphraseGroup` (a per-sample **vacuous pass** whose real work is at aggregation: verdict consistency within a `metadata.paraphrase_group`, emitting `aggregates.paraphraseConsistency`). Declaring the latter shifts `meanScore` upward by construction — `passRate` under `all`/`any` is unaffected. | EVAL | T1 | `eval-runner`, `eval-grader` |
+| `quality-service` | Planned for 0.9.0 (brief 330). Carries every improvement to a decision through change records and a held-out check, and folds each harness's quality read model. | All | T1, T3, T5, T8 | `control-contract`, `control-records`, `eval-report`, `eval-ops`, `eval-grader`, `dataset-registry`, `spec-patch`, `spec-changelog`, `feedback-distill`, `attention` |
+| `run-inspect` | Planned for 0.9.0 (brief 332). Pure folds that explain a run from its records, for `crewhaus runs inspect` and the console's inspector. | All | T1, T3, T4 | `control-contract`, `control-records`, `session-store`, `event-log`, `provability`, `feedback-distill`, `harness-supervisor` |
 
 #### R16 — UI / TUI / Voice / Media
 
 | Module | Responsibility | Targets | Tests | Depends on |
 |---|---|---|---|---|
 | 🟡 `tui-runtime` / `tui-keybindings` / 🟡 `repl-launcher` / 🟡 `web-ui` | Terminal + web client front-ends. | CLI, CHN, MGD | T1, T3 | per-row |
-| ✅ `gateway-server` / ✅ `gateway-protocol` | HTTP+WebSocket+JSON-RPC server; versioned wire protocol. | CHN, MGD, BATCH | T1, T2, T7, T8 | `secrets-manager`, `runtime-orchestrator`, `permission-engine` |
+| ✅ `gateway-server` / ✅ `gateway-protocol` | HTTP+WebSocket+JSON-RPC server; versioned wire protocol, with the `crewhaus.control.v1` client at `./control-client`. | CHN, MGD, BATCH | T1, T2, T7, T8 | `secrets-manager`, `runtime-orchestrator`, `permission-engine` |
 | ✅ `voice-runtime` | Provider-agnostic realtime audio adapter (OpenAI / Vapi). PCM 16-bit mono 24kHz. | VOICE | T1, T2, T7 | `model-adapter`, `audio-stream` |
 | ✅ `vad-engine` | Energy + ZCR heuristic VAD over PCM 16-bit frames. | VOICE | T1, T5, T7 | `audio-stream` |
 | ✅ `barge-in-controller` | Hysteresis-gated coordinator (VAD + RealtimeAdapter). Default 4 frames in 200ms. | VOICE | T1, T3 | `voice-runtime`, `vad-engine` |
 | 🔴 `audio-stream` | PCM/Opus I/O streaming; buffering. | VOICE | T1, T2, T7 | `infra-utils` |
 | ✅ `call-session` | Call lifecycle state machine; pluggable TelephonyAdapter. | VOICE | T1, T3 | `voice-runtime`, `channel-adapter-base` |
 | ✅ Telephony adapters | `createTwilioTelephonyAdapter` / `createLiveKitSipAdapter` (§30). | VOICE | T2 | `call-session` |
-| 🟡 `dtmf-handler` / 🟡 `prosody-controller` / 🟡 `media-service` / 🟡 `canvas-host` / 🟡 `notifications-service` | Voice + media + canvas surface. | VOICE, CHN | T1+ | per-row |
+| 🟡 `dtmf-handler` / 🟡 `prosody-controller` / 🟡 `media-service` / 🟡 `canvas-host` / 🟡 `notifications-service` | Voice + media + canvas surface; `notifications-service` is folded into `attention` (brief 331). | VOICE, CHN | T1+ | per-row |
 | ✅ `secrets-manager` | (See R8 — R16 consumers wire it for telephony/canvas secrets.) | All | T1, T2, T8 | — |
 
 #### R17 — Infrastructure & Cross-Cutting

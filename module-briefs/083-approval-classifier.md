@@ -1,6 +1,8 @@
 # approval-classifier
 
-Status: planned
+> **Parked, and not built.** An approver that grants by classifier score is authority without evidence. A decision stays with a person, or with an owner's rule that gates on evidence ([#517](https://github.com/crewhaus/factory/issues/517)). This brief is kept for historical planning context, and no package exists under this name.
+
+Status: parked
 Dependency phase: 7 - Permission/policy
 Catalog layer: R8 - Permission, Policy, Safety
 Origin in ordering: named in Part G

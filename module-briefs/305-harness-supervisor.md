@@ -29,6 +29,7 @@ Owns:
 - **`scrub.ts`** — the credential scrubber on the **read** path. Any harness-env value ≥ `MIN_SCRUBBED_VALUE_LENGTH = 8` becomes `«NAME»`, except the `NON_SECRET_ENV_KEYS` allow-list. The raw `logs/<runId>.log` is unscrubbed by construction, which is why it is an explicit exclusion from the console's generic inspector.
 - **`shutdown.ts`** and **`queue.ts`** — manager-wide shutdown (`SHUTDOWN_GRACE_MS = 5_000` per child, `SHUTDOWN_DEADLINE_MS = 15_000` cap on confirming one exit; daemons **detach** and are adopted by the next boot, everything else is stopped, running jobs are signalled and left open for `restore()` to reopen as `interrupted`), and the job queue with `DEFAULT_JOB_CONCURRENCY = 3` and the harness mutex.
 - **`process-ops.ts`** — the POSIX and Windows adapters. On Windows, `terminate` is `taskkill /PID <pid> /T` and `forceKill` adds `/F`; liveness and start time come from PowerShell `Get-Process` / `Get-CimInstance Win32_Process` as a per-call `spawnSync` with a 5 s timeout.
+- **Manager helpers** — moved here from `hangar-server`, so a head that drives a daemon reaches them without an HTTP server: the env merge (`env-file.ts`), the `.env` writer (`env-writer.ts`), the scrubbers (`harness-scrub.ts`), containment (`containment.ts`), and, on two subpaths, run detail (`./run-detail`) and the job vocabulary (`./job-kinds`).
 
 Does not own: the checks themselves (`preflight`), the registry (`harness-registry`), the control plane's wire contract (`gateway-protocol`), or either front end.
 
@@ -46,7 +47,7 @@ Adopted-run scrubbing is best-effort by construction: the runfile records scrub 
 
 ## First Implementation Slice
 
-Shipped in factory PR #373 (M2, with `crewhaus daemon`), extended by #375 (manager-wide shutdown and the job-queue semantics) and hardened by #376, whose first gating Windows CI run found six real bugs — none of them the predicted spawn problem, all path handling, two of them containment checks written as `startsWith(root + "/")`, which never matches `D:\a\b\c`, and one of which failed **open**.
+Shipped in factory PR #373 (M2, with `crewhaus daemon`), extended by #375 (manager-wide shutdown and the job-queue semantics) and hardened by #376, whose first gating Windows CI run found six real bugs — none of them the predicted spawn problem, all path handling, two of them containment checks written as `startsWith(root + "/")`, which never matches `D:\a\b\c`, and one of which failed **open**. Factory PR #509 then moved the manager helpers here from `hangar-server` with no change in behaviour.
 
 ## Study References
 

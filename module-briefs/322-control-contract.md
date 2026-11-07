@@ -32,6 +32,27 @@ Owns:
 
 Does not own: reading or writing anything — record formats, locks, claims, segments, tail readers, the file positions a cursor encodes, and reporting a gap or a reset (`control-records`, brief 324; no other package opens a control file directly); principals, credentials, grants, links, `authenticate()` and `authorize()` (`access-control`, brief 323); running anything — the command executor and recovery, the decision service (supersede, deadlines, fallbacks, standing rules), deployments and activation, operator controls, retire, the ref resolver, the projector and its streams, and computing a harness's capabilities from `SHAPE_RUN_CONTROLS`, all composed by `wireControl` (`control-service`, brief 325); first-decision-wins for tool approvals, the consume claim and the decision log (`session-store`, with runtime-core parking and consuming directly and calling `verifyDecision` first); the HTTP layer — the choke point, the route table for the legacy `/api` routes, which keep their own shapes, the handlers and masking at the exit (`hangar-server`); the daemons' `crewhaus.control.v1`, server and client (`gateway-protocol`), and the managed `crewhaus.v1` (its wire contract in `gateway-protocol`, its server in `gateway-server`); classifying run input that arrives through the API, at TrustOrigin `api` — the contract only names the `input_blocked` code a refused input answers with; and the SDK package itself.
 
+## Delegation (`./delegation`)
+
+Status: planned
+
+The contract behind decisions an owner delegates ([#517](https://github.com/crewhaus/factory/issues/517)). Nothing is delegated until an owner turns a rule on, and this adds no package. A separate entry point because the SDK has no use for it: like `.`, the entry has no dependency, and `.` neither imports nor re-exports it, so `@crewhaus/client` does not bundle the authorizer or the consequences templates. The record keys and `verifyDecision` stay in `.`, and that check takes the rule's computed state from its caller, as it takes every other record.
+
+- **Types.** `GateId`, `GateVerdict` (`{gate, boundTo, outcome, evidence, at, freshUntil, reason?}`, where only `pass` passes, `pending` waits and anything else refuses), `RollbackPlan` and `Watch`.
+- **Pure functions.** `effectiveRuleState` folds a rule's rows. `authorizeDelegated` runs six ordered checks: the rule is active and claims this decision's kind; the subject is inside the rule and the active ceiling, and the policy revision still matches; the owner who turned it on still holds the authority; the harness is not paused, disabled or out of budget; every required gate is `pass`, bound to this revision and fresh; and the use cap and one-at-a-time limit hold. Otherwise the decision waits for a person, because a rule never denies. `renderConsequences` builds the consequences page from closed templates, and `decidedByText` words who decided for every surface.
+- **`ASSISTANT_ELIGIBLE`.** The closed list of operations an assistant rule may cover, keyed by operation and permission (brief 301).
+- **The rule's lifecycle.** A `MACHINES` entry: enabled, revised, suspended and resumed, and the terminal revoked, expired and exhausted.
+
+Changes to what `.` already holds, each additive:
+
+- **Receipts** gain a closed `authority {kind, rule, revision, clause?}`, with the kinds `delegation` and `assistant-rule`.
+- **Decision records.** `resolvedBy` gains the value `delegation`, with `delegation {rule, revision}` and `appliedBy`, and no record names a person as the decider.
+- **`verifyDecision`** gains a delegated branch, which re-checks the rule and its owner's authority at consume.
+- **Permissions** `h.delegation.propose` and `h.delegation.suspend`, added through the area registration.
+- **Receipt kinds** for enabling, proposing, changing, pausing, resuming, revoking, applying and keeping; for executing and reverting a merge; for executing and rolling back a rollout; and `assistant.act`.
+
+It lands with `feat(control-service): an owner can delegate a narrow action under a rule that expires, can be revoked and is checked before every use`.
+
 ## Inputs and Outputs
 
 Inputs: strings to check, parse or classify (ids, refs, cursors); records the caller has already read (run rows; a decision with its overlays, its binding and the approver projection) together with the consuming run's scope, revisions and places, and the current time; a request or response body for `./schemas`; and, for `./http`, a server URL, a token and an operation.
