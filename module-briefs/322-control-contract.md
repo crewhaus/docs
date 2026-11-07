@@ -10,7 +10,7 @@ Test layers: T1, T2, T9
 
 ## Purpose
 
-The one description of the control plane that every surface shares: what each id looks like, which states a run, a command, a decision and a deployment can be in and how they move, what each permission is called, what every operation of the `crewhaus.hangar.v1` API takes and returns, and what an error, an event and a capability look like on the wire. It holds types, data, minters and a few pure functions; it opens no file and makes no network call.
+The one description of the control plane that every surface shares: what each id looks like, which states a run, a command, a decision and a deployment can be in and how they move, what each permission is called, what every operation of the `crewhaus.hangar.v1` API takes and returns, and what an error, an event and a capability look like on the wire. It holds types, data, minters and a few pure functions. Its main entry opens no file and makes no network call; only `./http` makes a request, when a caller asks it to.
 
 In 0.9.0, Home (the Hangar console), the CLI, the background resident service, the daemons, Slack and the SDK all act on the same control records. A grant made in Slack, shown in Home and listed by the CLI is one decision with one id and one state only if all three read it through the same shapes. Today those shapes have no single owner: the session-id grammar is copied by hand across many packages, run ids come in several shapes from separate minters, and the console's route map is a file the UI and the server keep in step. This package gives them one, the way claim-ledger did for the citation grammar (brief 314).
 
@@ -34,9 +34,9 @@ Does not own: reading or writing anything — record formats, locks, claims, seg
 
 ## Inputs and Outputs
 
-Inputs: strings to check, parse or classify (ids, refs, cursors); records the caller has already read (run rows; a decision with its overlays, its binding and the approver projection) together with the consuming run's scope, revisions and places, and the current time; and a request or response body for `./schemas`.
+Inputs: strings to check, parse or classify (ids, refs, cursors); records the caller has already read (run rows; a decision with its overlays, its binding and the approver projection) together with the consuming run's scope, revisions and places, and the current time; a request or response body for `./schemas`; and, for `./http`, a server URL, a token and an operation.
 
-Outputs: minted ids; parsed refs and run-id families; transition verdicts; effective run and decision states; a `verifyDecision` verdict, a pass or the failed check's reason; the area modules, the operation table, the command kinds, the permission vocabulary, the role matrix, the event taxonomy, the exit map and the capability names as plain data; rendered and parsed twins; event ids and sensitivities; error, list and event envelopes; encoded and decoded cursors; and the zod validators.
+Outputs: minted ids; parsed refs and run-id families; transition verdicts; effective run and decision states; a `verifyDecision` verdict, a pass or the failed check's reason; the area modules, the operation table, the command kinds, the permission vocabulary, the role matrix, the event taxonomy, the exit map and the capability names as plain data; rendered and parsed twins; event ids and sensitivities; error, list and event envelopes; encoded and decoded cursors; the zod validators; and, from `./http`, a response or a parsed event stream.
 
 ## Dependency Notes
 
