@@ -1,10 +1,12 @@
 # notifications-service
 
-Status: planned
+> **Folded into `attention` (brief 331).** Notifications become that package's planned `./notifications` export ([#517](https://github.com/crewhaus/factory/issues/517)), so no package exists under this name. Its sinks are in-app, the host's OS notifier, email, Slack through an injected sender, and a signed owner-only webhook. The rest of this page is kept as the historical brief.
+
+Status: folded into attention (brief 331), planned
 Dependency phase: 17 - UI/TUI/Voice/Media
 Catalog layer: R16 - UI / TUI / Voice / Media
 Origin in ordering: named in Part G
-Workspace home: not created yet; likely packages/notifications-service unless folded into a target bundle
+Workspace home: packages/attention, the `./notifications` export
 Targets: CLI, CHN, RES, BATCH
 Test layers: T1, T3
 

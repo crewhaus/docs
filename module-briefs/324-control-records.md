@@ -47,6 +47,34 @@ Owns:
 
 Does not own: ids, state machines, the event envelope and the cursor's encoding (`control-contract`); what commands do — idempotency rules, execution and recovery, the operator controls, activation, the decision service, the read models and the streams served over HTTP (`control-service`); tool-approval decisions — first-decision-wins, the consume claim and the decision log in `approvals.d/` beside the session root — which `session-store` builds on these claims, locks and segments; principals, grants, links and `authorize()` (`access-control`); process lifetimes — the supervisor's own `runs.jsonl`, which records each process rather than each run, and its runfiles and `daemon.lock` (`harness-supervisor`); writing and enforcing `settings.json` rules (`permission-engine`); when each run row is written (`control-service`, `runtime-core`, `harness-supervisor` and `gateway-server`'s `./managed-runs`); and the floor, masking and the raw inspector (`runtime-core`, `hangar-server`).
 
+## Budget periods (`./budget`)
+
+Status: planned
+
+A harness's spend across processes, sub-agents, evals, optimizer calls and rehearsals, per day, week or month in an IANA zone ([#516](https://github.com/crewhaus/factory/issues/516)). Spenders append content-free reserve, settle and release lines to a durable ledger, `.crewhaus/run/control/budget/<periodId>/NNNNNN.jsonl`, and a raise appends a top-up. Closed periods roll up into `budget/periods.jsonl`, and admission reads the atomic `budget-state.json`.
+
+The fold is crash-safe: a reservation counts until it is settled or released, or until its holder is provably dead and its lease has passed, so a crash leaks nothing. An exhausted period is `intakeVerdict`'s second independent reason, and neither resume nor SLO recovery lifts it. No new dependency.
+
+It lands with `feat(cost-tracker): spend is never a guessed $0: unknown when unpriced, reserved before each call, budgeted by period`.
+
+## The connection store
+
+Status: planned
+
+Workspace connections under `<hangarRoot>/connections/` (`con_` records plus a rewritable subjects file) and the revision-guarded writer of each harness's binding file, `.crewhaus/run/control/connections.json` ([#515](https://github.com/crewhaus/factory/issues/515)). One connection lifecycle is a `MACHINES` entry shared by every kind of connection, and retire's revokers read bindings through this package's reader.
+
+It lands with `feat(tool-project): repository connections, bounded no-exec discovery and the project record`.
+
+## The delegation ledgers
+
+Status: planned
+
+The records behind decisions an owner delegates ([#517](https://github.com/crewhaus/factory/issues/517)). Nothing is delegated until an owner turns a rule on. A harness's rules sit in `.crewhaus/run/control/delegations.jsonl`, its application lines in `.crewhaus/run/control/delegation-log/NNNNNN.jsonl`. Assistant rules keep the same pair under the Hangar root. Rule rows hold content-free terms and digests, application lines hold each check's outcome and evidence refs, and both are segmented and never compacted.
+
+Writes go through the claim-and-ledger primitive, a rule row through `casAppend`. Readers cache for one second, and the moment before an effect reads uncached, so a revocation between a check and its effect wins. These records sit behind [#507](https://github.com/crewhaus/factory/issues/507)'s runtime-state floor.
+
+It lands with `feat(control-service): an owner can delegate a narrow action under a rule that expires, can be revoked and is checked before every use`.
+
 ## Inputs and Outputs
 
 Inputs: a harness directory, a session root or the Hangar root; records built from `control-contract`'s ids and states, carrying refs and digests rather than content; and, for a reader, a source and an optional position.
