@@ -24,7 +24,7 @@ Owns:
 - **`previewUpgrade`.** Returns the migrations, this harness's support changes, the default-on notes that apply to this spec and no others, the files that change against the active build, and whether `compile --strict` still passes. The creation flow's upgrade view renders it, and its notes registry becomes the 0.9.0 row of `spec-changelog`'s upgrade-notes table.
 - **Build identity.** `hashSpecSource` and `bundleDigest`, re-exported rather than kept as second copies. Brief 022's planned `./policy` entry on `@crewhaus/ir` holds them, the first under the name `specRevision`.
 - **The shared lint pipeline.** `crewhaus lint` calls `checkSpec`, so there is one pipeline, and its JSON format adds `schema`, `issues` and `unknownKeys` beside `ok` and `findings`.
-- **Which schema answered.** Every result names it, from `specSchemaIdentity()` in `@crewhaus/spec`. When the creation flow asks a harness's own pinned CrewHaus as well, that answer can only narrow what Home accepts.
+- **Which schema answered.** Every result names it, from `specSchemaIdentity()`, a planned export of `@crewhaus/spec`. When the creation flow asks a harness's own pinned CrewHaus as well, that answer can only narrow what Home accepts.
 
 The model walk it uses for the credential list, `enumerateModelSlots`, moves from `apps/cli/src/model-slots.ts` to the planned `./slots` entry on `@crewhaus/ir` and gains the slots it misses.
 
