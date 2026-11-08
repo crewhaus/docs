@@ -34,13 +34,13 @@ Outputs: the fake's address, responses in the service's wire shape, recorded req
 
 ## Dependency Notes
 
-None, on purpose: it is a leaf with no workspace dependency, so any package's tests can import it. Importers use a devDependency with `workspace:*`, never a semver range.
+None, on purpose: it is a leaf with no workspace dependency, so any package's tests can import it. Importers use a devDependency with `workspace:*`, never a semver range. Recordings drop credential headers and mask body fields by key name, with a word list of the package's own, because a leaf cannot import the product's masker; its own test pins that list against names the product treats as credentials.
 
 The name rule and the guards are the ones in brief 326: an unscoped name with no `crewhaus` prefix, plus `"private": true` and `"version": "0.0.0"`, held by one guard file under `scripts/`. No publishable package may name it in `dependencies`, `peerDependencies` or `optionalDependencies`. Its modules avoid the test-only file names `scripts/test-only-modules.test.ts` watches.
 
 ## First Implementation Slice
 
-Lands with `hangar-e2e` in one change: the five fakes, and fidelity tests in `adapter-anthropic` and `channel-adapter-slack` that drive each fake through the real client. The root `test` script gains the package's filter, so its own tests run in `ci`.
+Lands with `hangar-e2e` in one change: the five fakes, and fidelity tests that drive `fakeModel`, `fakeSlack` and `fakeSmtp` through the real clients, and `fakeGitHub`'s smart HTTP through the real `git`. The root `test` script gains the package's filter, so its own tests run in `ci`.
 
 ## Study References
 
@@ -48,8 +48,10 @@ The real clients in `adapter-anthropic` and `channel-adapter-slack`, whose reque
 
 ## Validation Plan
 
-Catalog tests: T1, T2. Primary risk: **a fake that diverges from its service**, so a test passes against something no real service does. Fidelity tests drive each fake through the real client, and recorded bodies are masked.
+Catalog tests: T1, T2. Primary risk: **a fake that diverges from its service**, so a test passes against something no real service does. Fidelity tests drive `fakeModel`, `fakeSlack` and `fakeSmtp` through the real clients and `fakeGitHub`'s smart HTTP through the real `git`; `fakeThredz` is reached through hangar-server's proxy in a console journey, and it and each endpoint a later PR adds gain a fidelity test when a test first holds them to a real client's requests.
 
 Second risk: **a fake that listens beyond the machine.** A bind test checks the listening address itself, because a test that only fetches the address it bound cannot tell loopback from a wildcard.
 
-Definition of done: `bun test packages/service-fakes/src` green, in the root suite; the fidelity tests green in the two client packages; and no secret-shaped literal in the package.
+Third risk: **a recording that keeps a credential**, answered by the key-name mask and the test that pins its words.
+
+Definition of done: `bun test packages/service-fakes/src` green, in the root suite; the fidelity tests green where they live; and no secret-shaped literal in the package.

@@ -26,7 +26,7 @@ Owns:
 - **Callbacks.** The manifest, setup and user sign-in callbacks are public `GET /oauth/github/…` routes on the main listener. Each takes a single-use state bound to the member who started the flow and to the Host, and exchanges its code on the server. They carry a code and a state, never text for a model.
 - **User linking.** The App's user sign-in reads the id, revokes the token at once and records a `github:<id>` link, so reviews and merges are attributed to a member.
 
-Merging is not a preset's to grant. Nothing here merges a pull request. GitHub lets contents and pull-request write merge, so the step that grants them asks the owner to turn on branch protection that requires a review. Each merge stays a person's decision, or an owner's separate rule (brief 333).
+Merging is not a preset's to grant. Nothing here merges a pull request. GitHub lets contents and pull-request write merge, so the step that grants them asks the owner to turn on branch protection that requires a review. Each merge stays a person's decision, or an owner's separate rule (brief 333), and a delegated merge still waits for that review unless the owner lets the App bypass it on GitHub.
 
 Does not own: the credential seam a tool reads, the planned `./credentials` entry on `@crewhaus/tool-codehost`, with its environment and lease providers; the publish engine and git custody (`tool-work`, brief 333); repository connections and the binding store (`control-records`, brief 324); where secrets rest (`secrets-manager`'s Home secret store); the receiver listener and ingress registry (`control-service`, brief 325); the `tool_config.codehost.installation` form ([#514](https://github.com/crewhaus/factory/issues/514)); and the Slack app (`slack-connector`, brief 340).
 
