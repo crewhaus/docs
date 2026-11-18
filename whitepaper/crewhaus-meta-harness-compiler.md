@@ -494,7 +494,7 @@ The invitation follows from the reference class. Build tools earn their place by
 
 [21] Google Cloud. "Gemini Enterprise Agent Platform overview." Google Cloud Documentation, 2025. https://docs.cloud.google.com/gemini-enterprise-agent-platform/overview
 
-[22] Microsoft. "Microsoft Agent Framework." Microsoft Learn / GitHub, 2026. Primary documentation: https://learn.microsoft.com/en-us/agent-framework/. Repository: https://github.com/microsoft/agent-framework. Migration guide: https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-semantic-kernel/
+[22] Microsoft. "Microsoft Agent Framework." Microsoft Learn / GitHub, 2026. Primary documentation: https://learn.microsoft.com/en-us/agent-framework/. Migration guide: https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-semantic-kernel/
 
 ---
 
