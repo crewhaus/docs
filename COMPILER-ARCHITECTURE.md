@@ -289,6 +289,8 @@ Two `compile()`-adjacent gates reuse the same variant-agnostic `collectToolNames
 - `assertToolScopesStrict(ir)` — the FR-002 offline scope audit; throws `CompilerError` on any outward-by-name sink (`mcp__*` or a definitionally-outward built-in) whose `scope: "external"` cannot be verified offline. It is the library-level equivalent of `crewhaus compile --strict`, and is *exported* so a consumer that drives `lower()` + an emitter directly (e.g. the compiler-worker's `cf-worker` branch) applies the identical rule instead of re-deriving it.
 - `assertCfWorkerToolsEdgeSafe(ir)` — the cf-worker edge-safety gate (see [The cf-worker emitters now run the real loop](#the-cf-worker-emitters-now-run-the-real-loop-on-crewhausworker-runtime) below). Returns `CompileWarning`s with `code: "edge-unsafe-tool"` for unverifiable custom tools and *throws* on host tools.
 
+`assertCfWorkerSafetyEnforced(spec, ir)` is the cf-worker edge gate. It reads the parsed spec rather than the tool walk, walks `CF_WORKER_GATED_ROOTS` and throws one `CompilerError` naming every declared leaf the allow-list `CF_WORKER_ENFORCED_KEYS` does not admit; it returns the informational `edge-tool-needs-allow`, `edge-permission-mode` and `edge-public-chat` notices. Both cf-worker emit paths (`crewhaus compile --emit-as cf-worker` and the compiler-worker's `POST /compile`) run it after `assertCfWorkerToolsEdgeSafe`.
+
 ## Validating passes run unconditionally (v0.4.0)
 
 The ir-passes now split into two families, and `compile()` treats them differently. From the pass header ([packages/ir-passes/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/ir-passes/src/index.ts)):
@@ -507,7 +509,7 @@ Through 0.3.x the three `target-cf-worker-*` emitters (`cli` / `workflow` / `gra
 The generated `worker.js` imports the runtime directly ([packages/target-cf-worker-cli/src/index.ts](https://github.com/crewhaus/factory/blob/main/packages/target-cf-worker-cli/src/index.ts)):
 
 ```ts
-import { runWorkerLoop, createEdgeAnthropicAdapter } from "@crewhaus/worker-runtime";
+import { runWorkerLoop, createEdgeAnthropicAdapter, chatAuthRefusal } from "@crewhaus/worker-runtime";
 // …
 const result = await runWorkerLoop({ /* platform, limits, tools, … */ });
 ```
@@ -518,7 +520,9 @@ Because tools now *run* on the edge, the blanket rejection is replaced by a **pa
 
 - **rejected** — HOST tools (bash / filesystem / code-execution / device): these need a process/filesystem/sandbox the edge does not provide, so the emitter (and `assertCfWorkerToolsEdgeSafe`) **throws `CompilerError`** — a clear compile error beats a bundle that 500s at runtime.
 - **warned** — unrecognised CUSTOM tools whose edge-safety the compiler can't verify offline: permitted, but surfaced as a `CompileWarning` (`code: "edge-unsafe-tool"`) so a host-reaching custom tool is never shipped silently.
-- **allowed** — verified edge-safe built-ins, emitted into the Worker's tool catalog.
+- **allowed** — verified edge-safe built-ins, emitted into the Worker's tool catalog, each run when an `alwaysAllow` rule covers the call.
+
+The emitted worker passes the spec's permission rules to every `runWorkerLoop` call, so a tool runs only when an `alwaysAllow` rule covers the call, and `POST /chat` runs `chatAuthRefusal` before the body is read.
 
 This is the same Pillar-3 shape as `assertToolScopesStrict`: an exported policy function over a lowered IR's tool names, shared by the library gate and the emitter so the offline rule has exactly one implementation.
 
