@@ -24,7 +24,7 @@ Does not own neighboring concerns from the same phase unless the catalog explici
 
 Status: planned
 
-An in-process meter that makes a budget hold for runs that spend at the same time. Every model call reserves its worst case before dispatch, settles on the response, and releases a call that was never sent; a sent call that fails counts the usage it reported, or its worst case. A nested call never waits on the call running it. A call is admitted while spend so far plus other in-flight reservations stays under the cap, so a run that makes one call at a time decides as it did before. Sub-agents spend from the parent's meter as they go, with a nested cap.
+An in-process meter that makes a budget hold for runs that spend at the same time. Every model call reserves its worst case before dispatch, settles on the response, and releases a call that reached no provider; a call the provider refused outright counts $0, and any other call that fails, or whose reply ends before its final counts, counts the usage it reported, or its worst case. A nested call never waits on the call running it. A call is admitted while spend so far plus other in-flight reservations stays under the cap, so a run that makes one call at a time decides as it did before. Sub-agents spend from the parent's meter as they go, with a nested cap.
 
 The worst-case estimates move here from eval-optimizer-orchestrator's budget gate (`packages/eval-optimizer-orchestrator/src/budget-gate.ts`), which re-exports them. The period ledger is an injected port (brief 324's `./budget`), so this package stays filesystem-free: the worker-safe compiler imports it (`packages/compiler/src/index.ts`). No new dependency.
 
